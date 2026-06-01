@@ -20,11 +20,48 @@ enum Theme {
     }
 
     enum Typography {
-        /// Large emphasized number used for headline metrics.
-        static func metric() -> Font { .system(size: 44, weight: .bold, design: .rounded) }
-        static func title() -> Font { .system(size: 22, weight: .semibold, design: .rounded) }
-        static func body() -> Font { .system(size: 16, weight: .regular, design: .rounded) }
-        static func caption() -> Font { .system(size: 13, weight: .medium, design: .rounded) }
+        private enum Family {
+            static let logo = "Michroma-Regular"
+            static let rajdhaniRegular = "Rajdhani-Regular"
+            static let rajdhaniMedium = "Rajdhani-Medium"
+            static let rajdhaniSemiBold = "Rajdhani-SemiBold"
+            static let rajdhaniBold = "Rajdhani-Bold"
+            static let spaceMonoRegular = "SpaceMono-Regular"
+            static let spaceMonoBold = "SpaceMono-Bold"
+        }
+
+        /// Wordmark / logo (Michroma).
+        static func logo(size: CGFloat = 28) -> Font {
+            .custom(Family.logo, size: size)
+        }
+
+        /// Screen titles and prominent headings (Rajdhani).
+        static func title(size: CGFloat = 22) -> Font {
+            .custom(Family.rajdhaniSemiBold, size: size)
+        }
+
+        /// Primary buttons (Rajdhani).
+        static func button(size: CGFloat = 16) -> Font {
+            .custom(Family.rajdhaniSemiBold, size: size)
+        }
+
+        static func body(size: CGFloat = 16) -> Font {
+            .custom(Family.rajdhaniRegular, size: size)
+        }
+
+        static func caption(size: CGFloat = 13) -> Font {
+            .custom(Family.rajdhaniMedium, size: size)
+        }
+
+        /// Headline metrics and stat values (Space Mono).
+        static func metric(size: CGFloat = 44) -> Font {
+            .custom(Family.spaceMonoBold, size: size)
+        }
+
+        /// Secondary stat labels (Space Mono).
+        static func statLabel(size: CGFloat = 13) -> Font {
+            .custom(Family.spaceMonoRegular, size: size)
+        }
     }
 
     enum Spacing {

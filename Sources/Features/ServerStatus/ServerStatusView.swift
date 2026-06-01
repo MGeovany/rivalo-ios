@@ -11,7 +11,7 @@ struct ServerStatusView: View {
 
             VStack(spacing: Theme.Spacing.large) {
                 Text("RIVALO")
-                    .font(Theme.Typography.title())
+                    .font(Theme.Typography.logo())
                     .tracking(4)
                     .foregroundStyle(Theme.Colors.accent)
 
@@ -21,7 +21,7 @@ struct ServerStatusView: View {
                     store.send(.checkTapped)
                 } label: {
                     Text("Check again")
-                        .font(Theme.Typography.body())
+                        .font(Theme.Typography.button())
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Theme.Colors.accent)
@@ -51,7 +51,7 @@ struct ServerStatusView: View {
 
             case let .online(database):
                 Text("Online")
-                    .font(Theme.Typography.metric())
+                    .font(Theme.Typography.title())
                     .foregroundStyle(Theme.Colors.positive)
                 Text("database: \(database)")
                     .font(Theme.Typography.caption())
@@ -59,7 +59,7 @@ struct ServerStatusView: View {
 
             case let .offline(message):
                 Text("Offline")
-                    .font(Theme.Typography.metric())
+                    .font(Theme.Typography.title())
                     .foregroundStyle(Theme.Colors.negative)
                 Text(message)
                     .font(Theme.Typography.caption())
