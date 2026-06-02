@@ -40,12 +40,17 @@ struct AuthenticationFeature {
         case submitTapped
         case signInResult(Result<Session, AuthError>)
         case signUpResult(Result<SignUpResult, AuthError>)
-        case recoverResult(Result<Void, AuthError>)
+        case recoverResult(Result<RecoverSent, AuthError>)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
             case authenticated(Session)
         }
+    }
+
+    /// Marker for a successful password-recovery request (no payload).
+    enum RecoverSent: Equatable {
+        case sent
     }
 
     @Dependency(\.authClient) var authClient
@@ -112,7 +117,7 @@ struct AuthenticationFeature {
                     return .run { send in
                         do {
                             try await authClient.recoverPassword(email)
-                            await send(.recoverResult(.success(())))
+                            await send(.recoverResult(.success(.sent)))
                         } catch {
                             await send(.recoverResult(.failure(error as? AuthError ?? .invalidResponse)))
                         }
@@ -134,7 +139,7 @@ struct AuthenticationFeature {
                 state.infoMessage = "Check your email to confirm your account, then sign in."
                 return .none
 
-            case .recoverResult(.success):
+            case .recoverResult(.success(.sent)):
                 state.isSubmitting = false
                 state.infoMessage = "If an account exists for this email, you will receive reset instructions."
                 return .none
