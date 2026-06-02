@@ -23,6 +23,21 @@ struct SessionsFeature {
         var recentActivities: [SportSession] {
             Array(sortedByRecent.prefix(20))
         }
+
+        var totalDistanceKm: Double {
+            sessions.reduce(0) { $0 + $1.distanceM } / 1000
+        }
+
+        var averageDurationMin: Int? {
+            guard !sessions.isEmpty else { return nil }
+            return sessions.reduce(0) { $0 + $1.durationS } / sessions.count / 60
+        }
+
+        var averageHr: Int? {
+            let values = sessions.compactMap(\.hrAvg)
+            guard !values.isEmpty else { return nil }
+            return values.reduce(0, +) / values.count
+        }
     }
 
     enum Action {

@@ -5,6 +5,8 @@ struct SessionSample: Equatable, Codable, Sendable, Identifiable {
     let tOffsetS: Int
     let hr: Int?
     let speedKmh: Double?
+    /// 1 or 2 for structured matches; nil otherwise.
+    var half: Int?
 
     var id: Int { tOffsetS }
 }
@@ -24,6 +26,8 @@ struct SportSession: Equatable, Codable, Identifiable {
     let intensity: Double?
     let caloriesKcal: Double?
     let source: String
+    let mode: String?
+    let halftimeOffsetS: Int?
     let createdAt: Date
     /// Time series; present on detail reads, absent on the list.
     let samples: [SessionSample]?
@@ -83,6 +87,8 @@ struct NewSportSession: Equatable, Codable, Sendable {
     var sprints: Int
     var intensity: Double?
     var source: String
+    var mode: String = "quick"
+    var halftimeOffsetS: Int?
     var samples: [SessionSample]?
 }
 
@@ -108,6 +114,8 @@ extension NewSportSession {
         self.sprints = (info["sprints"] as? Int) ?? 0
         self.intensity = info["intensity"] as? Double
         self.source = (info["source"] as? String) ?? "watch"
+        self.mode = (info["mode"] as? String) ?? "quick"
+        self.halftimeOffsetS = info["halftime_offset_s"] as? Int
 
         if let rawSamples = info["samples"] as? [[String: Any]] {
             self.samples = rawSamples.compactMap { sample in
@@ -115,7 +123,8 @@ extension NewSportSession {
                 return SessionSample(
                     tOffsetS: offset,
                     hr: sample["hr"] as? Int,
-                    speedKmh: sample["speed_kmh"] as? Double
+                    speedKmh: sample["speed_kmh"] as? Double,
+                    half: sample["half"] as? Int
                 )
             }
         } else {

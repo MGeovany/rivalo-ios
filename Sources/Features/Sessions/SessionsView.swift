@@ -11,7 +11,7 @@ struct SessionsView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome()
+            .rivalNavigationChrome(title: "Performance")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { store.send(.addTapped) } label: {
@@ -38,10 +38,12 @@ struct SessionsView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                    header
-
                     if let message = store.errorMessage {
                         AuthInlineMessage(text: message, kind: .error)
+                    }
+
+                    if !store.sessions.isEmpty {
+                        performanceSection
                     }
 
                     SessionWeekStrip(sessions: store.sessions, referenceDate: Date())
@@ -73,15 +75,13 @@ struct SessionsView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Home")
-                .font(Theme.Typography.title(size: 34))
-                .foregroundStyle(Theme.Colors.textPrimary)
-            Text("Your week and latest match")
-                .font(Theme.Typography.body(size: 15))
-                .foregroundStyle(Theme.Colors.textSecondary)
-        }
+    private var performanceSection: some View {
+        DashboardSummaryStrip(
+            sessions: store.sessions.count,
+            totalKm: store.totalDistanceKm,
+            avgMinutes: store.averageDurationMin,
+            avgHr: store.averageHr
+        )
     }
 
     private func latestMatchSection(_ session: SportSession) -> some View {
@@ -131,9 +131,9 @@ struct SessionsView: View {
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Performance analytics")
+                    Text("Match charts")
                         .font(Theme.Typography.button(size: 16))
-                    Text("Charts and trends across all matches")
+                    Text("Distance, duration, HR and more over time")
                         .font(Theme.Typography.caption(size: 12))
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
@@ -228,14 +228,10 @@ struct PerformanceAnalyticsView: View {
             Theme.Colors.background.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.large) {
-                    PerformanceSectionHeader()
-
-                    DashboardSummaryStrip(
-                        sessions: sessions.count,
-                        totalKm: sessions.reduce(0) { $0 + $1.distanceM } / 1000,
-                        avgMinutes: averageDurationMin,
-                        avgHr: averageHr
-                    )
+                    Text("Charts")
+                        .font(Theme.Typography.statLabel(size: 11))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .tracking(1.2)
 
                     DashboardChartCard(title: "Distance", subtitle: "Km per match") {
                         HomeDashboardCharts.distanceLine(sessions: sorted)
@@ -256,7 +252,7 @@ struct PerformanceAnalyticsView: View {
                 .padding(Theme.Spacing.large)
             }
         }
-        .rivalNavigationChrome()
+        .rivalNavigationChrome(title: "Charts")
         .foregroundStyle(Theme.Colors.textPrimary)
     }
 
