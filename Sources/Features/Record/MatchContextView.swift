@@ -10,7 +10,7 @@ struct MatchContextView: View {
     private let positions = ["Goalkeeper", "Defender", "Full-back", "Midfielder", "Winger", "Forward"]
     private let matchTags = ["friendly", "league", "training"]
     private let outcomes = ["win", "draw", "loss"]
-    private let competitions = ["friendly", "league", "tournament"]
+    private let competitions = ["friendly", "league", "tournament", "training"]
 
     var body: some View {
         NavigationStack {
@@ -57,7 +57,20 @@ struct MatchContextView: View {
                             Text(outcomeLabel(o)).tag(o)
                         }
                     }
-                    TextField("Score (e.g. 3-1)", text: $store.score.sending(\.setScore))
+
+                    if !store.outcome.isEmpty {
+                        Stepper(
+                            "Your goals: \(store.teamGoals)",
+                            value: $store.teamGoals.sending(\.setTeamGoals),
+                            in: 0...MatchScore.maxGoals
+                        )
+                        Stepper(
+                            "Opponent goals: \(store.opponentGoals)",
+                            value: $store.opponentGoals.sending(\.setOpponentGoals),
+                            in: 0...MatchScore.maxGoals
+                        )
+                    }
+
                     TextField("Opponent", text: $store.opponent.sending(\.setOpponent))
                 }
 
@@ -72,7 +85,7 @@ struct MatchContextView: View {
                     Picker("Competition", selection: $store.competition.sending(\.setCompetition)) {
                         Text("None").tag("")
                         ForEach(competitions, id: \.self) { c in
-                            Text(c.capitalized).tag(c)
+                            Text(competitionLabel(c)).tag(c)
                         }
                     }
                 }
@@ -133,6 +146,16 @@ struct MatchContextView: View {
         case "draw": return "Draw"
         case "loss": return "Loss"
         default: return o
+        }
+    }
+
+    private func competitionLabel(_ c: String) -> String {
+        switch c {
+        case "friendly": return "Friendly"
+        case "league": return "League"
+        case "tournament": return "Tournament"
+        case "training": return "Entrenamiento"
+        default: return c.capitalized
         }
     }
 

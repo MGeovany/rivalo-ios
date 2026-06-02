@@ -191,6 +191,8 @@ struct SessionDetailView: View {
             .font(Theme.Typography.body(size: 15))
             .foregroundStyle(Theme.Colors.textSecondary)
 
+            contextChips(session)
+
             if session.outcome != nil || session.opponent != nil {
                 resultSection(session)
             }
@@ -218,6 +220,30 @@ struct SessionDetailView: View {
 
             if session.pitchId != nil {
                 comparePitchButton
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func contextChips(_ session: SportSession) -> some View {
+        let chips: [(String, String)] = [
+            session.position.map { ("figure.soccer", $0) },
+            session.matchType.map { ("sportscourt", $0) },
+            session.surface.map { ("leaf.fill", $0) },
+        ].compactMap { $0 }
+
+        if !chips.isEmpty {
+            HStack(spacing: Theme.Spacing.small) {
+                ForEach(chips, id: \.1) { icon, text in
+                    Label(text, systemImage: icon)
+                        .font(Theme.Typography.caption(size: 12))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Theme.Colors.surface)
+                        .clipShape(Capsule())
+                }
+                Spacer(minLength: 0)
             }
         }
     }

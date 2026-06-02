@@ -55,6 +55,8 @@ struct APIClient {
     var fetchStreaks: @Sendable (_ accessToken: String) async throws -> Streaks
     /// Fetches the weekly recap via `GET /v1/recap/weekly`.
     var fetchWeeklyRecap: @Sendable (_ accessToken: String) async throws -> WeeklyRecap
+    /// Fetches achievement badges via `GET /v1/badges`.
+    var fetchBadges: @Sendable (_ accessToken: String) async throws -> [Badge]
 }
 
 extension APIClient: DependencyKey {
@@ -212,6 +214,13 @@ extension APIClient: DependencyKey {
             @Dependency(\.tokenStore) var tokenStore
             return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/recap/weekly", method: "GET", token: newToken), as: WeeklyRecap.self)
+            }
+        },
+        fetchBadges: { token in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSend(authorizedRequest("v1/badges", method: "GET", token: newToken), as: BadgesEnvelope.self).badges
             }
         }
     )

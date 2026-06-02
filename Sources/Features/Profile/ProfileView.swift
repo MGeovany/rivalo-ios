@@ -49,23 +49,12 @@ struct ProfileView: View {
                                 store.send(.saveTapped)
                             }
 
-                            Button { store.send(.courtsTapped) } label: {
-                                HStack(spacing: Theme.Spacing.medium) {
-                                    Image(systemName: "sportscourt.fill")
-                                        .foregroundStyle(Theme.Colors.accent)
-                                    Text("Manage courts")
-                                        .font(Theme.Typography.body(size: 16))
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Theme.Colors.textSecondary)
-                                }
-                                .padding(Theme.Spacing.medium)
-                                .frame(maxWidth: .infinity)
-                                .background(Theme.Colors.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                            profileRow(title: "Manage courts", icon: "sportscourt.fill") {
+                                store.send(.courtsTapped)
                             }
-                            .buttonStyle(.plain)
+                            profileRow(title: "Badges", icon: "rosette") {
+                                store.send(.badgesTapped)
+                            }
 
                             ProfileSignOutButton {
                                 store.send(.signOutTapped)
@@ -90,6 +79,29 @@ struct ProfileView: View {
         .sheet(item: $store.scope(state: \.courts, action: \.courts)) { courtsStore in
             CourtsView(store: courtsStore)
         }
+        .sheet(item: $store.scope(state: \.badges, action: \.badges)) { badgesStore in
+            BadgesView(store: badgesStore)
+        }
+    }
+
+    private func profileRow(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: Theme.Spacing.medium) {
+                Image(systemName: icon)
+                    .foregroundStyle(Theme.Colors.accent)
+                Text(title)
+                    .font(Theme.Typography.body(size: 16))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            .padding(Theme.Spacing.medium)
+            .frame(maxWidth: .infinity)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Sections
