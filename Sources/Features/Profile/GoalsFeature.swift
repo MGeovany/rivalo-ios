@@ -198,7 +198,8 @@ struct EditGoalFeature {
         }
     }
 
-    enum Action: Equatable {
+    enum Action: BindableAction, Equatable {
+        case binding(BindingAction<State>)
         case saveTapped
         case saveResponse(Result<Goal, APIError>)
         case dismissTapped
@@ -211,8 +212,13 @@ struct EditGoalFeature {
     @Dependency(\.apiClient) var apiClient
 
     var body: some ReducerOf<Self> {
+        BindingReducer()
+
         Reduce { state, action in
             switch action {
+            case .binding:
+                return .none
+
             case .saveTapped:
                 guard let target = Double(state.targetText), target > 0 else {
                     state.errorMessage = "Enter a valid target > 0."

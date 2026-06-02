@@ -64,7 +64,7 @@ struct RivalriesView: View {
         VStack(spacing: Theme.Spacing.small) {
             HStack {
                 Text(rivalry.opponent)
-                    .font(Theme.Typography.body(size: 18, weight: .bold))
+                    .font(Theme.Typography.body(size: 18).weight(.bold))
                 Spacer()
                 recordBadge(wins: rivalry.wins, draws: rivalry.draws, losses: rivalry.losses)
             }
@@ -102,17 +102,17 @@ struct RivalriesView: View {
     private func recordBadge(wins: Int, draws: Int, losses: Int) -> some View {
         HStack(spacing: 4) {
             Text("W")
-                .font(Theme.Typography.caption(size: 11, weight: .bold))
+                .font(Theme.Typography.caption(size: 11).weight(.bold))
                 .foregroundStyle(.green)
             Text("\(wins)")
                 .font(Theme.Typography.caption(size: 11))
             Text("D")
-                .font(Theme.Typography.caption(size: 11, weight: .bold))
+                .font(Theme.Typography.caption(size: 11).weight(.bold))
                 .foregroundStyle(.yellow)
             Text("\(draws)")
                 .font(Theme.Typography.caption(size: 11))
             Text("L")
-                .font(Theme.Typography.caption(size: 11, weight: .bold))
+                .font(Theme.Typography.caption(size: 11).weight(.bold))
                 .foregroundStyle(.red)
             Text("\(losses)")
                 .font(Theme.Typography.caption(size: 11))
@@ -126,7 +126,7 @@ struct RivalriesView: View {
     private func statChip(label: String, value: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(Theme.Typography.statValue(size: 14))
+                .font(Theme.Typography.metric(size: 14))
             Text(label)
                 .font(Theme.Typography.statLabel(size: 9))
                 .foregroundStyle(Theme.Colors.textSecondary)

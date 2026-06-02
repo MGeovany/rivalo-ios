@@ -22,7 +22,10 @@ struct GoalsView: View {
                 }
             }
             .onAppear { store.send(.onAppear) }
-            .sheet(isPresented: $store.showNewForm) {
+            .sheet(isPresented: Binding(
+                get: { store.showNewForm },
+                set: { if !$0 { store.send(.newGoalDismissed) } }
+            )) {
                 newGoalForm
             }
             .sheet(item: $store.scope(state: \.editGoal, action: \.editGoal)) { editStore in
@@ -94,9 +97,10 @@ struct GoalsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(goal.metricLabel) \(goal.periodLabel)")
-                        .font(Theme.Typography.body(size: 16, weight: .bold))
+                        .font(Theme.Typography.body(size: 16))
+                        .fontWeight(.bold)
                     Text(goal.progressDisplay)
-                        .font(Theme.Typography.statValue(size: 14))
+                        .font(Theme.Typography.metric(size: 14))
                         .foregroundStyle(goal.isAchieved ? .green : Theme.Colors.textPrimary)
                 }
                 Spacer()
@@ -184,10 +188,11 @@ struct GoalsView: View {
     // MARK: - Edit Goal View
 
     private func editGoalView(store: StoreOf<EditGoalFeature>) -> some View {
-        NavigationStack {
+        @Bindable var store = store
+        return NavigationStack {
             Form {
                 Section("Target") {
-                    TextField("Target value", text: store.targetText)
+                    TextField("Target value", text: $store.targetText)
                         .keyboardType(.decimalPad)
                 }
                 if let error = store.errorMessage {

@@ -120,7 +120,7 @@ struct CourtEditView: View {
                                 Text(record.label)
                                     .font(Theme.Typography.body(size: 15))
                                 Text(record.formattedValue)
-                                    .font(Theme.Typography.statValue(size: 14))
+                                    .font(Theme.Typography.metric(size: 14))
                                     .foregroundStyle(record.accentColor)
                             }
                             Spacer()
