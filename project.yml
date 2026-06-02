@@ -70,7 +70,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: false
-        RIVALO_API_BASE_URL: http://localhost:8081
+        RIVALO_API_BASE_URL: https://c3lsbw3yckoiplvyg6u2nd3nau0mqsqj.lambda-url.us-east-2.on.aws
         RIVALO_SUPABASE_URL: https://alvwjjygmtzrporpmwsp.supabase.co
         RIVALO_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdndqanlnbXR6cnBvcnBtd3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDUzMDgsImV4cCI6MjA5NTkyMTMwOH0.yvQ8V3eFusmFCm4lWM5kpzxpKiAIJqC3xiRHg8Ox34c
 
