@@ -17,6 +17,7 @@ struct SessionDetailFeature {
         var showVenuePrompt = false
         var venueDraft = ""
         var showDeleteConfirm = false
+        @Presents var comparison: PitchComparisonFeature.State?
 
         var id: String { sessionId }
 
@@ -47,6 +48,8 @@ struct SessionDetailFeature {
         case deleteSucceeded
         case deleteFailed
         case photosChanged
+        case comparePitchTapped
+        case comparison(PresentationAction<PitchComparisonFeature.Action>)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -155,9 +158,30 @@ struct SessionDetailFeature {
                 state.photos = SessionPhotoStore.load(sessionId: state.sessionId)
                 return .none
 
+            case .comparePitchTapped:
+                guard let pitchId = state.session?.pitchId else { return .none }
+                let pitchName = PitchCacheStore.load().first { $0.id == pitchId }?.name ?? "This court"
+                state.comparison = PitchComparisonFeature.State(
+                    accessToken: state.accessToken,
+                    pitchId: pitchId,
+                    pitchName: pitchName,
+                    focusedSessionId: state.sessionId
+                )
+                return .none
+
+            case .comparison(.presented(.delegate(.dismissed))):
+                state.comparison = nil
+                return .none
+
+            case .comparison:
+                return .none
+
             case .delegate:
                 return .none
             }
+        }
+        .ifLet(\.$comparison, action: \.comparison) {
+            PitchComparisonFeature()
         }
     }
 }

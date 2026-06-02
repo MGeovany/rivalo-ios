@@ -39,6 +39,9 @@ struct SessionDetailView: View {
                 ActivitySheet(items: [image])
             }
         }
+        .sheet(item: $store.scope(state: \.comparison, action: \.comparison)) { comparisonStore in
+            PitchComparisonView(store: comparisonStore)
+        }
     }
 
     private var shareSheetBinding: Binding<Bool> {
@@ -191,7 +194,25 @@ struct SessionDetailView: View {
             if let fd = session.fatigueDrop {
                 fatigueDropSection(fd)
             }
+
+            if session.pitchId != nil {
+                comparePitchButton
+            }
         }
+    }
+
+    private var comparePitchButton: some View {
+        Button {
+            store.send(.comparePitchTapped)
+        } label: {
+            Label("Compare at this court", systemImage: "chart.bar.xaxis")
+                .font(Theme.Typography.body(size: 15))
+                .frame(maxWidth: .infinity)
+                .padding(Theme.Spacing.medium)
+                .background(Theme.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        }
+        .tint(Theme.Colors.accent)
     }
 
     private func matchRatingCard(_ rating: Double) -> some View {

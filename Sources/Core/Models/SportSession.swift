@@ -146,6 +146,7 @@ struct NewSportSession: Equatable, Codable, Sendable {
     var pitchLongitude: Double?
     var halftimeOffsetS: Int?
     var samples: [SessionSample]?
+    var path: [SessionPathPoint]?
 }
 
 extension NewSportSession {
@@ -191,6 +192,19 @@ extension NewSportSession {
             }
         } else {
             self.samples = nil
+        }
+
+        if let rawPath = info["path"] as? [[String: Any]] {
+            self.path = rawPath.compactMap { point in
+                guard
+                    let offset = point["t_offset_s"] as? Int,
+                    let latitude = point["latitude"] as? Double,
+                    let longitude = point["longitude"] as? Double
+                else { return nil }
+                return SessionPathPoint(tOffsetS: offset, latitude: latitude, longitude: longitude)
+            }
+        } else {
+            self.path = nil
         }
     }
 }
