@@ -61,6 +61,31 @@ struct MatchContextView: View {
                     }
                 }
 
+                Section("Pitch") {
+                    if store.pitchesLoading {
+                        HStack {
+                            ProgressView()
+                            Text("Loading pitches...")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if store.pitches.isEmpty {
+                        Text("No saved pitches. Measure one from the Record tab.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker("Pitch", selection: $store.pitchId.sending(\.setPitchId)) {
+                            Text("None").tag(nil as String?)
+                            ForEach(store.pitches) { pitch in
+                                HStack {
+                                    Text(pitch.name)
+                                    if let dim = pitch.dimensionsText {
+                                        Text(dim).foregroundStyle(.secondary)
+                                    }
+                                }.tag(pitch.id as String?)
+                            }
+                        }
+                    }
+                }
+
                 if let error = store.errorMessage {
                     Section {
                         Text(error).foregroundColor(.red)
@@ -68,6 +93,7 @@ struct MatchContextView: View {
                 }
             }
             .navigationTitle("Match Context")
+            .task { store.send(.loadPitches) }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Skip") { store.send(.dismissTapped) }

@@ -1,35 +1,23 @@
 import ComposableArchitecture
 import Foundation
 
-/// V2-F hub: pick walk or manual pitch measurement.
+/// V2-F hub: measure on Apple Watch (walk); manual is watch-only.
 @Reducer
 struct PitchMeasureFeature {
     @ObservableState
     struct State: Equatable {
         var accessToken: String
         var route: Route = .hub
-        var alertMessage: String?
 
         enum Route: Equatable {
             case hub
             case walk
-            case manual
         }
 
         init(accessToken: String, prefill: PitchMeasurementMethod? = nil) {
             self.accessToken = accessToken
-            if let prefill {
-                switch prefill {
-                case .walk: route = .walk
-                case .manual: route = .manual
-                }
-            }
-        }
-
-        mutating func open(_ method: PitchMeasurementMethod) {
-            switch method {
-            case .walk: route = .walk
-            case .manual: route = .manual
+            if prefill == .walk {
+                route = .walk
             }
         }
     }
@@ -48,8 +36,11 @@ struct PitchMeasureFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case let .methodSelected(method):
-                state.open(method)
+            case .methodSelected(.walk):
+                state.route = .walk
+                return .none
+
+            case .methodSelected(.manual):
                 return .none
 
             case .backToHub:

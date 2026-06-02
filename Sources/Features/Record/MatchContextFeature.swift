@@ -15,6 +15,9 @@ struct MatchContextFeature {
         var result: String = ""
         var feeling: Int = 3
         var matchTag: String = ""
+        var pitchId: String?
+        var pitches: [Pitch] = []
+        var pitchesLoading = false
         var isSaving = false
         var errorMessage: String?
         var savedSuccessfully = false
@@ -31,6 +34,9 @@ struct MatchContextFeature {
         case setResult(String)
         case setFeeling(Int)
         case setMatchTag(String)
+        case setPitchId(String?)
+        case loadPitches
+        case pitchesResponse([Pitch])
         case saveTapped
         case saveResponse(Result<SportSession, APIError>)
         case dismissTapped
@@ -64,6 +70,22 @@ struct MatchContextFeature {
             case let .setMatchTag(v):
                 state.matchTag = v
                 return .none
+            case let .setPitchId(v):
+                state.pitchId = v
+                return .none
+
+            case .loadPitches:
+                state.pitchesLoading = true
+                let token = state.accessToken
+                return .run { send in
+                    let result = try? await apiClient.listPitches(token)
+                    await send(.pitchesResponse(result ?? []))
+                }
+
+            case let .pitchesResponse(pitches):
+                state.pitches = pitches
+                state.pitchesLoading = false
+                return .none
 
             case .saveTapped:
                 guard state.canSave else { return .none }
@@ -77,7 +99,7 @@ struct MatchContextFeature {
                     result: state.result.isEmpty ? nil : state.result,
                     feeling: feeling,
                     matchTag: state.matchTag.isEmpty ? nil : state.matchTag,
-                    pitchId: nil
+                    pitchId: state.pitchId
                 )
                 let token = state.accessToken
                 let id = state.sessionId

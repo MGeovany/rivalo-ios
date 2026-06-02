@@ -1,23 +1,26 @@
 import Foundation
 
-/// V2-F: how a pitch is measured (`walk` / `manual`).
+/// V2-F: how a pitch is measured (`walk` / `manual` on Apple Watch).
 enum PitchMeasurementMethod: String, Equatable, Codable, Sendable, CaseIterable, Identifiable {
     case walk
     case manual
 
     var id: String { rawValue }
 
+    /// Methods shown on the iPhone measure hub (manual is watch-only).
+    static var iphoneHubCases: [PitchMeasurementMethod] { [.walk] }
+
     var title: String {
         switch self {
         case .walk: "Run the pitch"
-        case .manual: "Manual entry"
+        case .manual: "Manual"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .walk: "Jog or run the length and width — GPS tracks distance"
-        case .manual: "Type length and width in meters"
+        case .walk: "Jog or run the length and width — GPS on Apple Watch"
+        case .manual: "Set meters on your Apple Watch"
         }
     }
 
@@ -30,8 +33,8 @@ enum PitchMeasurementMethod: String, Equatable, Codable, Sendable, CaseIterable,
 
     var deviceHint: String {
         switch self {
-        case .walk: "iPhone · Apple Watch"
-        case .manual: "iPhone"
+        case .walk: "Apple Watch"
+        case .manual: "Apple Watch"
         }
     }
 

@@ -12,11 +12,6 @@ struct PitchMeasureView: View {
                     hubContent
                 case .walk:
                     PitchWalkMeasureView(onBack: { store.send(.backToHub) })
-                case .manual:
-                    PitchManualMeasureView(
-                        accessToken: store.accessToken,
-                        onBack: { store.send(.backToHub) }
-                    )
                 }
             }
             .navigationTitle(navigationTitle)
@@ -33,7 +28,6 @@ struct PitchMeasureView: View {
         switch store.route {
         case .hub: "Measure court"
         case .walk: "Run the pitch"
-        case .manual: "Manual"
         }
     }
 
@@ -44,9 +38,26 @@ struct PitchMeasureView: View {
                     .font(Theme.Typography.body(size: 15))
                     .foregroundStyle(Theme.Colors.textSecondary)
 
-                ForEach(PitchMeasurementMethod.allCases) { method in
+                ForEach(PitchMeasurementMethod.iphoneHubCases) { method in
                     methodCard(method)
                 }
+
+                HStack(spacing: Theme.Spacing.medium) {
+                    Image(systemName: "applewatch")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Theme.Colors.accent)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Manual on Apple Watch")
+                            .font(Theme.Typography.title(size: 16))
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        Text("Set length and width with +/− on your watch. Courts get a default name from the date and time.")
+                            .font(Theme.Typography.body(size: 14))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+                .padding(Theme.Spacing.large)
+                .background(Theme.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .padding(Theme.Spacing.xl)
         }

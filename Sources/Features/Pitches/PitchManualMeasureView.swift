@@ -80,16 +80,16 @@ struct PitchManualMeasureView: View {
         isSaving = true
         defer { isSaving = false }
 
-        let courtName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let length = Double(lengthText.replacingOccurrences(of: ",", with: ".")) ?? 0
         let width = Double(widthText.replacingOccurrences(of: ",", with: ".")) ?? 0
+        let courtName = name.trimmingCharacters(in: .whitespacesAndNewlines)
 
         do {
             _ = try await PitchesSync.create(
                 accessToken: accessToken,
                 apiClient: APIClient.liveValue,
                 pitch: NewPitch(
-                    name: courtName.isEmpty ? "My court" : courtName,
+                    name: courtName.isEmpty ? CourtDefaultName.make() : courtName,
                     latitude: nil,
                     longitude: nil,
                     lengthM: length,

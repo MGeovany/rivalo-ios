@@ -148,7 +148,7 @@ struct PlayerProgressCard: View {
                     )
                     .position(x: anchorX, y: anchorY)
                     .shadow(color: style.glow.opacity(0.6), radius: 16, y: 4)
-                    .gesture(photoAdjustGesture(in: size))
+                    .highPriorityGesture(photoAdjustGesture(in: size))
             } else {
                 ZStack {
                     Circle()
