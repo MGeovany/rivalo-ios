@@ -6,7 +6,7 @@ import Foundation
 struct SessionDetailFeature {
     @ObservableState
     struct State: Equatable, Identifiable {
-        let accessToken: String
+        var accessToken: String
         let sessionId: String
         var session: SportSession?
         var meta: SessionMeta = SessionMeta()

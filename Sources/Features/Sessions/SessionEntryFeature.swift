@@ -7,7 +7,7 @@ import Foundation
 struct SessionEntryFeature {
     @ObservableState
     struct State: Equatable {
-        let accessToken: String
+        var accessToken: String
         var editingSessionId: String?
         var durationMin = ""
         var distanceKm = ""

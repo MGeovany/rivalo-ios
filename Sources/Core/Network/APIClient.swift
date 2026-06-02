@@ -29,6 +29,8 @@ struct APIClient {
     var listSessions: @Sendable (_ accessToken: String) async throws -> [SportSession]
     /// Fetches a single session via `GET /v1/sessions/{id}`.
     var getSession: @Sendable (_ accessToken: String, _ id: String) async throws -> SportSession
+    /// Patches post-match context via `PATCH /v1/sessions/{id}`.
+    var patchSessionContext: @Sendable (_ accessToken: String, _ id: String, _ update: SessionContextUpdate) async throws -> SportSession
     /// Updates a session via `PUT /v1/sessions/{id}`.
     var updateSession: @Sendable (_ accessToken: String, _ id: String, _ update: SportSessionUpdate) async throws -> SportSession
     /// Deletes a session via `DELETE /v1/sessions/{id}`.
@@ -49,36 +51,73 @@ extension APIClient: DependencyKey {
             return try JSONDecoder().decode(HealthStatus.self, from: data)
         },
         me: { token in
-            try await apiSend(authorizedRequest("v1/me", method: "GET", token: token), as: Profile.self)
+            try await retryOnUnauthorized(token) { newToken in
+                try await apiSend(authorizedRequest("v1/me", method: "GET", token: newToken), as: Profile.self)
+            }
         },
         updateMe: { token, update in
-            var request = authorizedRequest("v1/me", method: "PUT", token: token)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try apiEncoder().encode(update)
-            return try await apiSend(request, as: Profile.self)
+            try await retryOnUnauthorized(token) { newToken in
+                var request = authorizedRequest("v1/me", method: "PUT", token: newToken)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try apiEncoder().encode(update)
+                return try await apiSend(request, as: Profile.self)
+            }
         },
         createSession: { token, new in
-            var request = authorizedRequest("v1/sessions", method: "POST", token: token)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try apiEncoder().encode(new)
-            return try await apiSend(request, as: SportSession.self)
+            try await retryOnUnauthorized(token) { newToken in
+                var request = authorizedRequest("v1/sessions", method: "POST", token: newToken)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try apiEncoder().encode(new)
+                return try await apiSend(request, as: SportSession.self)
+            }
         },
         listSessions: { token in
-            try await apiSend(authorizedRequest("v1/sessions", method: "GET", token: token), as: [SportSession].self)
+            try await retryOnUnauthorized(token) { newToken in
+                try await apiSend(authorizedRequest("v1/sessions", method: "GET", token: newToken), as: [SportSession].self)
+            }
         },
         getSession: { token, id in
-            try await apiSend(authorizedRequest("v1/sessions/\(id)", method: "GET", token: token), as: SportSession.self)
+            try await retryOnUnauthorized(token) { newToken in
+                try await apiSend(authorizedRequest("v1/sessions/\(id)", method: "GET", token: newToken), as: SportSession.self)
+            }
+        },
+        patchSessionContext: { token, id, update in
+            try await retryOnUnauthorized(token) { newToken in
+                var request = authorizedRequest("v1/sessions/\(id)", method: "PATCH", token: newToken)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try apiEncoder().encode(update)
+                return try await apiSend(request, as: SportSession.self)
+            }
         },
         updateSession: { token, id, update in
-            var request = authorizedRequest("v1/sessions/\(id)", method: "PUT", token: token)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try apiEncoder().encode(update)
-            return try await apiSend(request, as: SportSession.self)
+            try await retryOnUnauthorized(token) { newToken in
+                var request = authorizedRequest("v1/sessions/\(id)", method: "PUT", token: newToken)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try apiEncoder().encode(update)
+                return try await apiSend(request, as: SportSession.self)
+            }
         },
         deleteSession: { token, id in
-            try await apiSendEmpty(authorizedRequest("v1/sessions/\(id)", method: "DELETE", token: token))
+            try await retryOnUnauthorized(token) { newToken in
+                try await apiSendEmpty(authorizedRequest("v1/sessions/\(id)", method: "DELETE", token: newToken))
+            }
         }
     )
+}
+
+/// Wraps an authenticated API call with automatic token refresh on 401.
+/// Refreshes the session from the keychain and retries the request once.
+private func retryOnUnauthorized<T>(_ token: String, operation: @escaping (String) async throws -> T) async throws -> T {
+    do {
+        return try await operation(token)
+    } catch APIError.statusCode(401) {
+        @Dependency(\.authClient) var authClient
+        @Dependency(\.tokenStore) var tokenStore
+        guard let stored = tokenStore.load() else { throw APIError.statusCode(401) }
+        let session = try await authClient.refresh(stored.refreshToken)
+        try? tokenStore.save(session)
+        return try await operation(session.accessToken)
+    }
 }
 
 private func apiSendEmpty(_ request: URLRequest) async throws {

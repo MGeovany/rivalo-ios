@@ -140,7 +140,7 @@ struct SessionDetailView: View {
     }
 
     private func mapSection(_ session: SportSession) -> some View {
-        PitchMovementView(session: session, showCaption: true)
+        PitchMapView(session: session)
     }
 
     private func metaSection(_ session: SportSession) -> some View {
@@ -163,7 +163,42 @@ struct SessionDetailView: View {
                 detailStat("\(session.sprints)", "Sprints", "hare.fill")
                 detailStat(session.intensity.map { String(format: "%.0f", $0) } ?? "—", "Intensity", "flame.fill")
             }
+
+            if let rating = session.matchRating {
+                matchRatingCard(rating)
+            }
         }
+    }
+
+    private func matchRatingCard(_ rating: Double) -> some View {
+        HStack(spacing: Theme.Spacing.medium) {
+            ZStack {
+                Circle()
+                    .stroke(Theme.Colors.surface, lineWidth: 4)
+                    .frame(width: 64, height: 64)
+                Circle()
+                    .trim(from: 0, to: CGFloat(rating / 100))
+                    .stroke(Theme.Colors.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: 64, height: 64)
+                Text(String(format: "%.0f", rating))
+                    .font(Theme.Typography.metric(size: 22))
+                    .foregroundStyle(Theme.Colors.accent)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Match Rating")
+                    .font(Theme.Typography.statLabel(size: 11))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .tracking(1)
+                Text("Physical performance, not skill")
+                    .font(Theme.Typography.caption(size: 11))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(Theme.Spacing.medium)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 
     private var photosSection: some View {

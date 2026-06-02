@@ -7,6 +7,7 @@ struct Profile: Equatable, Codable, Identifiable {
     var preferredPosition: String?
     var heightCm: Int?
     var weightKg: Double?
+    var birthYear: Int?
 }
 
 /// Fields sent when updating the profile (PUT /v1/me).
@@ -15,4 +16,5 @@ struct ProfileUpdate: Equatable, Encodable {
     var preferredPosition: String?
     var heightCm: Int?
     var weightKg: Double?
+    var birthYear: Int?
 }

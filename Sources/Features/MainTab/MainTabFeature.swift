@@ -5,7 +5,7 @@ import ComposableArchitecture
 struct MainTabFeature {
     @ObservableState
     struct State: Equatable {
-        let accessToken: String
+        var accessToken: String
         var sessions: SessionsFeature.State
         var record = RecordFeature.State()
         var profile: ProfileFeature.State

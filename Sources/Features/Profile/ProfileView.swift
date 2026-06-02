@@ -116,6 +116,13 @@ struct ProfileView: View {
                     onUnitChange: { store.send(.weightUnitChanged($0)) },
                     keyboard: .decimalPad
                 )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Birth Year").font(.caption).foregroundColor(.secondary)
+                    TextField("e.g. 1995", text: $store.birthYearText)
+                        .keyboardType(.numberPad)
+                        .textFieldStyle(.roundedBorder)
+                }
             }
         }
     }

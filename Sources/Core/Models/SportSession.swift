@@ -28,6 +28,15 @@ struct SportSession: Equatable, Codable, Identifiable {
     let source: String
     let mode: String?
     let halftimeOffsetS: Int?
+    // Post-match context (V2)
+    let matchType: String?
+    let surface: String?
+    let position: String?
+    let result: String?
+    let feeling: Int?
+    let matchTag: String?
+    let pitchId: String?
+    let matchRating: Double?
     let createdAt: Date
     /// Time series; present on detail reads, absent on the list.
     let samples: [SessionSample]?
@@ -60,6 +69,17 @@ extension SportSession {
             caloriesKcal: caloriesKcal
         )
     }
+}
+
+/// Payload sent to PATCH session context (PATCH /v1/sessions/{id}).
+struct SessionContextUpdate: Equatable, Encodable, Sendable {
+    var matchType: String?
+    var surface: String?
+    var position: String?
+    var result: String?
+    var feeling: Int?
+    var matchTag: String?
+    var pitchId: String?
 }
 
 /// Payload sent to update a session (PUT /v1/sessions/{id}).

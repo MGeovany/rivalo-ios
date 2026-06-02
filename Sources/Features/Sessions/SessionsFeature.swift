@@ -6,7 +6,7 @@ import Foundation
 struct SessionsFeature {
     @ObservableState
     struct State: Equatable {
-        let accessToken: String
+        var accessToken: String
         var sessions: [SportSession] = []
         /// Latest match with samples for map / heatmap on Home.
         var latestSession: SportSession?

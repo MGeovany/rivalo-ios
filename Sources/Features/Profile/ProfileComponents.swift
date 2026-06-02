@@ -64,9 +64,6 @@ struct ProfileCountrySelect: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: Theme.Spacing.medium) {
-            Text(FootballCountry.flagEmoji(for: code))
-                .font(.system(size: 28))
-
             VStack(alignment: .leading, spacing: 6) {
                 Text("Country / nationality")
                     .font(Theme.Typography.caption(size: 12))
