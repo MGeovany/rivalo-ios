@@ -8,6 +8,10 @@ struct RivaloApp: App {
         AppFeature()
     }
 
+    init() {
+        Theme.registerFonts()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView(store: Self.store)

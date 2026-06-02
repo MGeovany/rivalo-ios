@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: com.mgeovany.rivalo
   deploymentTarget:
     iOS: "17.0"
+    watchOS: "10.0"
   createIntermediateGroups: true
 
 packages:
@@ -27,6 +28,8 @@ targets:
     dependencies:
       - package: ComposableArchitecture
         product: ComposableArchitecture
+      - target: RivaloWatch
+        embed: true
     info:
       path: Sources/Info.plist
       properties:
@@ -44,6 +47,14 @@ targets:
         # Allow plain-HTTP requests to the local backend during development.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        UIAppFonts:
+          - Michroma-Regular.ttf
+          - Rajdhani-Regular.ttf
+          - Rajdhani-Medium.ttf
+          - Rajdhani-SemiBold.ttf
+          - Rajdhani-Bold.ttf
+          - SpaceMono-Regular.ttf
+          - SpaceMono-Bold.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mgeovany.rivalo
@@ -53,3 +64,31 @@ targets:
         RIVALO_API_BASE_URL: http://localhost:8080
         RIVALO_SUPABASE_URL: https://alvwjjygmtzrporpmwsp.supabase.co
         RIVALO_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdndqanlnbXR6cnBvcnBtd3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDUzMDgsImV4cCI6MjA5NTkyMTMwOH0.yvQ8V3eFusmFCm4lWM5kpzxpKiAIJqC3xiRHg8Ox34c
+
+  RivaloWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: ../rivalo-watch/Sources
+    info:
+      path: ../rivalo-watch/Sources/Info.plist
+      properties:
+        UIAppFonts:
+          - Michroma-Regular.ttf
+          - Rajdhani-Regular.ttf
+          - Rajdhani-Medium.ttf
+          - Rajdhani-SemiBold.ttf
+          - Rajdhani-Bold.ttf
+          - SpaceMono-Regular.ttf
+          - SpaceMono-Bold.ttf
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.mgeovany.rivalo
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mgeovany.rivalo.watchkitapp
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_WKApplication: true
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.mgeovany.rivalo
+        INFOPLIST_KEY_CFBundleDisplayName: Rivalo
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

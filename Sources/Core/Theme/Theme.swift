@@ -32,35 +32,35 @@ enum Theme {
 
         /// Wordmark / logo (Michroma).
         static func logo(size: CGFloat = 28) -> Font {
-            .custom(Family.logo, size: size)
+            ThemeFont.font(name: Family.logo, size: size)
         }
 
         /// Screen titles and prominent headings (Rajdhani).
         static func title(size: CGFloat = 22) -> Font {
-            .custom(Family.rajdhaniSemiBold, size: size)
+            ThemeFont.font(name: Family.rajdhaniSemiBold, size: size)
         }
 
         /// Primary buttons (Rajdhani).
         static func button(size: CGFloat = 16) -> Font {
-            .custom(Family.rajdhaniSemiBold, size: size)
+            ThemeFont.font(name: Family.rajdhaniSemiBold, size: size)
         }
 
         static func body(size: CGFloat = 16) -> Font {
-            .custom(Family.rajdhaniRegular, size: size)
+            ThemeFont.font(name: Family.rajdhaniRegular, size: size)
         }
 
         static func caption(size: CGFloat = 13) -> Font {
-            .custom(Family.rajdhaniMedium, size: size)
+            ThemeFont.font(name: Family.rajdhaniMedium, size: size)
         }
 
         /// Headline metrics and stat values (Space Mono).
         static func metric(size: CGFloat = 44) -> Font {
-            .custom(Family.spaceMonoBold, size: size)
+            ThemeFont.font(name: Family.spaceMonoBold, size: size)
         }
 
         /// Secondary stat labels (Space Mono).
         static func statLabel(size: CGFloat = 13) -> Font {
-            .custom(Family.spaceMonoRegular, size: size)
+            ThemeFont.font(name: Family.spaceMonoRegular, size: size)
         }
     }
 
