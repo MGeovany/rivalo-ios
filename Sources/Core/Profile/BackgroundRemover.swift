@@ -6,19 +6,40 @@ import Vision
 /// Removes the background from a portrait using on-device Vision (iOS 17+).
 enum BackgroundRemover {
     static func removeBackground(from image: UIImage) async -> UIImage? {
-        await Task.detached(priority: .userInitiated) {
+        ProfilePhotoLog.info("BackgroundRemover: starting")
+        let result = await Task.detached(priority: .userInitiated) {
             performRemoval(on: image)
         }.value
+        if result != nil {
+            ProfilePhotoLog.info("BackgroundRemover: finished with image")
+        } else {
+            ProfilePhotoLog.error("BackgroundRemover: finished with nil")
+        }
+        return result
     }
 
     private static func performRemoval(on image: UIImage) -> UIImage? {
-        guard let cgImage = image.cgImage else { return nil }
+        guard let cgImage = image.cgImage else {
+            ProfilePhotoLog.error("BackgroundRemover: missing cgImage")
+            return nil
+        }
         let orientation = CGImagePropertyOrientation(image.imageOrientation)
+        ProfilePhotoLog.debug(
+            "BackgroundRemover: source \(cgImage.width)x\(cgImage.height) orientation=\(orientation.rawValue)"
+        )
 
         if let cutout = foregroundInstanceMask(cgImage: cgImage, orientation: orientation) {
+            ProfilePhotoLog.info("BackgroundRemover: used foreground instance mask")
             return cutout
         }
-        return personSegmentation(cgImage: cgImage, orientation: orientation)
+
+        if let cutout = personSegmentation(cgImage: cgImage, orientation: orientation) {
+            ProfilePhotoLog.info("BackgroundRemover: used person segmentation fallback")
+            return cutout
+        }
+
+        ProfilePhotoLog.error("BackgroundRemover: all strategies failed")
+        return nil
     }
 
     private static func foregroundInstanceMask(cgImage: CGImage, orientation: CGImagePropertyOrientation) -> UIImage? {
@@ -26,13 +47,18 @@ enum BackgroundRemover {
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
         do {
             try handler.perform([request])
-            guard let observation = request.results?.first else { return nil }
+            guard let observation = request.results?.first else {
+                ProfilePhotoLog.error("foregroundInstanceMask: no results")
+                return nil
+            }
+            ProfilePhotoLog.debug("foregroundInstanceMask: instances=\(observation.allInstances.count)")
             let pixelBuffer = try observation.generateScaledMaskForImage(
                 forInstances: observation.allInstances,
                 from: handler
             )
             return applyMask(pixelBuffer: pixelBuffer, to: cgImage)
         } catch {
+            ProfilePhotoLog.error("foregroundInstanceMask: \(error.localizedDescription)")
             return nil
         }
     }
@@ -44,9 +70,13 @@ enum BackgroundRemover {
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
         do {
             try handler.perform([request])
-            guard let observation = request.results?.first else { return nil }
+            guard let observation = request.results?.first else {
+                ProfilePhotoLog.error("personSegmentation: no results")
+                return nil
+            }
             return applyMask(pixelBuffer: observation.pixelBuffer, to: cgImage)
         } catch {
+            ProfilePhotoLog.error("personSegmentation: \(error.localizedDescription)")
             return nil
         }
     }
@@ -62,9 +92,15 @@ enum BackgroundRemover {
         filter.inputImage = ciImage
         filter.backgroundImage = transparent
         filter.maskImage = mask
-        guard let output = filter.outputImage else { return nil }
+        guard let output = filter.outputImage else {
+            ProfilePhotoLog.error("applyMask: blendWithMask produced no output")
+            return nil
+        }
         let context = CIContext(options: [.useSoftwareRenderer: false])
-        guard let outputCG = context.createCGImage(output, from: ciImage.extent) else { return nil }
+        guard let outputCG = context.createCGImage(output, from: ciImage.extent) else {
+            ProfilePhotoLog.error("applyMask: createCGImage failed")
+            return nil
+        }
         return UIImage(cgImage: outputCG, scale: 1, orientation: .up)
     }
 }

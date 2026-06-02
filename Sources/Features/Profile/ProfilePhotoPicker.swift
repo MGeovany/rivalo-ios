@@ -5,7 +5,7 @@ import SwiftUI
 struct ProfileCardPhotoControls: View {
     let hasPhoto: Bool
     let isProcessing: Bool
-    let isAwaitingFix: Bool
+    let showsFixButton: Bool
     let isPlacementLocked: Bool
     let onPhotoData: (Data) -> Void
     let onRemove: () -> Void
@@ -30,7 +30,7 @@ struct ProfileCardPhotoControls: View {
                     .background(Theme.Colors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
                 }
-                .disabled(isProcessing || isAwaitingFix)
+                .disabled(isProcessing || showsFixButton)
 
                 if hasPhoto {
                     Button(action: onRemove) {
@@ -46,7 +46,7 @@ struct ProfileCardPhotoControls: View {
                 }
             }
 
-            if isAwaitingFix {
+            if showsFixButton {
                 Button(action: onFixPhoto) {
                     Label("Fijar imagen", systemImage: "pin.fill")
                         .font(Theme.Typography.button(size: 16))
@@ -109,13 +109,13 @@ struct ProfileCardPhotoControls: View {
 
     private var pickerLabel: String {
         if isProcessing { return "Recortando silueta…" }
-        if isAwaitingFix { return "Posicionando foto…" }
+        if showsFixButton { return "Posicionando foto…" }
         return hasPhoto ? "Change photo" : "Add photo"
     }
 
     private var pickerIcon: String {
         if isProcessing { return "person.crop.rectangle" }
-        if isAwaitingFix { return "hand.draw" }
+        if showsFixButton { return "hand.draw" }
         return "photo.on.rectangle.angled"
     }
 }

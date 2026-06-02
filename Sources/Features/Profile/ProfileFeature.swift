@@ -31,6 +31,8 @@ struct ProfileFeature {
         /// When true, the card photo cannot be dragged or pinched (after save).
         var isPhotoPlacementLocked = false
         var isProcessingPhoto = false
+        /// Saved or pending photo still has a full background and needs Vision cutout.
+        var photoNeedsBackgroundRemoval = false
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
@@ -48,6 +50,11 @@ struct ProfileFeature {
         /// User picked a photo and must position it before cutout processing runs.
         var isAwaitingPhotoFix: Bool {
             pendingPhotoData != nil && !isProcessingPhoto
+        }
+
+        /// Show "Fijar imagen" — new pick or saved photo that never got a cutout.
+        var showsPhotoFixButton: Bool {
+            !isProcessingPhoto && !isPhotoPlacementLocked && photoNeedsBackgroundRemoval && hasCardPhoto
         }
 
         var canAdjustCardPhoto: Bool {
@@ -187,33 +194,42 @@ struct ProfileFeature {
 
             case let .photoSelected(data):
                 guard state.profile?.id != nil else { return .none }
+                ProfilePhotoLog.info("photoSelected: \(data.count) bytes")
                 state.pendingPhotoData = data
                 state.photoPlacement = .default
                 state.isPhotoPlacementLocked = false
                 state.isProcessingPhoto = false
+                state.photoNeedsBackgroundRemoval = true
                 state.errorMessage = nil
                 return .none
 
             case .photoFixTapped:
-                guard let pending = state.pendingPhotoData, state.profile?.id != nil else { return .none }
+                guard state.profile?.id != nil else { return .none }
+                guard let source = state.pendingPhotoData ?? state.avatarImageData,
+                      state.photoNeedsBackgroundRemoval
+                else {
+                    ProfilePhotoLog.error("photoFixTapped: skipped — no source or cutout not needed")
+                    return .none
+                }
+                ProfilePhotoLog.info("photoFixTapped: starting cutout")
                 state.isProcessingPhoto = true
                 state.isPhotoPlacementLocked = true
                 state.errorMessage = nil
-                return .run { send in
-                    let prepared = await ProfilePhotoProcessor.prepareForCard(pending)
-                    await send(.photoProcessed(prepared))
-                }
+                return Self.cutoutPhotoEffect(from: source)
 
             case let .photoProcessed(data):
                 state.isProcessingPhoto = false
                 guard let userId = state.profile?.id else { return .none }
                 guard let data, let saved = ProfilePhotoStore.save(userId: userId, pngData: data) else {
+                    ProfilePhotoLog.error("photoProcessed: save failed or nil data")
                     state.isPhotoPlacementLocked = false
                     state.errorMessage = "Could not cut out your photo. Try another image."
                     return .none
                 }
+                ProfilePhotoLog.info("photoProcessed: saved cutout \(saved.count) bytes")
                 state.avatarImageData = saved
                 state.pendingPhotoData = nil
+                state.photoNeedsBackgroundRemoval = false
                 ProfilePhotoPlacementStore.save(userId: userId, placement: state.photoPlacement)
                 state.isPhotoPlacementLocked = true
                 ProfilePhotoPlacementLockStore.save(userId: userId, locked: true)
@@ -229,18 +245,39 @@ struct ProfileFeature {
 
             case .photoAdjustTapped:
                 guard state.hasCardPhoto, let userId = state.profile?.id else { return .none }
+                ProfilePhotoLog.info(
+                    "photoAdjustTapped: needsRemoval=\(state.photoNeedsBackgroundRemoval)"
+                )
                 state.isPhotoPlacementLocked = false
                 ProfilePhotoPlacementLockStore.save(userId: userId, locked: false)
                 return .none
 
             case .photoAdjustFinished:
                 guard state.hasCardPhoto, let userId = state.profile?.id else { return .none }
+                ProfilePhotoLog.info(
+                    "photoAdjustFinished: needsRemoval=\(state.photoNeedsBackgroundRemoval) "
+                        + "pending=\(state.pendingPhotoData != nil)"
+                )
+                if state.photoNeedsBackgroundRemoval {
+                    guard let source = state.pendingPhotoData ?? state.avatarImageData else {
+                        ProfilePhotoLog.error("photoAdjustFinished: needs cutout but no image data")
+                        return .none
+                    }
+                    ProfilePhotoLog.info("photoAdjustFinished: running cutout")
+                    state.isProcessingPhoto = true
+                    state.isPhotoPlacementLocked = true
+                    state.errorMessage = nil
+                    return Self.cutoutPhotoEffect(from: source)
+                }
                 state.isPhotoPlacementLocked = true
+                ProfilePhotoPlacementStore.save(userId: userId, placement: state.photoPlacement)
                 ProfilePhotoPlacementLockStore.save(userId: userId, locked: true)
+                ProfilePhotoLog.info("photoAdjustFinished: placement locked")
                 return .none
 
             case .photoRemoved:
                 guard let userId = state.profile?.id else { return .none }
+                ProfilePhotoLog.info("photoRemoved")
                 ProfilePhotoStore.delete(userId: userId)
                 ProfilePhotoPlacementStore.delete(userId: userId)
                 ProfilePhotoPlacementLockStore.delete(userId: userId)
@@ -249,6 +286,7 @@ struct ProfileFeature {
                 state.photoPlacement = .default
                 state.isPhotoPlacementLocked = false
                 state.isProcessingPhoto = false
+                state.photoNeedsBackgroundRemoval = false
                 return .none
 
             case let .countryCodeChanged(code):
@@ -276,6 +314,14 @@ private extension ProfileFeature.State {
         weightText = weightUnit.format(kg: profile.weightKg)
         birthDate = profile.birthYear.map { ProfileBirthDate.date(fromBirthYear: $0) }
         avatarImageData = ProfilePhotoStore.load(userId: profile.id)
+        if let data = avatarImageData {
+            photoNeedsBackgroundRemoval = !ProfilePhotoProcessor.hasTransparentBackground(data)
+            ProfilePhotoLog.info(
+                "apply: loaded avatar \(data.count) bytes, needsRemoval=\(photoNeedsBackgroundRemoval)"
+            )
+        } else {
+            photoNeedsBackgroundRemoval = false
+        }
         photoPlacement = ProfilePhotoPlacementStore.load(userId: profile.id)
         isPhotoPlacementLocked = ProfilePhotoPlacementLockStore.isLocked(
             userId: profile.id,
@@ -296,6 +342,16 @@ private extension ProfileFeature.State {
         )
     }
 
+}
+
+private extension ProfileFeature {
+    static func cutoutPhotoEffect(from data: Data) -> Effect<Action> {
+        .run { send in
+            ProfilePhotoLog.info("cutoutEffect: prepareForCard (\(data.count) bytes)")
+            let prepared = await ProfilePhotoProcessor.prepareForCard(data)
+            await send(.photoProcessed(prepared))
+        }
+    }
 }
 
 /// Read-only data for the shareable player progress card.
