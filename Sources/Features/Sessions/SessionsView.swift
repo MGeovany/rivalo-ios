@@ -11,8 +11,13 @@ struct SessionsView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Performance")
+            .rivalNavigationChrome()
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Text("Performance")
+                        .font(Theme.Typography.title(size: 20))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { store.send(.addTapped) } label: {
                         Image(systemName: "plus")
