@@ -1,31 +1,46 @@
 import ComposableArchitecture
 import Foundation
 
-/// Registration and sign-in with email and password (Supabase Auth).
+/// Registration, sign-in, and password recovery (Supabase Auth).
 @Reducer
 struct AuthenticationFeature {
     @ObservableState
     struct State: Equatable {
-        var mode: Mode = .signIn
+        var screen: Screen = .login
         var email = ""
         var password = ""
         var isSubmitting = false
         var errorMessage: String?
         var infoMessage: String?
 
-        enum Mode: Equatable { case signIn, signUp }
+        enum Screen: Equatable {
+            case login
+            case register
+            case forgotPassword
+        }
 
-        var canSubmit: Bool {
+        var canSubmitLogin: Bool {
             !email.isEmpty && password.count >= 6 && !isSubmitting
+        }
+
+        var canSubmitRegister: Bool {
+            !email.isEmpty && password.count >= 6 && !isSubmitting
+        }
+
+        var canSubmitRecover: Bool {
+            !email.isEmpty && !isSubmitting
         }
     }
 
     enum Action: BindableAction, Equatable {
         case binding(BindingAction<State>)
-        case toggleModeTapped
+        case showLoginTapped
+        case showRegisterTapped
+        case showForgotPasswordTapped
         case submitTapped
         case signInResult(Result<Session, AuthError>)
         case signUpResult(Result<SignUpResult, AuthError>)
+        case recoverResult(Result<Void, AuthError>)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -44,22 +59,31 @@ struct AuthenticationFeature {
                 state.errorMessage = nil
                 return .none
 
-            case .toggleModeTapped:
-                state.mode = state.mode == .signIn ? .signUp : .signIn
-                state.errorMessage = nil
-                state.infoMessage = nil
+            case .showLoginTapped:
+                state.screen = .login
+                clearMessages(&state)
+                return .none
+
+            case .showRegisterTapped:
+                state.screen = .register
+                clearMessages(&state)
+                return .none
+
+            case .showForgotPasswordTapped:
+                state.screen = .forgotPassword
+                clearMessages(&state)
                 return .none
 
             case .submitTapped:
-                guard state.canSubmit else { return .none }
-                state.isSubmitting = true
                 state.errorMessage = nil
                 state.infoMessage = nil
-                let email = state.email
-                let password = state.password
+                let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines)
 
-                switch state.mode {
-                case .signIn:
+                switch state.screen {
+                case .login:
+                    guard state.canSubmitLogin else { return .none }
+                    state.isSubmitting = true
+                    let password = state.password
                     return .run { send in
                         do {
                             let session = try await authClient.signIn(email, password)
@@ -68,13 +92,29 @@ struct AuthenticationFeature {
                             await send(.signInResult(.failure(error as? AuthError ?? .invalidResponse)))
                         }
                     }
-                case .signUp:
+
+                case .register:
+                    guard state.canSubmitRegister else { return .none }
+                    state.isSubmitting = true
+                    let password = state.password
                     return .run { send in
                         do {
                             let result = try await authClient.signUp(email, password)
                             await send(.signUpResult(.success(result)))
                         } catch {
                             await send(.signUpResult(.failure(error as? AuthError ?? .invalidResponse)))
+                        }
+                    }
+
+                case .forgotPassword:
+                    guard state.canSubmitRecover else { return .none }
+                    state.isSubmitting = true
+                    return .run { send in
+                        do {
+                            try await authClient.recoverPassword(email)
+                            await send(.recoverResult(.success(())))
+                        } catch {
+                            await send(.recoverResult(.failure(error as? AuthError ?? .invalidResponse)))
                         }
                     }
                 }
@@ -89,12 +129,19 @@ struct AuthenticationFeature {
 
             case .signUpResult(.success(.needsEmailConfirmation)):
                 state.isSubmitting = false
-                state.mode = .signIn
+                state.screen = .login
+                state.password = ""
                 state.infoMessage = "Check your email to confirm your account, then sign in."
                 return .none
 
+            case .recoverResult(.success):
+                state.isSubmitting = false
+                state.infoMessage = "If an account exists for this email, you will receive reset instructions."
+                return .none
+
             case let .signInResult(.failure(error)),
-                 let .signUpResult(.failure(error)):
+                 let .signUpResult(.failure(error)),
+                 let .recoverResult(.failure(error)):
                 state.isSubmitting = false
                 state.errorMessage = errorText(error)
                 return .none
@@ -103,6 +150,11 @@ struct AuthenticationFeature {
                 return .none
             }
         }
+    }
+
+    private func clearMessages(_ state: inout State) {
+        state.errorMessage = nil
+        state.infoMessage = nil
     }
 
     private func errorText(_ error: AuthError) -> String {

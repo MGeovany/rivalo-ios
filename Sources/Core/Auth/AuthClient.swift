@@ -21,6 +21,7 @@ enum AuthError: Error, Equatable {
 struct AuthClient {
     var signUp: @Sendable (_ email: String, _ password: String) async throws -> SignUpResult
     var signIn: @Sendable (_ email: String, _ password: String) async throws -> Session
+    var recoverPassword: @Sendable (_ email: String) async throws -> Void
     var refresh: @Sendable (_ refreshToken: String) async throws -> Session
     var signOut: @Sendable (_ accessToken: String) async throws -> Void
 }
@@ -57,6 +58,13 @@ extension AuthClient: DependencyKey {
                     payload: ["email": email, "password": password]
                 )
                 return try decoder().decode(tokenResponse.self, from: body).asSession()
+            },
+            recoverPassword: { email in
+                _ = try await goTruePost(
+                    urlSession,
+                    path: "recover",
+                    payload: ["email": email]
+                )
             },
             refresh: { refreshToken in
                 let body = try await goTruePost(
