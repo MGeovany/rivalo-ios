@@ -94,7 +94,14 @@ struct MainTabFeature {
 
             case let .selectedTabChanged(tab):
                 state.selectedTab = tab
-                return .none
+                switch tab {
+                case .home:
+                    return .send(.sessions(.onAppear))
+                case .you:
+                    return .send(.profile(.onAppear))
+                case .record, .activities, .plan:
+                    return .none
+                }
 
             case .sessions, .record, .profile, .delegate:
                 return .none

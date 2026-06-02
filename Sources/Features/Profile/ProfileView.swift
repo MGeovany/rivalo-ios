@@ -59,6 +59,7 @@ struct ProfileView: View {
         .tint(Theme.Colors.accent)
         .foregroundStyle(Theme.Colors.textPrimary)
         .onAppear { store.send(.onAppear) }
+        .refreshable { store.send(.onAppear) }
     }
 
     // MARK: - Sections
@@ -85,6 +86,10 @@ struct ProfileView: View {
                     placeholder: "How teammates see you",
                     textContentType: .name
                 )
+
+                ProfileCountrySelect(code: store.countryCode) { code in
+                    store.send(.countryCodeChanged(code))
+                }
 
                 ProfilePositionSelect(selection: $store.preferredPosition)
             }

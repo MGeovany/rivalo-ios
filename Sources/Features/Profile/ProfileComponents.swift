@@ -49,6 +49,57 @@ enum FootballPosition {
     static let unsetLabel = "Select position"
 }
 
+struct ProfileCountrySelect: View {
+    let code: String
+    let onChange: (String) -> Void
+
+    private var options: [(code: String, name: String)] {
+        var list = FootballCountry.options
+        let upper = code.uppercased()
+        if !upper.isEmpty, !list.contains(where: { $0.code == upper }) {
+            list.append((upper, FootballCountry.name(for: upper)))
+        }
+        return list.sorted { $0.name < $1.name }
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: Theme.Spacing.medium) {
+            Text(FootballCountry.flagEmoji(for: code))
+                .font(.system(size: 28))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Country / nationality")
+                    .font(Theme.Typography.caption(size: 12))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+
+                Picker("Country", selection: selectionBinding) {
+                    ForEach(options, id: \.code) { option in
+                        Text("\(FootballCountry.flagEmoji(for: option.code))  \(option.name)")
+                            .tag(option.code)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(Theme.Colors.accent)
+                .font(Theme.Typography.body(size: 17))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 10)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(Theme.Colors.textSecondary.opacity(0.25))
+                        .frame(height: 1)
+                }
+            }
+        }
+    }
+
+    private var selectionBinding: Binding<String> {
+        Binding(
+            get: { code },
+            set: { onChange($0) }
+        )
+    }
+}
+
 struct ProfilePositionSelect: View {
     @Binding var selection: String
 

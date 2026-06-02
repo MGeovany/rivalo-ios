@@ -1,7 +1,7 @@
 import Charts
 import SwiftUI
 
-// MARK: - Layout
+// MARK: - Performance metrics
 
 struct DashboardSummaryStrip: View {
     let sessions: Int
@@ -10,70 +10,244 @@ struct DashboardSummaryStrip: View {
     let avgHr: Int?
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Theme.Spacing.medium) {
-            DashboardStatTile(
-                label: "Matches",
-                value: "\(sessions)",
-                icon: "sportscourt.fill"
-            )
-            DashboardStatTile(
-                label: "Total distance",
+        VStack(spacing: Theme.Spacing.medium) {
+            PerformanceHeroMetric(
                 value: String(format: "%.1f", totalKm),
                 unit: "km",
-                icon: "figure.run"
+                label: "Total distance covered",
+                icon: "figure.run",
+                footnote: sessions > 0 ? "\(sessions) matches logged" : nil
             )
-            DashboardStatTile(
-                label: "Avg duration",
-                value: avgMinutes.map { "\($0)" } ?? "—",
-                unit: avgMinutes == nil ? nil : "min",
-                icon: "clock.fill"
-            )
-            DashboardStatTile(
-                label: "Avg heart rate",
-                value: avgHr.map { "\($0)" } ?? "—",
-                unit: avgHr == nil ? nil : "bpm",
-                icon: "heart.fill"
-            )
+
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: Theme.Spacing.medium),
+                    GridItem(.flexible(), spacing: Theme.Spacing.medium),
+                ],
+                spacing: Theme.Spacing.medium
+            ) {
+                PerformanceStatCard(
+                    label: "Matches",
+                    value: "\(sessions)",
+                    unit: nil,
+                    icon: "sportscourt.fill",
+                    style: .matches
+                )
+                PerformanceStatCard(
+                    label: "Avg duration",
+                    value: avgMinutes.map { "\($0)" } ?? "—",
+                    unit: avgMinutes == nil ? nil : "min",
+                    icon: "clock.fill",
+                    style: .duration
+                )
+                PerformanceStatCard(
+                    label: "Avg heart rate",
+                    value: avgHr.map { "\($0)" } ?? "—",
+                    unit: avgHr == nil ? nil : "bpm",
+                    icon: "heart.fill",
+                    style: .heartRate
+                )
+                PerformanceStatCard(
+                    label: "Avg per match",
+                    value: sessions > 0 ? String(format: "%.1f", totalKm / Double(sessions)) : "—",
+                    unit: sessions > 0 ? "km" : nil,
+                    icon: "chart.line.uptrend.xyaxis",
+                    style: .pace
+                )
+            }
         }
     }
 }
 
-struct DashboardStatTile: View {
-    let label: String
+/// Full-width headline stat for total distance.
+private struct PerformanceHeroMetric: View {
     let value: String
-    var unit: String?
+    let unit: String
+    let label: String
     let icon: String
+    let footnote: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.Colors.accent)
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 22)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.14, green: 0.08, blue: 0.04),
+                            Theme.Colors.surface,
+                            Theme.Colors.background,
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
-            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                Text(value)
-                    .font(Theme.Typography.metric(size: 38))
-                    .foregroundStyle(Theme.Colors.accent)
-                    .monospacedDigit()
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
-                if let unit {
-                    Text(unit)
-                        .font(Theme.Typography.statLabel(size: 14))
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                        .padding(.bottom, 4)
+            HStack(alignment: .center, spacing: Theme.Spacing.medium) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(label.uppercased())
+                        .font(Theme.Typography.statLabel(size: 10))
+                        .foregroundStyle(Theme.Colors.accentBright.opacity(0.9))
+                        .tracking(1.4)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(value)
+                            .font(Theme.Typography.metric(size: 56))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.white, Theme.Colors.accentBright],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .monospacedDigit()
+                            .shadow(color: Theme.Colors.accent.opacity(0.55), radius: 12, y: 4)
+
+                        Text(unit)
+                            .font(Theme.Typography.title(size: 22))
+                            .foregroundStyle(Theme.Colors.accent)
+                            .padding(.bottom, 6)
+                    }
+
+                    if let footnote {
+                        Text(footnote)
+                            .font(Theme.Typography.caption(size: 12))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Theme.Colors.accentBright, Theme.Colors.accent],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                        .shadow(color: Theme.Colors.accent.opacity(0.5), radius: 10, y: 4)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(.white)
+                        .symbolRenderingMode(.hierarchical)
                 }
             }
-
-            Text(label)
-                .font(Theme.Typography.caption(size: 12))
-                .foregroundStyle(Theme.Colors.textSecondary)
+            .padding(Theme.Spacing.large)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Theme.Spacing.medium)
-        .padding(.vertical, Theme.Spacing.small)
-        .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 132)
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Theme.Colors.accentBright.opacity(0.7),
+                            Theme.Colors.accent.opacity(0.25),
+                            Theme.Colors.accent.opacity(0.05),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+        }
+    }
+}
+
+private struct PerformanceStatCard: View {
+    enum Style {
+        case matches, duration, heartRate, pace
+
+        var glow: Color {
+            switch self {
+            case .matches: Theme.Colors.accent
+            case .duration: Color(red: 1, green: 0.55, blue: 0.2)
+            case .heartRate: Color(red: 1, green: 0.35, blue: 0.35)
+            case .pace: Theme.Colors.accentBright
+            }
+        }
+    }
+
+    let label: String
+    let value: String
+    let unit: String?
+    let icon: String
+    let style: Style
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            RoundedRectangle(cornerRadius: 18)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Theme.Colors.surface,
+                            Color(red: 0.1, green: 0.1, blue: 0.11),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(style.glow.opacity(0.18))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: icon)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(style.glow)
+                    }
+                    Spacer(minLength: 0)
+                }
+
+                Spacer(minLength: Theme.Spacing.small)
+
+                HStack(alignment: .lastTextBaseline, spacing: 3) {
+                    Text(value)
+                        .font(Theme.Typography.metric(size: 40))
+                        .foregroundStyle(.white)
+                        .monospacedDigit()
+                        .minimumScaleFactor(0.65)
+                        .lineLimit(1)
+                        .shadow(color: style.glow.opacity(0.35), radius: 8, y: 2)
+
+                    if let unit {
+                        Text(unit)
+                            .font(Theme.Typography.caption(size: 13))
+                            .foregroundStyle(style.glow.opacity(0.95))
+                            .padding(.bottom, 5)
+                    }
+                }
+
+                Text(label.uppercased())
+                    .font(Theme.Typography.statLabel(size: 9))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .tracking(0.9)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+            }
+            .padding(Theme.Spacing.medium)
+            .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            style.glow.opacity(0.45),
+                            Color.white.opacity(0.06),
+                            Color.clear,
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        }
     }
 }
 
@@ -94,14 +268,20 @@ struct DashboardChartCard<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(Theme.Typography.button(size: 16))
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(Theme.Typography.caption(size: 12))
-                        .foregroundStyle(Theme.Colors.textSecondary)
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Theme.Colors.accent)
+                    .frame(width: 6, height: 6)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title.uppercased())
+                        .font(Theme.Typography.statLabel(size: 11))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .tracking(1)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(Theme.Typography.caption(size: 12))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
                 }
             }
 
@@ -109,8 +289,14 @@ struct DashboardChartCard<Content: View>: View {
         }
         .padding(Theme.Spacing.medium)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.card)
+                .fill(Theme.Colors.surface)
+                .overlay {
+                    RoundedRectangle(cornerRadius: Theme.Radius.card)
+                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+                }
+        )
     }
 }
 

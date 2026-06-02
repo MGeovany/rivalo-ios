@@ -1,232 +1,280 @@
 import SwiftUI
 import UIKit
 
-/// FIFA Ultimate Team–style player card for the saved profile.
+/// FIFA Ultimate Team–style gold player card with gyro-driven holographic shine.
 struct FIFAPlayerCard: View {
     let model: PlayerCardModel
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(
+            FUTCardShape()
+                .fill(FUTCardPalette.goldFrame)
+                .shadow(color: FUTCardPalette.goldDeep.opacity(0.55), radius: 18, y: 10)
+
+            FUTCardShape()
+                .fill(FUTCardPalette.innerField)
+                .padding(5)
+
+            cardContent
+                .padding(6)
+                .clipShape(FUTCardShape())
+
+            CardHolographicEffect()
+                .clipShape(FUTCardShape())
+                .padding(5)
+
+            FUTCardShape()
+                .stroke(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.95, green: 0.72, blue: 0.25),
-                            Theme.Colors.accentBright,
-                            Theme.Colors.accent,
-                            Color(red: 0.55, green: 0.22, blue: 0.05),
+                            Color.white.opacity(0.65),
+                            Color.clear,
+                            Color.black.opacity(0.35),
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
-                    )
+                    ),
+                    lineWidth: 1.5
                 )
-                .shadow(color: Theme.Colors.accent.opacity(0.35), radius: 20, y: 10)
-
-            RoundedRectangle(cornerRadius: 19)
-                .fill(Theme.Colors.background)
-                .padding(3)
-
-            VStack(spacing: 0) {
-                ZStack(alignment: .topLeading) {
-                    cardHero
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    LinearGradient(
-                        colors: [
-                            Color.black.opacity(0.55),
-                            Color.black.opacity(0.05),
-                            Color.clear,
-                            Color.black.opacity(0.2),
-                            Color.black.opacity(0.92),
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        ratingColumn
-                            .padding(Theme.Spacing.medium)
-
-                        Spacer(minLength: 0)
-
-                        footer
-                            .padding(.horizontal, Theme.Spacing.medium)
-                            .padding(.bottom, Theme.Spacing.medium)
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 19))
-            }
+                .padding(5)
         }
-        .aspectRatio(0.68, contentMode: .fit)
-        .frame(maxWidth: 360)
+        .aspectRatio(0.715, contentMode: .fit)
+        .frame(maxWidth: 340)
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Hero (center of card)
+    // MARK: - Layout
 
-    @ViewBuilder
-    private var cardHero: some View {
-        if let data = model.avatarImageData, let uiImage = UIImage(data: data) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-        } else {
+    private var cardContent: some View {
+        VStack(spacing: 0) {
+            topBand
+                .frame(height: 88)
+
             ZStack {
-                LinearGradient(
-                    colors: [
-                        Theme.Colors.surface,
-                        Theme.Colors.background,
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                VStack(spacing: Theme.Spacing.medium) {
-                    ZStack {
-                        Circle()
-                            .fill(Theme.Colors.surface)
-                            .frame(width: 100, height: 100)
-                        Circle()
-                            .stroke(Theme.Colors.accent.opacity(0.5), lineWidth: 3)
-                            .frame(width: 100, height: 100)
-
-                        Text(model.initials)
-                            .font(Theme.Typography.title(size: 38))
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                    }
-
-                    if let position = model.position, !position.isEmpty {
-                        Text(position)
-                            .font(Theme.Typography.caption(size: 12))
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                }
+                playerHero
+                statsOverlay
             }
+            .frame(maxHeight: .infinity)
+
+            namePlate
+                .frame(height: 52)
         }
     }
 
-    private var ratingColumn: some View {
-        VStack(alignment: .leading, spacing: 6) {
+    private var topBand: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ratingBlock
+            Spacer(minLength: 8)
+            nationalityBlock
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+    }
+
+    private var ratingBlock: some View {
+        VStack(alignment: .leading, spacing: 2) {
             if let rating = model.rating {
                 Text("\(rating)")
-                    .font(Theme.Typography.metric(size: 56))
+                    .font(Theme.Typography.metric(size: 52))
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color(red: 1, green: 0.92, blue: 0.55), Theme.Colors.accentBright],
+                            colors: [FUTCardPalette.goldTop, FUTCardPalette.goldMid],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
                     .monospacedDigit()
-                    .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
+                    .shadow(color: .black.opacity(0.65), radius: 3, y: 2)
             } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    VStack(spacing: 5) {
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(Color.white.opacity(0.5))
-                            .frame(width: 40, height: 4)
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(Color.white.opacity(0.5))
-                            .frame(width: 40, height: 4)
-                    }
-
-                    Text("NO RECORD YET")
-                        .font(Theme.Typography.statLabel(size: 9))
-                        .foregroundStyle(Color.white.opacity(0.75))
-                        .tracking(0.8)
+                VStack(alignment: .leading, spacing: 4) {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color.white.opacity(0.45))
+                    Text("—")
+                        .font(Theme.Typography.metric(size: 40))
+                        .foregroundStyle(Color.white.opacity(0.35))
                 }
             }
 
             Text(model.positionAbbrev)
-                .font(Theme.Typography.button(size: 15))
-                .foregroundStyle(Theme.Colors.accentBright)
-                .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+                .font(Theme.Typography.button(size: 16))
+                .foregroundStyle(FUTCardPalette.goldTop)
+                .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+
+            if model.matchesPlayed > 0 {
+                Text("\(model.matchesPlayed) MAT")
+                    .font(Theme.Typography.statLabel(size: 9))
+                    .foregroundStyle(Color.white.opacity(0.55))
+                    .tracking(0.6)
+            }
         }
     }
 
-    private var footer: some View {
-        VStack(spacing: Theme.Spacing.small) {
-            if model.avatarImageData != nil,
-               let position = model.position, !position.isEmpty {
-                Text(position)
-                    .font(Theme.Typography.caption(size: 12))
-                    .foregroundStyle(Theme.Colors.textSecondary)
+    private var nationalityBlock: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            Text(FootballCountry.flagEmoji(for: model.countryCode))
+                .font(.system(size: 36))
+                .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
+                .accessibilityLabel(FootballCountry.name(for: model.countryCode))
+
+            Text(model.countryCode.uppercased())
+                .font(Theme.Typography.statLabel(size: 10))
+                .foregroundStyle(Color.white.opacity(0.7))
+                .tracking(1)
+        }
+    }
+
+    private var playerHero: some View {
+        ZStack {
+            if let data = model.avatarImageData, let uiImage = UIImage(data: data) {
+                GeometryReader { proxy in
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipped()
+                }
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.12, green: 0.13, blue: 0.16),
+                        FUTCardPalette.innerField,
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                VStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.06))
+                            .frame(width: 108, height: 108)
+                        Circle()
+                            .stroke(FUTCardPalette.goldMid.opacity(0.6), lineWidth: 2)
+                            .frame(width: 108, height: 108)
+                        Text(model.initials)
+                            .font(Theme.Typography.title(size: 42))
+                            .foregroundStyle(Color.white.opacity(0.9))
+                    }
+                }
             }
 
-            Text(model.displayName.uppercased())
-                .font(Theme.Typography.title(size: 22))
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(maxWidth: .infinity)
-
-            statsRow
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.5),
+                    Color.clear,
+                    Color.clear,
+                    Color.black.opacity(0.75),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .allowsHitTesting(false)
         }
     }
 
-    private var statsRow: some View {
-        HStack(spacing: 0) {
-            statCell("HT", model.heightLabel)
-            statDivider
-            statCell("WT", model.weightLabel)
-            statDivider
-            statCell("POS", model.positionAbbrev)
+    private var statsOverlay: some View {
+        VStack {
+            Spacer()
+            HStack(alignment: .bottom, spacing: 0) {
+                statColumn(model.leftStats, alignment: .leading)
+                Spacer(minLength: 0)
+                statColumn(model.rightStats, alignment: .trailing)
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+            .background(
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(0.82)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
         }
-        .padding(.vertical, Theme.Spacing.small)
-        .background(Theme.Colors.surface.opacity(0.75))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.input))
     }
 
-    private func statCell(_ title: String, _ value: String) -> some View {
-        VStack(spacing: 4) {
+    private func statColumn(_ stats: [PlayerCardStat], alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 5) {
+            ForEach(Array(stats.enumerated()), id: \.offset) { _, stat in
+                HStack(spacing: 6) {
+                    if alignment == .leading {
+                        Text(stat.abbrev)
+                            .font(Theme.Typography.statLabel(size: 11))
+                            .foregroundStyle(FUTCardPalette.goldTop.opacity(0.85))
+                            .frame(width: 28, alignment: .leading)
+                        Text(stat.value)
+                            .font(Theme.Typography.button(size: 17))
+                            .foregroundStyle(.white)
+                            .monospacedDigit()
+                    } else {
+                        Text(stat.value)
+                            .font(Theme.Typography.button(size: 17))
+                            .foregroundStyle(.white)
+                            .monospacedDigit()
+                        Text(stat.abbrev)
+                            .font(Theme.Typography.statLabel(size: 11))
+                            .foregroundStyle(FUTCardPalette.goldTop.opacity(0.85))
+                            .frame(width: 28, alignment: .trailing)
+                    }
+                }
+            }
+        }
+    }
+
+    private var namePlate: some View {
+        ZStack {
+            FUTCardPalette.namePlate
+
+            VStack(spacing: 2) {
+                Text(model.displayName.uppercased())
+                    .font(Theme.Typography.title(size: 20))
+                    .foregroundStyle(Color(red: 0.12, green: 0.08, blue: 0.02))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+                    .padding(.horizontal, 10)
+
+                HStack(spacing: 12) {
+                    miniBadge(model.heightLabel, title: "HT")
+                    miniBadge(model.weightLabel, title: "WT")
+                    if let position = model.position, !position.isEmpty {
+                        Text(position)
+                            .font(Theme.Typography.statLabel(size: 10))
+                            .foregroundStyle(Color.black.opacity(0.55))
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    private func miniBadge(_ value: String, title: String) -> some View {
+        HStack(spacing: 3) {
             Text(title)
-                .font(Theme.Typography.statLabel(size: 10))
-                .foregroundStyle(Theme.Colors.textSecondary)
+                .font(Theme.Typography.statLabel(size: 9))
+                .foregroundStyle(Color.black.opacity(0.45))
             Text(value)
-                .font(Theme.Typography.button(size: 13))
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
+                .font(Theme.Typography.statLabel(size: 10))
+                .foregroundStyle(Color.black.opacity(0.7))
         }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var statDivider: some View {
-        Rectangle()
-            .fill(Theme.Colors.textSecondary.opacity(0.25))
-            .frame(width: 1, height: 32)
     }
 }
 
-#Preview("With rating") {
+#Preview("Gold card") {
+    let stats = PlayerCardStatsBuilder.build(from: [])
     FIFAPlayerCard(
         model: PlayerCardModel(
-            displayName: "Alex Rivera",
+            displayName: "Geovany",
             position: "Midfielder",
             positionAbbrev: "CM",
-            heightLabel: "178 cm",
-            weightLabel: "72 kg",
-            rating: 84,
-            initials: "AR",
-            avatarImageData: nil
-        )
-    )
-    .padding()
-    .background(Theme.Colors.background)
-}
-
-#Preview("No record") {
-    FIFAPlayerCard(
-        model: PlayerCardModel(
-            displayName: "Alex Rivera",
-            position: "Midfielder",
-            positionAbbrev: "CM",
-            heightLabel: "178 cm",
-            weightLabel: "72 kg",
-            rating: nil,
-            initials: "AR",
+            heightLabel: "170 cm",
+            weightLabel: "70 kg",
+            rating: 74,
+            matchesPlayed: 5,
+            countryCode: "MX",
+            leftStats: stats.left,
+            rightStats: stats.right,
+            initials: "G",
             avatarImageData: nil
         )
     )

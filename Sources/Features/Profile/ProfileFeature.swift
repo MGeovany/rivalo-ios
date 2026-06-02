@@ -19,6 +19,8 @@ struct ProfileFeature {
         var weightText = ""
         var heightUnit: HeightUnit = .loadPreferred()
         var weightUnit: WeightUnit = .loadPreferred()
+        /// ISO country code for the FUT card flag (stored locally per user).
+        var countryCode: String = ProfileCountryStore.defaultCode()
         var sessions: [SportSession] = []
         /// JPEG bytes for the FIFA card photo (device-local until backend avatar exists).
         var avatarImageData: Data?
@@ -33,6 +35,7 @@ struct ProfileFeature {
             let name = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { return nil }
 
+            let stats = PlayerCardStatsBuilder.build(from: sessions)
             return PlayerCardModel(
                 displayName: name,
                 position: profile.preferredPosition,
@@ -40,6 +43,10 @@ struct ProfileFeature {
                 heightLabel: physicalLabel(cm: profile.heightCm, unit: heightUnit),
                 weightLabel: physicalLabel(kg: profile.weightKg, unit: weightUnit),
                 rating: playerRating,
+                matchesPlayed: sessions.count,
+                countryCode: countryCode,
+                leftStats: stats.left,
+                rightStats: stats.right,
                 initials: ProfileFormatting.initials(from: name),
                 avatarImageData: avatarImageData
             )
@@ -70,6 +77,7 @@ struct ProfileFeature {
         case weightUnitChanged(WeightUnit)
         case photoSelected(Data)
         case photoRemoved
+        case countryCodeChanged(String)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -168,6 +176,14 @@ struct ProfileFeature {
                 state.avatarImageData = nil
                 return .none
 
+            case let .countryCodeChanged(code):
+                let normalized = code.uppercased()
+                state.countryCode = normalized
+                if let userId = state.profile?.id {
+                    ProfileCountryStore.save(userId: userId, code: normalized)
+                }
+                return .none
+
             case .binding, .delegate:
                 return .none
             }
@@ -184,6 +200,7 @@ private extension ProfileFeature.State {
         heightText = heightUnit.format(cm: profile.heightCm)
         weightText = weightUnit.format(kg: profile.weightKg)
         avatarImageData = ProfilePhotoStore.load(userId: profile.id)
+        countryCode = ProfileCountryStore.load(userId: profile.id) ?? ProfileCountryStore.defaultCode()
     }
 
     /// Builds the update payload from the editable fields.
@@ -219,6 +236,10 @@ struct PlayerCardModel: Equatable {
     let heightLabel: String
     let weightLabel: String
     let rating: Int?
+    let matchesPlayed: Int
+    let countryCode: String
+    let leftStats: [PlayerCardStat]
+    let rightStats: [PlayerCardStat]
     let initials: String
     let avatarImageData: Data?
 }

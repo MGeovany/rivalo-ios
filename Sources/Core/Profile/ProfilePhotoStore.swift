@@ -43,8 +43,18 @@ enum ProfilePhotoProcessor {
     /// Downscales and JPEG-compresses for the FIFA card photo slot.
     static func prepareForCard(_ data: Data, maxPixel: CGFloat = 900) -> Data? {
         guard let image = UIImage(data: data) else { return nil }
-        let resized = resize(image, maxPixel: maxPixel)
+        let resized = resize(normalized(image), maxPixel: maxPixel)
         return resized.jpegData(compressionQuality: 0.82)
+    }
+
+    /// Applies EXIF orientation so width/height match how the photo is displayed.
+    private static func normalized(_ image: UIImage) -> UIImage {
+        guard image.imageOrientation != .up else { return image }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        return UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }
     }
 
     private static func resize(_ image: UIImage, maxPixel: CGFloat) -> UIImage {

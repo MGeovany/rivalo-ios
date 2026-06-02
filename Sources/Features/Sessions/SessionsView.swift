@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import SwiftUI
 
-/// Home dashboard: performance charts and a compact recent-matches list.
+/// Home feed inspired by Strava: week strip, latest match, recent activities.
 struct SessionsView: View {
     @Bindable var store: StoreOf<SessionsFeature>
 
@@ -37,58 +37,67 @@ struct SessionsView: View {
             LoadingView()
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: Theme.Spacing.large) {
-                    dashboardHeader
+                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                    header
 
                     if let message = store.errorMessage {
                         AuthInlineMessage(text: message, kind: .error)
                     }
 
+                    SessionWeekStrip(sessions: store.sessions, referenceDate: Date())
+
+                    if let latest = store.latestSession {
+                        latestMatchSection(latest)
+                    } else if store.isLoadingLatest {
+                        ProgressView()
+                            .tint(Theme.Colors.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    }
+
                     if store.sessions.isEmpty {
-                        emptyDashboardHint
+                        emptyHint
                     }
 
-                    chartsSection
-
-                    if !store.recentSessions.isEmpty {
-                        recentSection
+                    if !store.recentActivities.isEmpty {
+                        recentActivitiesSection
                     }
+
+                    analyticsLink
                 }
                 .padding(.horizontal, Theme.Spacing.large)
                 .padding(.top, Theme.Spacing.small)
                 .padding(.bottom, Theme.Spacing.xl)
             }
-            .scrollDismissesKeyboard(.interactively)
+            .refreshable { store.send(.onAppear) }
         }
     }
 
-    // MARK: - Dashboard
-
-    private var dashboardHeader: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("Performance")
-                .font(Theme.Typography.title(size: 32))
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Home")
+                .font(Theme.Typography.title(size: 34))
                 .foregroundStyle(Theme.Colors.textPrimary)
-
-            Text("Your match trends at a glance")
+            Text("Your week and latest match")
                 .font(Theme.Typography.body(size: 15))
                 .foregroundStyle(Theme.Colors.textSecondary)
-
-            DashboardSummaryStrip(
-                sessions: store.sessions.count,
-                totalKm: store.totalDistanceKm,
-                avgMinutes: store.averageDurationMin,
-                avgHr: store.averageHr
-            )
         }
     }
 
-    private var emptyDashboardHint: some View {
+    private func latestMatchSection(_ session: SportSession) -> some View {
+        let meta = SessionMetaStore.load(sessionId: session.id)
+        return SessionLastMatchCard(
+            session: session,
+            meta: meta,
+            onTap: { store.send(.sessionTapped(session)) }
+        )
+    }
+
+    private var emptyHint: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text("No data yet")
+            Text("No matches yet")
                 .font(Theme.Typography.button(size: 16))
-                .foregroundStyle(Theme.Colors.textPrimary)
-            Text("Record a match on your Watch or tap + to add one manually.")
+            Text("Record on your Watch or tap + to log a session.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
@@ -98,92 +107,167 @@ struct SessionsView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 
-    private var chartsSection: some View {
-        let sorted = store.sortedSessions
-
-        return VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("Charts")
-                .font(Theme.Typography.statLabel(size: 11))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .tracking(1.2)
-
-            DashboardChartCard(
-                title: "Distance",
-                subtitle: "Kilometers per match over time"
-            ) {
-                HomeDashboardCharts.distanceLine(sessions: sorted)
-            }
-
-            DashboardChartCard(
-                title: "Duration",
-                subtitle: "Minutes played each match"
-            ) {
-                HomeDashboardCharts.durationBars(sessions: sorted)
-            }
-
-            DashboardChartCard(
-                title: "Heart rate",
-                subtitle: "Average BPM per match"
-            ) {
-                HomeDashboardCharts.heartRateLine(sessions: sorted)
-            }
-
-            DashboardChartCard(
-                title: "Intensity",
-                subtitle: "Effort score (0–100)"
-            ) {
-                HomeDashboardCharts.intensityBars(sessions: sorted)
-            }
-
-            DashboardChartCard(
-                title: "Sprints",
-                subtitle: "High-speed efforts per match"
-            ) {
-                HomeDashboardCharts.sprintsBars(sessions: sorted)
-            }
-        }
-    }
-
-    private var recentSection: some View {
+    private var recentActivitiesSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("Recent matches")
-                .font(Theme.Typography.statLabel(size: 11))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .tracking(1.2)
+            Text("Recent activities")
+                .font(Theme.Typography.button(size: 18))
+                .foregroundStyle(Theme.Colors.textPrimary)
 
-            ForEach(store.recentSessions) { session in
+            ForEach(store.recentActivities) { session in
                 Button { store.send(.sessionTapped(session)) } label: {
-                    recentRow(session)
+                    RecentActivityRow(
+                        session: session,
+                        meta: SessionMetaStore.load(sessionId: session.id)
+                    )
                 }
                 .buttonStyle(.plain)
             }
         }
     }
 
-    private func recentRow(_ session: SportSession) -> some View {
-        HStack {
+    private var analyticsLink: some View {
+        NavigationLink {
+            PerformanceAnalyticsView(sessions: store.sessions)
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Performance analytics")
+                        .font(Theme.Typography.button(size: 16))
+                    Text("Charts and trends across all matches")
+                        .font(Theme.Typography.caption(size: 12))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            .padding(Theme.Spacing.medium)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .foregroundStyle(Theme.Colors.textPrimary)
+        }
+    }
+}
+
+/// Compact Strava-style activity row.
+struct RecentActivityRow: View {
+    let session: SportSession
+    let meta: SessionMeta
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.medium) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Theme.Colors.accent.opacity(0.15))
+                    .frame(width: 52, height: 52)
+                Image(systemName: session.source == "watch" ? "applewatch" : "figure.soccer")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Theme.Colors.accent)
+            }
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
                     .font(Theme.Typography.body(size: 15))
-                Text(session.source.capitalized)
-                    .font(Theme.Typography.statLabel(size: 11))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+
+                Text(SessionActivityGeometry.displayLocation(session: session, meta: meta))
+                    .font(Theme.Typography.caption(size: 12))
                     .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+
+                HStack(spacing: 10) {
+                    metricChip(
+                        String(format: "%.2f", session.distanceM / 1000),
+                        unit: "km"
+                    )
+                    metricChip("\(session.durationS / 60)", unit: "min")
+                    if let hr = session.hrAvg {
+                        metricChip("\(hr)", unit: "bpm")
+                    }
+                }
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(session.distanceKmText)
-                    .font(Theme.Typography.metric(size: 28))
-                    .foregroundStyle(Theme.Colors.accent)
-                    .monospacedDigit()
-                Text(session.durationText)
-                    .font(Theme.Typography.metric(size: 16))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .monospacedDigit()
-            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.Colors.textSecondary.opacity(0.6))
         }
         .padding(Theme.Spacing.medium)
         .background(Theme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
+    private func metricChip(_ value: String, unit: String) -> some View {
+        HStack(spacing: 3) {
+            Text(value)
+                .font(Theme.Typography.statLabel(size: 11))
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .monospacedDigit()
+                .lineLimit(1)
+            Text(unit)
+                .font(Theme.Typography.statLabel(size: 10))
+                .foregroundStyle(Theme.Colors.textSecondary.opacity(0.85))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
+/// Full performance charts (moved off the main Home feed).
+struct PerformanceAnalyticsView: View {
+    let sessions: [SportSession]
+
+    private var sorted: [SportSession] {
+        sessions.sorted { $0.startedAt < $1.startedAt }
+    }
+
+    var body: some View {
+        ZStack {
+            Theme.Colors.background.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Spacing.large) {
+                    PerformanceSectionHeader()
+
+                    DashboardSummaryStrip(
+                        sessions: sessions.count,
+                        totalKm: sessions.reduce(0) { $0 + $1.distanceM } / 1000,
+                        avgMinutes: averageDurationMin,
+                        avgHr: averageHr
+                    )
+
+                    DashboardChartCard(title: "Distance", subtitle: "Km per match") {
+                        HomeDashboardCharts.distanceLine(sessions: sorted)
+                    }
+                    DashboardChartCard(title: "Duration", subtitle: "Minutes per match") {
+                        HomeDashboardCharts.durationBars(sessions: sorted)
+                    }
+                    DashboardChartCard(title: "Heart rate", subtitle: "Average BPM") {
+                        HomeDashboardCharts.heartRateLine(sessions: sorted)
+                    }
+                    DashboardChartCard(title: "Intensity", subtitle: "Effort score") {
+                        HomeDashboardCharts.intensityBars(sessions: sorted)
+                    }
+                    DashboardChartCard(title: "Sprints", subtitle: "Per match") {
+                        HomeDashboardCharts.sprintsBars(sessions: sorted)
+                    }
+                }
+                .padding(Theme.Spacing.large)
+            }
+        }
+        .rivalNavigationChrome()
         .foregroundStyle(Theme.Colors.textPrimary)
+    }
+
+    private var averageDurationMin: Int? {
+        guard !sessions.isEmpty else { return nil }
+        return sessions.reduce(0) { $0 + $1.durationS } / sessions.count / 60
+    }
+
+    private var averageHr: Int? {
+        let values = sessions.compactMap(\.hrAvg)
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / values.count
     }
 }

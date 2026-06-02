@@ -1,21 +1,60 @@
 import ComposableArchitecture
 import Foundation
 
-/// Loads and displays a single session via `GET /v1/sessions/{id}`.
+/// Loads and displays a single session with Strava-style charts and actions.
 @Reducer
 struct SessionDetailFeature {
     @ObservableState
     struct State: Equatable, Identifiable {
         let accessToken: String
-        let id: String
+        let sessionId: String
         var session: SportSession?
+        var meta: SessionMeta = SessionMeta()
+        var photos: [Data] = []
         var isLoading = false
+        var isDeleting = false
         var errorMessage: String?
+        var showVenuePrompt = false
+        var venueDraft = ""
+        var showDeleteConfirm = false
+
+        var id: String { sessionId }
+
+        init(accessToken: String, id: String, session: SportSession? = nil) {
+            self.accessToken = accessToken
+            self.sessionId = id
+            self.session = session
+            if let session {
+                self.meta = SessionMetaStore.load(sessionId: session.id)
+                self.photos = SessionPhotoStore.load(sessionId: session.id)
+            }
+        }
     }
 
     enum Action: Equatable {
         case onAppear
         case loadResponse(Result<SportSession, APIError>)
+        case dismissTapped
+        case shareTapped
+        case editTapped
+        case saveVenueTapped
+        case venueDraftChanged(String)
+        case confirmVenueTapped
+        case cancelVenueTapped
+        case deleteTapped
+        case confirmDeleteTapped
+        case cancelDeleteTapped
+        case deleteSucceeded
+        case deleteFailed
+        case photosChanged
+        case delegate(Delegate)
+
+        enum Delegate: Equatable {
+            case dismissed
+            case deleted
+            case requestEdit(SportSession)
+            case updated(SportSession)
+        }
     }
 
     @Dependency(\.apiClient) var apiClient
@@ -24,10 +63,12 @@ struct SessionDetailFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                guard state.session == nil else { return .none }
+                state.meta = SessionMetaStore.load(sessionId: state.sessionId)
+                state.photos = SessionPhotoStore.load(sessionId: state.sessionId)
+                if let samples = state.session?.samples, !samples.isEmpty { return .none }
                 state.isLoading = true
                 let token = state.accessToken
-                let id = state.id
+                let id = state.sessionId
                 return .run { send in
                     await send(.loadResponse(Result { try await apiClient.getSession(token, id) }
                         .mapError { $0 as? APIError ?? .invalidResponse }))
@@ -36,11 +77,85 @@ struct SessionDetailFeature {
             case let .loadResponse(.success(session)):
                 state.isLoading = false
                 state.session = session
+                state.meta = SessionMetaStore.load(sessionId: session.id)
+                state.photos = SessionPhotoStore.load(sessionId: session.id)
                 return .none
 
             case .loadResponse(.failure):
                 state.isLoading = false
                 state.errorMessage = "Could not load the session."
+                return .none
+
+            case .dismissTapped:
+                return .send(.delegate(.dismissed))
+
+            case .shareTapped:
+                return .none
+
+            case .editTapped:
+                guard let session = state.session else { return .none }
+                return .send(.delegate(.requestEdit(session)))
+
+            case .saveVenueTapped:
+                state.venueDraft = state.meta.venueName ?? ""
+                state.showVenuePrompt = true
+                return .none
+
+            case let .venueDraftChanged(text):
+                state.venueDraft = text
+                return .none
+
+            case .confirmVenueTapped:
+                state.showVenuePrompt = false
+                var meta = state.meta
+                let name = state.venueDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                meta.venueName = name.isEmpty ? nil : name
+                state.meta = meta
+                SessionMetaStore.save(sessionId: state.sessionId, meta: meta)
+                return .none
+
+            case .cancelVenueTapped:
+                state.showVenuePrompt = false
+                return .none
+
+            case .deleteTapped:
+                state.showDeleteConfirm = true
+                return .none
+
+            case .cancelDeleteTapped:
+                state.showDeleteConfirm = false
+                return .none
+
+            case .confirmDeleteTapped:
+                state.showDeleteConfirm = false
+                state.isDeleting = true
+                let token = state.accessToken
+                let id = state.sessionId
+                return .run { send in
+                    do {
+                        try await apiClient.deleteSession(token, id)
+                        await send(.deleteSucceeded)
+                    } catch {
+                        await send(.deleteFailed)
+                    }
+                }
+
+            case .deleteSucceeded:
+                state.isDeleting = false
+                SessionMetaStore.delete(sessionId: state.sessionId)
+                SessionPhotoStore.deleteAll(sessionId: state.sessionId)
+                return .send(.delegate(.deleted))
+
+            case .deleteFailed:
+                state.isDeleting = false
+                state.errorMessage = "Could not delete this activity."
+                return .none
+
+            case .photosChanged:
+                state.photos = SessionPhotoStore.load(sessionId: state.sessionId)
+                return .none
+
+            case .delegate:
                 return .none
             }
         }

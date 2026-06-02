@@ -1,70 +1,34 @@
 import ComposableArchitecture
 import Foundation
 
-/// Lists the user's sessions and hosts the manual-entry form and the detail view.
+/// Home feed: week activity, latest match, and recent activities (Strava-style).
 @Reducer
 struct SessionsFeature {
     @ObservableState
     struct State: Equatable {
         let accessToken: String
         var sessions: [SportSession] = []
+        /// Latest match with samples for map / heatmap on Home.
+        var latestSession: SportSession?
         var isLoading = false
+        var isLoadingLatest = false
         var errorMessage: String?
         @Presents var entry: SessionEntryFeature.State?
         @Presents var detail: SessionDetailFeature.State?
 
-        /// Average distance (km) across sessions, for the comparative header.
-        var averageDistanceKm: Double? {
-            guard !sessions.isEmpty else { return nil }
-            return sessions.reduce(0) { $0 + $1.distanceM } / Double(sessions.count) / 1000
+        var sortedByRecent: [SportSession] {
+            sessions.sorted { $0.startedAt > $1.startedAt }
         }
 
-        /// Average duration (minutes) across sessions.
-        var averageDurationMin: Int? {
-            guard !sessions.isEmpty else { return nil }
-            return sessions.reduce(0) { $0 + $1.durationS } / sessions.count / 60
-        }
-
-        var sortedSessions: [SportSession] {
-            sessions.sorted { $0.startedAt < $1.startedAt }
-        }
-
-        var totalDistanceKm: Double {
-            sessions.reduce(0) { $0 + $1.distanceM } / 1000
-        }
-
-        var averageHr: Int? {
-            let values = sessions.compactMap(\.hrAvg)
-            guard !values.isEmpty else { return nil }
-            return values.reduce(0, +) / values.count
-        }
-
-        var averageIntensity: Double? {
-            let values = sessions.compactMap(\.intensity)
-            guard !values.isEmpty else { return nil }
-            return values.reduce(0, +) / Double(values.count)
-        }
-
-        var totalSprints: Int {
-            sessions.reduce(0) { $0 + $1.sprints }
-        }
-
-        var sessionsWithHr: [SportSession] {
-            sessions.filter { $0.hrAvg != nil }
-        }
-
-        var sessionsWithIntensity: [SportSession] {
-            sessions.filter { $0.intensity != nil }
-        }
-
-        var recentSessions: [SportSession] {
-            sessions.sorted { $0.startedAt > $1.startedAt }.prefix(5).map(\.self)
+        var recentActivities: [SportSession] {
+            Array(sortedByRecent.prefix(20))
         }
     }
 
     enum Action {
         case onAppear
         case listResponse(Result<[SportSession], APIError>)
+        case latestDetailResponse(Result<SportSession, APIError>)
         case addTapped
         case sessionTapped(SportSession)
         case showSummary(SportSession)
@@ -73,12 +37,13 @@ struct SessionsFeature {
     }
 
     @Dependency(\.apiClient) var apiClient
+    @Dependency(\.date) var date
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                state.isLoading = true
+                state.isLoading = state.sessions.isEmpty
                 state.errorMessage = nil
                 let token = state.accessToken
                 return .run { send in
@@ -89,11 +54,31 @@ struct SessionsFeature {
             case let .listResponse(.success(sessions)):
                 state.isLoading = false
                 state.sessions = sessions
-                return .none
+                guard let latestId = sessions.sorted(by: { $0.startedAt > $1.startedAt }).first?.id else {
+                    state.latestSession = nil
+                    return .none
+                }
+                state.isLoadingLatest = true
+                let token = state.accessToken
+                return .run { send in
+                    await send(.latestDetailResponse(Result {
+                        try await apiClient.getSession(token, latestId)
+                    }.mapError { $0 as? APIError ?? .invalidResponse }))
+                }
 
             case .listResponse(.failure):
                 state.isLoading = false
                 state.errorMessage = "Could not load your sessions."
+                return .none
+
+            case let .latestDetailResponse(.success(session)):
+                state.isLoadingLatest = false
+                state.latestSession = session
+                return .none
+
+            case .latestDetailResponse(.failure):
+                state.isLoadingLatest = false
+                state.latestSession = state.sortedByRecent.first
                 return .none
 
             case .addTapped:
@@ -101,12 +86,10 @@ struct SessionsFeature {
                 return .none
 
             case let .sessionTapped(session):
-                // Open by id so the detail validates GET /v1/sessions/{id}.
                 state.detail = SessionDetailFeature.State(accessToken: state.accessToken, id: session.id)
                 return .none
 
             case let .showSummary(session):
-                // Auto-presented after a watch session syncs: we already have it.
                 state.detail = SessionDetailFeature.State(
                     accessToken: state.accessToken,
                     id: session.id,
@@ -118,9 +101,30 @@ struct SessionsFeature {
                 state.entry = nil
                 return .send(.onAppear)
 
+            case .entry(.presented(.delegate(.updated))):
+                state.entry = nil
+                return .send(.onAppear)
+
             case .entry(.presented(.delegate(.cancelled))):
                 state.entry = nil
                 return .none
+
+            case .detail(.presented(.delegate(.dismissed))):
+                state.detail = nil
+                return .none
+
+            case .detail(.presented(.delegate(.deleted))):
+                state.detail = nil
+                return .send(.onAppear)
+
+            case let .detail(.presented(.delegate(.requestEdit(session)))):
+                state.detail = nil
+                state.entry = SessionEntryFeature.State(accessToken: state.accessToken, editing: session)
+                return .none
+
+            case .detail(.presented(.delegate(.updated))):
+                state.detail = nil
+                return .send(.onAppear)
 
             case .entry, .detail:
                 return .none

@@ -28,7 +28,7 @@ struct SessionEntryView: View {
                     .padding(Theme.Spacing.large)
                 }
             }
-            .rivalNavigationChrome(title: "New session")
+            .rivalNavigationChrome(title: store.isEditing ? "Edit session" : "New session")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { store.send(.cancelTapped) }
@@ -59,7 +59,8 @@ struct SessionEntryView: View {
                     if store.isSubmitting {
                         ProgressView().tint(.black)
                     } else {
-                        Text("Save session").font(Theme.Typography.button())
+                        Text(store.isEditing ? "Save changes" : "Save session")
+                            .font(Theme.Typography.button())
                     }
                 }
                 .frame(maxWidth: .infinity)

@@ -29,6 +29,10 @@ struct APIClient {
     var listSessions: @Sendable (_ accessToken: String) async throws -> [SportSession]
     /// Fetches a single session via `GET /v1/sessions/{id}`.
     var getSession: @Sendable (_ accessToken: String, _ id: String) async throws -> SportSession
+    /// Updates a session via `PUT /v1/sessions/{id}`.
+    var updateSession: @Sendable (_ accessToken: String, _ id: String, _ update: SportSessionUpdate) async throws -> SportSession
+    /// Deletes a session via `DELETE /v1/sessions/{id}`.
+    var deleteSession: @Sendable (_ accessToken: String, _ id: String) async throws -> Void
 }
 
 extension APIClient: DependencyKey {
@@ -64,8 +68,23 @@ extension APIClient: DependencyKey {
         },
         getSession: { token, id in
             try await apiSend(authorizedRequest("v1/sessions/\(id)", method: "GET", token: token), as: SportSession.self)
+        },
+        updateSession: { token, id, update in
+            var request = authorizedRequest("v1/sessions/\(id)", method: "PUT", token: token)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try apiEncoder().encode(update)
+            return try await apiSend(request, as: SportSession.self)
+        },
+        deleteSession: { token, id in
+            try await apiSendEmpty(authorizedRequest("v1/sessions/\(id)", method: "DELETE", token: token))
         }
     )
+}
+
+private func apiSendEmpty(_ request: URLRequest) async throws {
+    let (_, response) = try await URLSession.shared.data(for: request)
+    guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
+    guard (200..<300).contains(http.statusCode) else { throw APIError.statusCode(http.statusCode) }
 }
 
 // MARK: - Transport helpers

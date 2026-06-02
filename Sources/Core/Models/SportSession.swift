@@ -41,6 +41,35 @@ extension SportSession {
         let seconds = durationS % 60
         return seconds == 0 ? "\(minutes) min" : "\(minutes)m \(seconds)s"
     }
+
+    func asUpdate() -> SportSessionUpdate {
+        SportSessionUpdate(
+            startedAt: startedAt,
+            endedAt: endedAt,
+            durationS: durationS,
+            distanceM: distanceM,
+            hrAvg: hrAvg,
+            hrMax: hrMax,
+            speedMaxKmh: speedMaxKmh,
+            sprints: sprints,
+            intensity: intensity,
+            caloriesKcal: caloriesKcal
+        )
+    }
+}
+
+/// Payload sent to update a session (PUT /v1/sessions/{id}).
+struct SportSessionUpdate: Equatable, Encodable, Sendable {
+    var startedAt: Date
+    var endedAt: Date
+    var durationS: Int
+    var distanceM: Double
+    var hrAvg: Int?
+    var hrMax: Int?
+    var speedMaxKmh: Double?
+    var sprints: Int
+    var intensity: Double?
+    var caloriesKcal: Double?
 }
 
 /// Payload sent to create a session (POST /v1/sessions).
