@@ -1,14 +1,17 @@
 {
   "folders": [
-	{
-		"path": "."
-	},
-	{
-		"path": "../rivalo-server"
-	},
-	{
-		"path": "../rivalo-watch"
-	}
-],
-  "settings": {}
+    {
+      "path": ".",
+    },
+    {
+      "path": "../rivalo-server",
+    },
+    {
+      "path": "../rivalo-watch",
+    },
+    {
+      "path": "../rivalo-landing",
+    },
+  ],
+  "settings": {},
 }
