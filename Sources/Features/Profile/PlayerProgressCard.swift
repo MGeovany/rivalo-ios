@@ -167,13 +167,13 @@ struct PlayerProgressCardCanvas: View {
         return Text(content.ratingText)
             .font(PlayerCardTypography.rating(size: width))
             .foregroundStyle(style.ratingForeground)
-            .tracking(-3)
+            .tracking(-4)
             .lineLimit(1)
-            .minimumScaleFactor(0.65)
-            .frame(width: width * area.width, height: width * area.height * 0.82, alignment: .topLeading)
+            .minimumScaleFactor(0.6)
+            .frame(width: width * area.width, height: width * area.height * 0.92, alignment: .topLeading)
             .position(
                 x: width * (area.x + area.width / 2),
-                y: height * (area.y + area.height * 0.38)
+                y: height * (area.y + area.height * 0.40)
             )
     }
 
@@ -183,24 +183,24 @@ struct PlayerProgressCardCanvas: View {
         return Text(content.positionAbbrev)
             .font(PlayerCardTypography.position(size: width))
             .foregroundStyle(style.accentBright)
-            .tracking(1.4)
+            .tracking(1.6)
             .frame(width: width * area.width, alignment: .leading)
             .position(
                 x: width * (area.x + area.width / 2),
-                y: height * (area.y + area.height / 2)
+                y: height * (area.y + area.height / 2 + 0.008)
             )
     }
 
     private var flagOverlay: some View {
         let area = PlayerCardLayout.country
 
-        return VStack(spacing: height * 0.004) {
+        return VStack(spacing: height * 0.006) {
             Text(FootballCountry.flagEmoji(for: content.countryCode))
-                .font(.system(size: width * 0.065))
+                .font(.system(size: width * 0.092))
             Text(content.countryCode.uppercased())
                 .font(PlayerCardTypography.countryCode(size: width))
                 .foregroundStyle(style.accentBright.opacity(0.92))
-                .tracking(1)
+                .tracking(1.2)
         }
         .position(
             x: width * (area.x + area.width / 2),
@@ -257,7 +257,7 @@ struct PlayerProgressCardCanvas: View {
     private func statBlock(abbrev: String, value: String, left: Bool, columnWidth: CGFloat) -> some View {
         let alignment: Alignment = left ? .leading : .trailing
 
-        return VStack(alignment: left ? .leading : .trailing, spacing: height * 0.002) {
+        return VStack(alignment: left ? .leading : .trailing, spacing: height * 0.004) {
             Text(abbrev)
                 .font(PlayerCardTypography.statLabel(size: width))
                 .foregroundStyle(style.accent.opacity(0.95))

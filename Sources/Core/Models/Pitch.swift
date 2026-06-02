@@ -11,6 +11,8 @@ struct Pitch: Equatable, Codable, Sendable, Identifiable {
     let lengthM: Double?
     let widthM: Double?
     let measurementMethod: String?
+    let indoor: Bool?
+    let notes: String?
 
     var hasDimensions: Bool {
         guard let lengthM, let widthM else { return false }
@@ -33,4 +35,20 @@ struct NewPitch: Equatable, Encodable, Sendable {
     var lengthM: Double?
     var widthM: Double?
     var measurementMethod: String?
+    var indoor: Bool?
+    var notes: String?
+}
+
+/// Body for `PUT /v1/pitches/{id}` (all optional; nil leaves the field unchanged).
+struct PitchUpdate: Equatable, Encodable, Sendable {
+    var name: String?
+    var latitude: Double?
+    var longitude: Double?
+    var type: String?
+    var surface: String?
+    var lengthM: Double?
+    var widthM: Double?
+    var measurementMethod: String?
+    var indoor: Bool?
+    var notes: String?
 }

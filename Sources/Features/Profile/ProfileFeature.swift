@@ -33,6 +33,7 @@ struct ProfileFeature {
         var isProcessingPhoto = false
         /// Saved or pending photo still has a full background and needs Vision cutout.
         var photoNeedsBackgroundRemoval = false
+        @Presents var courts: CourtsFeature.State?
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
@@ -106,6 +107,8 @@ struct ProfileFeature {
         case photoRemoved
         case countryCodeChanged(String)
         case errorDismissed
+        case courtsTapped
+        case courts(PresentationAction<CourtsFeature.Action>)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -306,9 +309,23 @@ struct ProfileFeature {
                 state.errorMessage = nil
                 return .cancel(id: CancelID.errorToast)
 
+            case .courtsTapped:
+                state.courts = CourtsFeature.State(accessToken: state.accessToken)
+                return .none
+
+            case .courts(.presented(.delegate(.dismissed))):
+                state.courts = nil
+                return .none
+
+            case .courts:
+                return .none
+
             case .binding, .delegate:
                 return .none
             }
+        }
+        .ifLet(\.$courts, action: \.courts) {
+            CourtsFeature()
         }
     }
 }

@@ -199,8 +199,36 @@ extension APIClient: DependencyKey {
     )
 }
 
-/// Wraps an authenticated API call with automatic token refresh on 401.
-/// Refreshes the session from the keychain and retries the request once.
+/// Coalesces concurrent token refreshes into a single network call. Supabase
+/// rotates the refresh token on every use, so two parallel refreshes with the
+/// same token would invalidate the session — this serializes them so concurrent
+/// 401s share one refresh and all receive the new session.
+private actor TokenRefreshCoordinator {
+    static let shared = TokenRefreshCoordinator()
+    private var inFlight: Task<Session, Error>?
+
+    func refresh(
+        refreshToken: String,
+        authClient: AuthClient,
+        tokenStore: TokenStore
+    ) async throws -> Session {
+        if let inFlight {
+            return try await inFlight.value
+        }
+        let task = Task { () throws -> Session in
+            let session = try await authClient.refresh(refreshToken)
+            try? tokenStore.save(session)
+            return session
+        }
+        inFlight = task
+        defer { inFlight = nil }
+        return try await task.value
+    }
+}
+
+/// Wraps an authenticated API call with automatic token refresh on 401. Refresh
+/// is coalesced; if another request already refreshed, the freshest keychain
+/// token is reused instead of refreshing again.
 private func retryOnUnauthorized<T>(
     _ token: String,
     authClient: AuthClient,
@@ -211,8 +239,15 @@ private func retryOnUnauthorized<T>(
         return try await operation(token)
     } catch APIError.statusCode(401) {
         guard let stored = tokenStore.load() else { throw APIError.statusCode(401) }
-        let session = try await authClient.refresh(stored.refreshToken)
-        try? tokenStore.save(session)
+        // Another in-flight request may have already refreshed the session.
+        if stored.accessToken != token {
+            return try await operation(stored.accessToken)
+        }
+        let session = try await TokenRefreshCoordinator.shared.refresh(
+            refreshToken: stored.refreshToken,
+            authClient: authClient,
+            tokenStore: tokenStore
+        )
         return try await operation(session.accessToken)
     }
 }

@@ -49,6 +49,24 @@ struct ProfileView: View {
                                 store.send(.saveTapped)
                             }
 
+                            Button { store.send(.courtsTapped) } label: {
+                                HStack(spacing: Theme.Spacing.medium) {
+                                    Image(systemName: "sportscourt.fill")
+                                        .foregroundStyle(Theme.Colors.accent)
+                                    Text("Manage courts")
+                                        .font(Theme.Typography.body(size: 16))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Theme.Colors.textSecondary)
+                                }
+                                .padding(Theme.Spacing.medium)
+                                .frame(maxWidth: .infinity)
+                                .background(Theme.Colors.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                            }
+                            .buttonStyle(.plain)
+
                             ProfileSignOutButton {
                                 store.send(.signOutTapped)
                             }
@@ -69,6 +87,9 @@ struct ProfileView: View {
         }
         .onAppear { store.send(.onAppear) }
         .refreshable { store.send(.onAppear) }
+        .sheet(item: $store.scope(state: \.courts, action: \.courts)) { courtsStore in
+            CourtsView(store: courtsStore)
+        }
     }
 
     // MARK: - Sections

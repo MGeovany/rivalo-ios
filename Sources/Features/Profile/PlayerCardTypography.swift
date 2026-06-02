@@ -3,11 +3,11 @@ import SwiftUI
 /// Scaled typography for the 1024×1536 player card (matches preview-flat reference).
 enum PlayerCardTypography {
     static func rating(size: CGFloat) -> Font {
-        ThemeFont.font(name: "Rajdhani-Bold", size: size * 0.225)
+        ThemeFont.font(name: "Rajdhani-Bold", size: size * 0.290)
     }
 
     static func position(size: CGFloat) -> Font {
-        ThemeFont.font(name: "Rajdhani-SemiBold", size: size * 0.050)
+        ThemeFont.font(name: "Rajdhani-SemiBold", size: size * 0.068)
     }
 
     static func statValue(size: CGFloat) -> Font {
@@ -15,7 +15,7 @@ enum PlayerCardTypography {
     }
 
     static func statLabel(size: CGFloat) -> Font {
-        ThemeFont.font(name: "Rajdhani-Medium", size: size * 0.026)
+        ThemeFont.font(name: "Rajdhani-Medium", size: size * 0.036)
     }
 
     static func playerName(size: CGFloat) -> Font {
@@ -23,6 +23,6 @@ enum PlayerCardTypography {
     }
 
     static func countryCode(size: CGFloat) -> Font {
-        ThemeFont.font(name: "Rajdhani-SemiBold", size: size * 0.026)
+        ThemeFont.font(name: "Rajdhani-SemiBold", size: size * 0.036)
     }
 }
