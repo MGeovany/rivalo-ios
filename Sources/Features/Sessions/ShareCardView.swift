@@ -7,6 +7,9 @@ struct ShareCardView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            if let records = session.newRecords, !records.isEmpty {
+                recordBanner(records)
+            }
             Divider().overlay(Color.white.opacity(0.1))
             statsGrid
             if let drop = session.fatigueDrop {
@@ -49,6 +52,36 @@ struct ShareCardView: View {
             }
         }
         .padding(.vertical, 20)
+    }
+
+    private func recordBanner(_ records: [String]) -> some View {
+        let names = records.map(Self.recordLabel).joined(separator: " · ")
+        return HStack(spacing: 6) {
+            Image(systemName: "trophy.fill")
+                .font(.system(size: 12, weight: .bold))
+            Text("NEW RECORD: \(names.uppercased())")
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .multilineTextAlignment(.center)
+        }
+        .foregroundStyle(.black)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .background(Color(red: 1, green: 0.35, blue: 0))
+    }
+
+    private static func recordLabel(_ metric: String) -> String {
+        switch metric {
+        case "distance_m": return "Distance"
+        case "duration_s": return "Time"
+        case "speed_max_kmh": return "Top Speed"
+        case "sprints": return "Sprints"
+        case "intensity": return "Intensity"
+        case "match_rating": return "Rating"
+        case "hr_max": return "Max HR"
+        case "calories_kcal": return "Calories"
+        default: return metric
+        }
     }
 
     private var statsGrid: some View {
