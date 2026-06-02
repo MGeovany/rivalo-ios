@@ -68,6 +68,36 @@ struct SessionDetailView: View {
         .padding(.vertical, Theme.Spacing.medium)
     }
 
+    /// Samples that carry a heart-rate reading, used for the chart.
+    private func heartRateSeries(_ session: SportSession) -> [SessionSample]? {
+        session.samples?.filter { $0.hr != nil }
+    }
+
+    private func heartRateChart(_ series: [SessionSample]) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+            HStack(spacing: 6) {
+                Image(systemName: "waveform.path.ecg").foregroundStyle(Theme.Colors.accent)
+                Text("Heart rate")
+                    .font(Theme.Typography.caption())
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            Chart(series) { sample in
+                LineMark(
+                    x: .value("min", Double(sample.tOffsetS) / 60),
+                    y: .value("bpm", sample.hr ?? 0)
+                )
+                .foregroundStyle(Theme.Colors.accent)
+                .interpolationMethod(.catmullRom)
+            }
+            .chartXAxis { AxisMarks(values: .automatic(desiredCount: 4)) }
+            .frame(height: 180)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Theme.Spacing.medium)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
     private func card(_ label: String, _ value: String, _ icon: String, unit: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
             HStack(spacing: 6) {
