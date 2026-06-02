@@ -1,5 +1,14 @@
 import Foundation
 
+/// One point in a session's time series (heart rate / speed over time).
+struct SessionSample: Equatable, Codable, Sendable, Identifiable {
+    let tOffsetS: Int
+    let hr: Int?
+    let speedKmh: Double?
+
+    var id: Int { tOffsetS }
+}
+
 /// A recorded sport session as returned by the backend `/v1/sessions` endpoints.
 struct SportSession: Equatable, Codable, Identifiable {
     let id: String
@@ -16,6 +25,8 @@ struct SportSession: Equatable, Codable, Identifiable {
     let caloriesKcal: Double?
     let source: String
     let createdAt: Date
+    /// Time series; present on detail reads, absent on the list.
+    let samples: [SessionSample]?
 }
 
 extension SportSession {
@@ -43,6 +54,7 @@ struct NewSportSession: Equatable, Codable, Sendable {
     var sprints: Int
     var intensity: Double?
     var source: String
+    var samples: [SessionSample]?
 }
 
 extension NewSportSession {
@@ -67,5 +79,18 @@ extension NewSportSession {
         self.sprints = (info["sprints"] as? Int) ?? 0
         self.intensity = info["intensity"] as? Double
         self.source = (info["source"] as? String) ?? "watch"
+
+        if let rawSamples = info["samples"] as? [[String: Any]] {
+            self.samples = rawSamples.compactMap { sample in
+                guard let offset = sample["t_offset_s"] as? Int else { return nil }
+                return SessionSample(
+                    tOffsetS: offset,
+                    hr: sample["hr"] as? Int,
+                    speedKmh: sample["speed_kmh"] as? Double
+                )
+            }
+        } else {
+            self.samples = nil
+        }
     }
 }

@@ -1,3 +1,4 @@
+import Charts
 import ComposableArchitecture
 import SwiftUI
 
@@ -35,6 +36,10 @@ struct SessionDetailView: View {
                         card("Sprints", "\(session.sprints)", "hare.fill")
                         card("Intensity", session.intensity.map { String(format: "%.0f", $0) } ?? "--", "flame.fill")
                         card("Calories", session.caloriesKcal.map { String(format: "%.0f", $0) } ?? "--", "flame", unit: "kcal")
+                    }
+
+                    if let series = heartRateSeries(session), series.count >= 2 {
+                        heartRateChart(series)
                     }
                 }
                 .padding(Theme.Spacing.large)
