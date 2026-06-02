@@ -11,7 +11,7 @@ struct SessionsView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Performance")
+            .rivalNavigationChrome()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { store.send(.addTapped) } label: {
@@ -38,6 +38,8 @@ struct SessionsView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                    PerformanceSectionHeader()
+
                     if let message = store.errorMessage {
                         AuthInlineMessage(text: message, kind: .error)
                     }
@@ -66,7 +68,7 @@ struct SessionsView: View {
                     analyticsLink
                 }
                 .padding(.horizontal, Theme.Spacing.large)
-                .padding(.top, Theme.Spacing.small)
+                .padding(.top, Theme.Spacing.medium)
                 .padding(.bottom, Theme.Spacing.xl)
             }
             .refreshable { store.send(.onAppear) }

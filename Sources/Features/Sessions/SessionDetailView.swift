@@ -167,6 +167,10 @@ struct SessionDetailView: View {
             if let rating = session.matchRating {
                 matchRatingCard(rating)
             }
+
+            if let fd = session.fatigueDrop {
+                fatigueDropSection(fd)
+            }
         }
     }
 
@@ -197,6 +201,93 @@ struct SessionDetailView: View {
             Spacer()
         }
         .padding(Theme.Spacing.medium)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
+    private func fatigueDropSection(_ fd: FatigueDrop) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            Text("Fatigue Drop")
+                .font(Theme.Typography.statLabel(size: 11))
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .tracking(1)
+
+            Text("1st half vs 2nd half")
+                .font(Theme.Typography.caption(size: 11))
+                .foregroundStyle(Theme.Colors.textSecondary)
+
+            HStack(spacing: 0) {
+                halfColumn("1st", metrics: fd.firstHalf, color: Theme.Colors.accent)
+                Divider()
+                    .frame(width: 1)
+                    .background(Theme.Colors.textSecondary.opacity(0.3))
+                halfColumn("2nd", metrics: fd.secondHalf, color: Theme.Colors.positive)
+            }
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+
+            if let change = fd.hrAvgPctChange {
+                changeRow(label: "Avg HR", change: change, unit: "%")
+            }
+            if let change = fd.highIntensityPctChange {
+                changeRow(label: "High intensity", change: change, unit: "%")
+            }
+        }
+    }
+
+    private func halfColumn(_ title: String, metrics: HalfMetrics, color: Color) -> some View {
+        VStack(spacing: Theme.Spacing.small) {
+            Text(title)
+                .font(Theme.Typography.statLabel(size: 12))
+                .foregroundStyle(color)
+                .tracking(1)
+                .padding(.top, 4)
+
+            Text(metrics.hrAvg.map { String(format: "%.0f", $0) } ?? "—")
+                .font(Theme.Typography.metric(size: 22))
+                .monospacedDigit()
+            Text("Avg HR")
+                .font(Theme.Typography.caption(size: 10))
+                .foregroundStyle(Theme.Colors.textSecondary)
+
+            Text("\(metrics.highIntensityS / 60):\(String(format: "%02d", metrics.highIntensityS % 60))")
+                .font(Theme.Typography.metric(size: 20))
+                .monospacedDigit()
+            Text("High int.")
+                .font(Theme.Typography.caption(size: 10))
+                .foregroundStyle(Theme.Colors.textSecondary)
+
+            Text(metrics.speedMaxKmh.map { String(format: "%.1f", $0) } ?? "—")
+                .font(Theme.Typography.metric(size: 20))
+                .monospacedDigit()
+            Text("Max speed")
+                .font(Theme.Typography.caption(size: 10))
+                .foregroundStyle(Theme.Colors.textSecondary)
+
+            Text("\(metrics.sampleCount)")
+                .font(Theme.Typography.metric(size: 20))
+                .monospacedDigit()
+            Text("Samples")
+                .font(Theme.Typography.caption(size: 10))
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(Theme.Spacing.medium)
+    }
+
+    private func changeRow(label: String, change: Double, unit: String) -> some View {
+        HStack {
+            Text(label)
+                .font(Theme.Typography.body(size: 13))
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Spacer()
+            Text(String(format: "%+.1f \(unit)", change))
+                .font(Theme.Typography.metric(size: 16))
+                .foregroundStyle(change >= 0 ? Theme.Colors.positive : Theme.Colors.negative)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, Theme.Spacing.medium)
+        .padding(.vertical, Theme.Spacing.small)
         .background(Theme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
     }

@@ -20,34 +20,33 @@ struct ProfileFeature {
         var birthYearText = ""
         var heightUnit: HeightUnit = .loadPreferred()
         var weightUnit: WeightUnit = .loadPreferred()
-        /// ISO country code for the FUT card flag (stored locally per user).
+        /// ISO country code stored locally per user (profile UI).
         var countryCode: String = ProfileCountryStore.defaultCode()
         var sessions: [SportSession] = []
-        /// JPEG bytes for the FIFA card photo (device-local until backend avatar exists).
+        /// JPEG bytes for the player card photo (device-local until backend avatar exists).
         var avatarImageData: Data?
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
         }
 
-        /// Snapshot for the FIFA-style card (last saved profile + session-derived rating).
+        /// Snapshot for the shareable player progress card.
         var playerCard: PlayerCardModel? {
             guard let profile else { return nil }
             let name = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { return nil }
 
-            let stats = PlayerCardStatsBuilder.build(from: sessions)
+            let metrics = PlayerCardStatsBuilder.build(from: sessions)
             return PlayerCardModel(
                 displayName: name,
                 position: profile.preferredPosition,
                 positionAbbrev: ProfileFormatting.positionAbbreviation(profile.preferredPosition),
-                heightLabel: physicalLabel(cm: profile.heightCm, unit: heightUnit),
-                weightLabel: physicalLabel(kg: profile.weightKg, unit: weightUnit),
-                rating: playerRating,
-                matchesPlayed: sessions.count,
-                countryCode: countryCode,
-                leftStats: stats.left,
-                rightStats: stats.right,
+                physicalRating: metrics.physicalRating,
+                topSpeedKmh: metrics.topSpeedKmh,
+                avgSprints: metrics.avgSprints,
+                avgDistanceKm: metrics.avgDistanceKm,
+                fatigueDropPct: metrics.fatigueDropPct,
+                badge: metrics.badge,
                 initials: ProfileFormatting.initials(from: name),
                 avatarImageData: avatarImageData
             )
@@ -57,13 +56,6 @@ struct ProfileFeature {
             avatarImageData != nil
         }
 
-        /// Average match intensity (0–100) used as overall rating until match_rating exists.
-        var playerRating: Int? {
-            let values = sessions.compactMap(\.intensity)
-            guard !values.isEmpty else { return nil }
-            let avg = values.reduce(0, +) / Double(values.count)
-            return Int(avg.rounded())
-        }
     }
 
     enum Action: BindableAction, Equatable {
@@ -220,30 +212,17 @@ private extension ProfileFeature.State {
 
 }
 
-private func physicalLabel(cm: Int?, unit: HeightUnit) -> String {
-    let text = unit.format(cm: cm)
-    guard !text.isEmpty else { return "—" }
-    return "\(text) \(unit.menuLabel)"
-}
-
-private func physicalLabel(kg: Double?, unit: WeightUnit) -> String {
-    let text = unit.format(kg: kg)
-    guard !text.isEmpty else { return "—" }
-    return "\(text) \(unit.menuLabel)"
-}
-
-/// Read-only data for the FIFA-style player card.
+/// Read-only data for the shareable player progress card.
 struct PlayerCardModel: Equatable {
     let displayName: String
     let position: String?
     let positionAbbrev: String
-    let heightLabel: String
-    let weightLabel: String
-    let rating: Int?
-    let matchesPlayed: Int
-    let countryCode: String
-    let leftStats: [PlayerCardStat]
-    let rightStats: [PlayerCardStat]
+    let physicalRating: Int?
+    let topSpeedKmh: Double?
+    let avgSprints: Int?
+    let avgDistanceKm: Double?
+    let fatigueDropPct: Double?
+    let badge: PlayerCardBadge?
     let initials: String
     let avatarImageData: Data?
 }

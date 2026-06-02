@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// Performance screen title block (orange bar + subtitle).
+/// Performance screen title block (orange accent bar + large title + subtitle).
 struct PerformanceSectionHeader: View {
     var subtitle = "Your match trends at a glance"
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 12) {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(
                         LinearGradient(
@@ -15,18 +15,29 @@ struct PerformanceSectionHeader: View {
                             endPoint: .bottom
                         )
                     )
-                    .frame(width: 4, height: 28)
+                    .frame(width: 4, height: 36)
+                    .shadow(color: Theme.Colors.accent.opacity(0.55), radius: 6, y: 0)
 
                 Text("Performance")
-                    .font(Theme.Typography.title(size: 34))
-                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .font(Theme.Typography.display(size: 40))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.white, Theme.Colors.textPrimary],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: .black.opacity(0.35), radius: 2, y: 2)
             }
 
             Text(subtitle)
                 .font(Theme.Typography.body(size: 15))
                 .foregroundStyle(Theme.Colors.textSecondary)
-                .padding(.leading, 14)
+                .padding(.leading, 16)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Performance. \(subtitle)")
     }
 }
 

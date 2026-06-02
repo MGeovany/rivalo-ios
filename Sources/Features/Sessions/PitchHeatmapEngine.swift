@@ -23,13 +23,13 @@ enum PitchHeatmapEngine {
             }
         }
 
-        guard let gray = CIImage(
+        let gray = CIImage(
             bitmapData: Data(bytes),
             bytesPerRow: cols,
             size: CGSize(width: cols, height: rows),
             format: .L8,
             colorSpace: CGColorSpaceCreateDeviceGray()
-        ) else { return nil }
+        )
 
         let scaleX = size.width / CGFloat(cols)
         let scaleY = size.height / CGFloat(rows)

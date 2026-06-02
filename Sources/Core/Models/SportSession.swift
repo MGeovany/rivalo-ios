@@ -11,6 +11,30 @@ struct SessionSample: Equatable, Codable, Sendable, Identifiable {
     var id: Int { tOffsetS }
 }
 
+/// One GPS point on the pitch trajectory (V2 `session_path`).
+struct SessionPathPoint: Equatable, Codable, Sendable, Identifiable {
+    let tOffsetS: Int
+    let latitude: Double
+    let longitude: Double
+
+    var id: Int { tOffsetS }
+}
+
+/// Per-half metrics for a structured session (Fatigue Drop).
+struct FatigueDrop: Equatable, Codable, Sendable {
+    let firstHalf: HalfMetrics
+    let secondHalf: HalfMetrics
+    let hrAvgPctChange: Double?
+    let highIntensityPctChange: Double?
+}
+
+struct HalfMetrics: Equatable, Codable, Sendable {
+    let hrAvg: Double?
+    let speedMaxKmh: Double?
+    let highIntensityS: Int
+    let sampleCount: Int
+}
+
 /// A recorded sport session as returned by the backend `/v1/sessions` endpoints.
 struct SportSession: Equatable, Codable, Identifiable {
     let id: String
@@ -40,6 +64,10 @@ struct SportSession: Equatable, Codable, Identifiable {
     let createdAt: Date
     /// Time series; present on detail reads, absent on the list.
     let samples: [SessionSample]?
+    /// GPS trajectory; present on detail reads, absent on the list.
+    let path: [SessionPathPoint]?
+    /// Fatigue Drop (1T vs 2T comparison), computed on-read for structured sessions.
+    let fatigueDrop: FatigueDrop?
 }
 
 extension SportSession {

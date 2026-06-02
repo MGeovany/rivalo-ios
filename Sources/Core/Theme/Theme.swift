@@ -42,6 +42,11 @@ enum Theme {
             ThemeFont.font(name: Family.rajdhaniSemiBold, size: size)
         }
 
+        /// Large section headlines (Rajdhani Bold).
+        static func display(size: CGFloat = 40) -> Font {
+            ThemeFont.font(name: Family.rajdhaniBold, size: size)
+        }
+
         /// Primary buttons (Rajdhani).
         static func button(size: CGFloat = 16) -> Font {
             ThemeFont.font(name: Family.rajdhaniSemiBold, size: size)

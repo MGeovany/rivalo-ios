@@ -3,8 +3,8 @@ import SwiftUI
 /// Interactive pitch map: heatmap (default), GPS route, or sprint bursts.
 struct PitchMapView: View {
     let session: SportSession
-    /// When true, hides period filter and info card (e.g. Home latest match).
-    var compact = false
+    /// Hides the bottom info card (e.g. embedded in latest-match card).
+    var showsInfoCard: Bool = true
 
     @State private var mapMode: PitchMapMode = .heatmap
     @State private var matchPeriod: PitchMatchPeriod = .full
@@ -23,23 +23,22 @@ struct PitchMapView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+        PitchMapPanel {
             PitchSegmentedControl(selection: $mapMode, items: PitchMapMode.allCases)
 
-            if !compact {
-                PitchSegmentedControl(selection: $matchPeriod, items: PitchMatchPeriod.allCases)
-            }
+            PitchSegmentedControl(selection: $matchPeriod, items: PitchMatchPeriod.allCases)
 
             PitchAttackDirectionView()
 
             pitchCanvas
                 .aspectRatio(format.aspect, contentMode: .fit)
+                .frame(maxWidth: .infinity)
 
             if mapMode == .heatmap {
                 PitchHeatmapLegend()
             }
 
-            if !compact {
+            if showsInfoCard {
                 PitchMapInfoCard(
                     title: infoTitle,
                     subtitle: infoSubtitle,
@@ -47,8 +46,8 @@ struct PitchMapView: View {
                 )
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.86), value: mapMode)
-        .animation(.spring(response: 0.4, dampingFraction: 0.86), value: matchPeriod)
+        .animation(.easeInOut(duration: 0.2), value: mapMode)
+        .animation(.easeInOut(duration: 0.2), value: matchPeriod)
         .task(id: "\(renderKey)-\(mapMode.rawValue)") {
             await renderHeatmap()
         }
@@ -87,27 +86,29 @@ struct PitchMapView: View {
             let size = geo.size
             ZStack {
                 PitchFieldCanvas(format: format)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 if mapMode == .heatmap, let heatImage {
                     Image(uiImage: heatImage)
                         .resizable()
                         .scaledToFill()
                         .frame(width: size.width, height: size.height)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .opacity(0.92)
+                        .blendMode(.plusLighter)
+                        .opacity(0.95)
                         .allowsHitTesting(false)
                 }
 
                 if mapMode == .route {
                     routePath(in: size)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
 
                 if mapMode == .sprints {
                     sprintOverlay(in: size)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
             }
         }
     }
@@ -115,8 +116,12 @@ struct PitchMapView: View {
     @MainActor
     private func renderHeatmap() async {
         guard mapMode == .heatmap else { return }
-        let side = CGSize(width: 560, height: 560 / format.aspect)
-        heatImage = PitchHeatmapEngine.renderHeatLayer(track: track, size: side)
+        let width: CGFloat = 640
+        let height = width / format.aspect
+        heatImage = PitchHeatmapEngine.renderHeatLayer(
+            track: track,
+            size: CGSize(width: width, height: height)
+        )
     }
 
     private func routePath(in size: CGSize) -> some View {
@@ -134,7 +139,7 @@ struct PitchMapView: View {
             context.stroke(
                 path,
                 with: .color(Theme.Colors.accent),
-                style: StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round)
+                style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
             )
 
             if let first = track.first {
@@ -180,7 +185,7 @@ struct PitchMapView: View {
     }
 }
 
-/// Pitch lines adapted to 5 / 7 / 9 / 11-a-side dimensions.
+/// Pitch lines adapted to 5 / 7 / 9 / 11-a-side (horizontal, attack → right).
 struct PitchFieldCanvas: View {
     let format: PitchFormat
 
@@ -188,28 +193,24 @@ struct PitchFieldCanvas: View {
         Canvas { context, size in
             let w = size.width
             let h = size.height
-            let line = GraphicsContext.Shading.color(.white.opacity(0.28))
+            let line = GraphicsContext.Shading.color(PitchMapStyle.pitchLine)
+            let inset: CGFloat = 3
 
             context.fill(
                 Path(CGRect(origin: .zero, size: size)),
                 with: .linearGradient(
-                    Gradient(colors: [
-                        Color(red: 0.11, green: 0.36, blue: 0.15),
-                        Color(red: 0.07, green: 0.26, blue: 0.10),
-                    ]),
+                    Gradient(colors: [PitchMapStyle.pitchGreenTop, PitchMapStyle.pitchGreenBottom]),
                     startPoint: .zero,
                     endPoint: CGPoint(x: w, y: h)
                 )
             )
 
-            let inset: CGFloat = 2
-            var border = Path(CGRect(x: inset, y: inset, width: w - inset * 2, height: h - inset * 2))
-            context.stroke(border, with: line, lineWidth: 1.5)
+            strokeBox(context: &context, rect: CGRect(x: inset, y: inset, width: w - inset * 2, height: h - inset * 2), line: line, width: 1.5)
 
-            var mid = Path()
-            mid.move(to: CGPoint(x: w / 2, y: inset))
-            mid.addLine(to: CGPoint(x: w / 2, y: h - inset))
-            context.stroke(mid, with: line, lineWidth: 1.2)
+            var halfway = Path()
+            halfway.move(to: CGPoint(x: w / 2, y: inset))
+            halfway.addLine(to: CGPoint(x: w / 2, y: h - inset))
+            context.stroke(halfway, with: line, lineWidth: 1.2)
 
             if format.showsCenterCircle {
                 let circleR = min(w, h) * format.centerCircleRadiusRatio
@@ -218,41 +219,54 @@ struct PitchFieldCanvas: View {
                     with: line,
                     lineWidth: 1.2
                 )
-            } else {
-                let dotR: CGFloat = 3
-                context.fill(
-                    Path(ellipseIn: CGRect(x: w / 2 - dotR, y: h / 2 - dotR, width: dotR * 2, height: dotR * 2)),
-                    with: line
-                )
             }
 
-            let boxW = w * format.penaltyBoxWidthRatio
-            let boxH = h * format.penaltyBoxDepthRatio
-            context.stroke(
-                Path(CGRect(x: inset, y: (h - boxH) / 2, width: boxW, height: boxH)),
-                with: line,
-                lineWidth: 1
+            let spotR: CGFloat = 2.5
+            context.fill(
+                Path(ellipseIn: CGRect(x: w / 2 - spotR, y: h / 2 - spotR, width: spotR * 2, height: spotR * 2)),
+                with: line
             )
-            context.stroke(
-                Path(CGRect(x: w - boxW - inset, y: (h - boxH) / 2, width: boxW, height: boxH)),
-                with: line,
-                lineWidth: 1
+
+            let boxW = w * format.penaltyBoxDepthRatio
+            let boxH = h * format.penaltyBoxWidthRatio
+            strokeBox(
+                context: &context,
+                rect: CGRect(x: inset, y: (h - boxH) / 2, width: boxW, height: boxH),
+                line: line,
+                width: 1
+            )
+            strokeBox(
+                context: &context,
+                rect: CGRect(x: w - boxW - inset, y: (h - boxH) / 2, width: boxW, height: boxH),
+                line: line,
+                width: 1
             )
 
             if format.showsGoalAreas {
-                let goalW = boxW * 0.55
-                let goalH = boxH * 0.38
-                context.stroke(
-                    Path(CGRect(x: inset, y: (h - goalH) / 2, width: goalW, height: goalH)),
-                    with: line,
-                    lineWidth: 0.9
+                let goalW = boxW * 0.42
+                let goalH = boxH * 0.52
+                strokeBox(
+                    context: &context,
+                    rect: CGRect(x: inset, y: (h - goalH) / 2, width: goalW, height: goalH),
+                    line: line,
+                    width: 0.9
                 )
-                context.stroke(
-                    Path(CGRect(x: w - goalW - inset, y: (h - goalH) / 2, width: goalW, height: goalH)),
-                    with: line,
-                    lineWidth: 0.9
+                strokeBox(
+                    context: &context,
+                    rect: CGRect(x: w - goalW - inset, y: (h - goalH) / 2, width: goalW, height: goalH),
+                    line: line,
+                    width: 0.9
                 )
             }
         }
+    }
+
+    private func strokeBox(
+        context: inout GraphicsContext,
+        rect: CGRect,
+        line: GraphicsContext.Shading,
+        width: CGFloat
+    ) {
+        context.stroke(Path(rect), with: line, lineWidth: width)
     }
 }

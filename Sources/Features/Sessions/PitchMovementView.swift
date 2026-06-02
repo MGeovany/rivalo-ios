@@ -6,6 +6,6 @@ struct PitchMovementView: View {
     var showCaption = false
 
     var body: some View {
-        PitchMapView(session: session, compact: !showCaption)
+        PitchMapView(session: session, showsInfoCard: showCaption)
     }
 }

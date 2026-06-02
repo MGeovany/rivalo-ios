@@ -1,41 +1,82 @@
 import Foundation
 
-/// One stat line on the FUT-style card (abbreviation + value).
-struct PlayerCardStat: Equatable {
-    let abbrev: String
-    let value: String
+enum PlayerCardBadge: Equatable {
+    case newPR
+    case mostImproved
+
+    var label: String {
+        switch self {
+        case .newPR: "NEW PR"
+        case .mostImproved: "MOST IMPROVED"
+        }
+    }
 }
 
-/// Aggregates captured session metrics into the six FUT card stats we support.
+/// Aggregated metrics shown on the shareable player progress card.
+struct PlayerCardMetrics: Equatable {
+    let physicalRating: Int?
+    let topSpeedKmh: Double?
+    let avgSprints: Int?
+    let avgDistanceKm: Double?
+    /// Average high-intensity drop across structured sessions (negative = fatigue).
+    let fatigueDropPct: Double?
+    let badge: PlayerCardBadge?
+}
+
 enum PlayerCardStatsBuilder {
-    /// Left column: intensity, top speed, heart rate. Right: sprints, distance, matches.
-    static func build(from sessions: [SportSession]) -> (left: [PlayerCardStat], right: [PlayerCardStat]) {
-        let matchCount = sessions.count
+    static func build(from sessions: [SportSession]) -> PlayerCardMetrics {
+        guard !sessions.isEmpty else {
+            return PlayerCardMetrics(
+                physicalRating: nil,
+                topSpeedKmh: nil,
+                avgSprints: nil,
+                avgDistanceKm: nil,
+                fatigueDropPct: nil,
+                badge: nil
+            )
+        }
 
+        let snapshot = PerformanceSnapshot.build(from: sessions)
         let intensities = sessions.compactMap(\.intensity)
-        let speeds = sessions.compactMap(\.speedMaxKmh)
-        let heartRates = sessions.compactMap(\.hrAvg)
-        let totalSprints = sessions.reduce(0) { $0 + $1.sprints }
-        let totalKm = sessions.reduce(0.0) { $0 + $1.distanceM } / 1000
+        let physicalRating: Int? = intensities.isEmpty
+            ? nil
+            : Int((intensities.reduce(0, +) / Double(intensities.count)).rounded())
 
-        let intValue = intensities.isEmpty ? "—" : "\(Int((intensities.reduce(0, +) / Double(intensities.count)).rounded()))"
-        let spdValue = speeds.isEmpty ? "—" : String(format: "%.1f", speeds.reduce(0, +) / Double(speeds.count))
-        let hrValue = heartRates.isEmpty ? "—" : "\(heartRates.reduce(0, +) / heartRates.count)"
-        let sprValue = matchCount == 0 ? "—" : "\(totalSprints)"
-        let kmValue = matchCount == 0 ? "—" : String(format: "%.1f", totalKm)
-        let matValue = matchCount == 0 ? "—" : "\(matchCount)"
+        let fatigueValues = sessions.compactMap(\.fatigueDrop?.highIntensityPctChange)
+        let fatigueDropPct = fatigueValues.isEmpty
+            ? nil
+            : fatigueValues.reduce(0, +) / Double(fatigueValues.count)
 
-        let left = [
-            PlayerCardStat(abbrev: "INT", value: intValue),
-            PlayerCardStat(abbrev: "SPD", value: spdValue),
-            PlayerCardStat(abbrev: "HR", value: hrValue),
-        ]
-        let right = [
-            PlayerCardStat(abbrev: "SPR", value: sprValue),
-            PlayerCardStat(abbrev: "KM", value: kmValue),
-            PlayerCardStat(abbrev: "MAT", value: matValue),
-        ]
-        return (left, right)
+        return PlayerCardMetrics(
+            physicalRating: physicalRating,
+            topSpeedKmh: snapshot.topSpeedKmh,
+            avgSprints: snapshot.avgSprints,
+            avgDistanceKm: snapshot.avgKmPerMatch,
+            fatigueDropPct: fatigueDropPct,
+            badge: detectBadge(from: sessions)
+        )
+    }
+
+    private static func detectBadge(from sessions: [SportSession]) -> PlayerCardBadge? {
+        let sorted = sessions.sorted { $0.startedAt > $1.startedAt }
+        guard let latest = sorted.first, sorted.count >= 2 else { return nil }
+        let prior = Array(sorted.dropFirst())
+
+        if let speed = latest.speedMaxKmh {
+            let priorMax = prior.compactMap(\.speedMaxKmh).max() ?? 0
+            if speed > priorMax { return .newPR }
+        }
+        if latest.distanceM > (prior.map(\.distanceM).max() ?? 0) { return .newPR }
+        if latest.sprints > (prior.map(\.sprints).max() ?? 0) { return .newPR }
+
+        if let latestIntensity = latest.intensity {
+            let priorIntensities = prior.compactMap(\.intensity)
+            guard !priorIntensities.isEmpty else { return nil }
+            let average = priorIntensities.reduce(0, +) / Double(priorIntensities.count)
+            if latestIntensity - average >= 8 { return .mostImproved }
+        }
+
+        return nil
     }
 }
 

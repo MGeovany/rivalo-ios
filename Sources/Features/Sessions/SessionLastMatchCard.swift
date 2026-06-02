@@ -13,7 +13,7 @@ struct SessionLastMatchCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
             Button(action: onTap) {
-                PitchMovementView(session: session)
+                PitchMapView(session: session, showsInfoCard: false)
             }
             .buttonStyle(.plain)
 

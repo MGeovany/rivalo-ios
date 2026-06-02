@@ -15,7 +15,7 @@ struct ProfileView: View {
                     ScrollView {
                         VStack(spacing: Theme.Spacing.xl) {
                             if let card = store.playerCard {
-                                FIFAPlayerCard(model: card)
+                                PlayerProgressCard(model: card)
 
                                 if store.profile != nil {
                                     ProfileCardPhotoControls(

@@ -53,14 +53,42 @@ enum SessionActivityGeometry {
         format: PitchFormat? = nil
     ) -> [PitchPoint] {
         let format = format ?? pitchFormat(for: session)
-        let filtered = samples(for: session, period: period)
+        let filteredSamples = samples(for: session, period: period)
+        let filteredPath = path(for: session, period: period)
 
-        if filtered.count >= 2, session.durationS > 0 {
-            return track(from: filtered, durationS: session.durationS, format: format)
+        if filteredPath.count >= 2 {
+            return track(from: filteredPath, samples: filteredSamples)
+        }
+
+        if filteredSamples.count >= 2, session.durationS > 0 {
+            return track(from: filteredSamples, durationS: session.durationS, format: format)
         }
 
         let scale = period == .full ? 1.0 : 0.55
         return fallbackPath(distanceM: session.distanceM * scale, format: format)
+    }
+
+    /// GPS points for the selected match period.
+    static func path(for session: SportSession, period: PitchMatchPeriod) -> [SessionPathPoint] {
+        guard let path = session.path, !path.isEmpty else { return [] }
+        let sorted = path.sorted { $0.tOffsetS < $1.tOffsetS }
+
+        switch period {
+        case .full:
+            return sorted
+        case .firstHalf:
+            if let offset = session.halftimeOffsetS, offset > 0 {
+                return sorted.filter { $0.tOffsetS < offset }
+            }
+            let mid = session.durationS / 2
+            return sorted.filter { $0.tOffsetS <= mid }
+        case .secondHalf:
+            if let offset = session.halftimeOffsetS, offset > 0 {
+                return sorted.filter { $0.tOffsetS >= offset }
+            }
+            let mid = session.durationS / 2
+            return sorted.filter { $0.tOffsetS > mid }
+        }
     }
 
     /// Sprint segments (pairs of points) for overlay.
@@ -154,13 +182,44 @@ enum SessionActivityGeometry {
 
     // MARK: - Private
 
+    /// Maps seeded/API GPS path into 0…1 pitch coords (attack direction → right).
+    private static func track(from path: [SessionPathPoint], samples: [SessionSample]) -> [PitchPoint] {
+        let lats = path.map(\.latitude)
+        let lons = path.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(),
+              let minLon = lons.min(), let maxLon = lons.max()
+        else { return [] }
+
+        let latSpan = max(maxLat - minLat, 1e-8)
+        let lonSpan = max(maxLon - minLon, 1e-8)
+
+        return path.map { point in
+            let x = (point.longitude - minLon) / lonSpan
+            let y = 1 - (point.latitude - minLat) / latSpan
+            let speed = speedNear(tOffsetS: point.tOffsetS, in: samples)
+            let weight = min(1, (speed ?? 10) / 26)
+            return PitchPoint(
+                x: min(0.94, max(0.06, x)),
+                y: min(0.94, max(0.06, y)),
+                weight: weight,
+                isSprint: (speed ?? 0) >= sprintSpeedThresholdKmh
+            )
+        }
+    }
+
+    private static func speedNear(tOffsetS: Int, in samples: [SessionSample]) -> Double? {
+        guard !samples.isEmpty else { return nil }
+        let nearest = samples.min { abs($0.tOffsetS - tOffsetS) < abs($1.tOffsetS - tOffsetS) }
+        return nearest?.speedKmh
+    }
+
     private static func track(
         from samples: [SessionSample],
         durationS: Int,
         format: PitchFormat
     ) -> [PitchPoint] {
         var points: [PitchPoint] = []
-        var x = 0.5
+        var x = 0.38
         var y = 0.5
         let lengthM = format.lengthM
         let widthM = format.widthM
@@ -180,11 +239,12 @@ enum SessionActivityGeometry {
             let speedMS = speedKmh / 3.6
             let distM = speedMS * Double(dt)
             let progress = Double(cur.tOffsetS) / Double(max(1, durationS))
-            let heading = -Double.pi / 2 + sin(progress * 4 * .pi) * 0.85
-            x += cos(heading) * distM / lengthM
+            let laneWave = sin(progress * 5 * .pi + Double(index) * 0.15) * 0.75
+            let heading = laneWave + 0.12
+            x += cos(heading) * distM / lengthM + distM / lengthM * 0.35
             y += sin(heading) * distM / widthM
-            x = min(0.94, max(0.06, x))
-            y = min(0.94, max(0.06, y))
+            x = min(0.92, max(0.08, x))
+            y = min(0.92, max(0.08, y))
             let weight = min(1, speedKmh / 26)
             points.append(PitchPoint(
                 x: x, y: y,
