@@ -50,10 +50,11 @@ struct AppFeature {
                 return .none
 
             case .refreshTimerTick:
-                guard let refreshToken = state.refreshToken else { return .none }
-                return .run { send in
+                return .run { [refreshToken = state.refreshToken] send in
+                    let token = tokenStore.load()?.refreshToken ?? refreshToken
+                    guard let token else { return }
                     let result = await Result {
-                        try await authClient.refresh(refreshToken)
+                        try await authClient.refresh(token)
                     }.mapError { $0 as? AuthError ?? .invalidResponse }
                     await send(.tokenRefreshed(result))
                 }

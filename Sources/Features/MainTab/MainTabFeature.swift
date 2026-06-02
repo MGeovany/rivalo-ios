@@ -1,6 +1,6 @@
 import ComposableArchitecture
 
-/// Signed-in tab bar: Home, Record, You, Activities, and Plan.
+/// Signed-in tab bar: Home, Record, You, Activities, and Insights.
 @Reducer
 struct MainTabFeature {
     @ObservableState
@@ -9,6 +9,7 @@ struct MainTabFeature {
         var sessions: SessionsFeature.State
         var record = RecordFeature.State()
         var profile: ProfileFeature.State
+        var insights: InsightsFeature.State
         var selectedTab: Tab = .home
         @Presents var pitchMeasure: PitchMeasureFeature.State?
 
@@ -17,13 +18,14 @@ struct MainTabFeature {
             case record
             case you
             case activities
-            case plan
+            case insights
         }
 
         init(accessToken: String) {
             self.accessToken = accessToken
             self.sessions = SessionsFeature.State(accessToken: accessToken)
             self.profile = ProfileFeature.State(accessToken: accessToken)
+            self.insights = InsightsFeature.State(accessToken: accessToken)
         }
     }
 
@@ -34,6 +36,7 @@ struct MainTabFeature {
         case sessions(SessionsFeature.Action)
         case record(RecordFeature.Action)
         case profile(ProfileFeature.Action)
+        case insights(InsightsFeature.Action)
         case selectedTabChanged(State.Tab)
         case openPitchMeasure(PitchMeasurementMethod)
         case pitchMeasure(PresentationAction<PitchMeasureFeature.Action>)
@@ -57,6 +60,9 @@ struct MainTabFeature {
         }
         Scope(state: \.profile, action: \.profile) {
             ProfileFeature()
+        }
+        Scope(state: \.insights, action: \.insights) {
+            InsightsFeature()
         }
         .ifLet(\.$pitchMeasure, action: \.pitchMeasure) {
             PitchMeasureFeature()
@@ -142,7 +148,11 @@ struct MainTabFeature {
                     return .send(.sessions(.onAppear))
                 case .you:
                     return .send(.profile(.onAppear))
-                case .record, .activities, .plan:
+                case .insights:
+                    return .send(.insights(.onAppear))
+                case .activities:
+                    return .send(.sessions(.onAppear))
+                case .record:
                     return .none
                 }
 
@@ -150,7 +160,7 @@ struct MainTabFeature {
                 state.pitchMeasure = PitchMeasureFeature.State(accessToken: state.accessToken)
                 return .none
 
-            case .sessions, .record, .profile, .delegate:
+            case .sessions, .record, .profile, .insights, .delegate:
                 return .none
             }
         }

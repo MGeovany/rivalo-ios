@@ -26,10 +26,16 @@ struct ProfileFeature {
         /// PNG bytes for the player card cutout (device-local until backend avatar exists).
         var avatarImageData: Data?
         var photoPlacement: PlayerCardPhotoPlacement = .default
+        /// When true, the card photo cannot be dragged or pinched (after save).
+        var isPhotoPlacementLocked = false
         var isProcessingPhoto = false
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
+        }
+
+        var canAdjustCardPhoto: Bool {
+            hasCardPhoto && !isProcessingPhoto && !isPhotoPlacementLocked
         }
 
         /// Snapshot for the shareable player progress card.
@@ -74,6 +80,8 @@ struct ProfileFeature {
         case photoSelected(Data)
         case photoProcessed(Data?)
         case photoPlacementChanged(PlayerCardPhotoPlacement)
+        case photoAdjustTapped
+        case photoAdjustFinished
         case photoRemoved
         case countryCodeChanged(String)
         case delegate(Delegate)
@@ -164,7 +172,7 @@ struct ProfileFeature {
                 return .none
 
             case let .photoSelected(data):
-                guard let userId = state.profile?.id else { return .none }
+                guard state.profile?.id != nil else { return .none }
                 state.isProcessingPhoto = true
                 return .run { send in
                     let prepared = await ProfilePhotoProcessor.prepareForCard(data)
@@ -178,10 +186,13 @@ struct ProfileFeature {
                     state.avatarImageData = saved
                     state.photoPlacement = .default
                     ProfilePhotoPlacementStore.save(userId: userId, placement: .default)
+                    state.isPhotoPlacementLocked = true
+                    ProfilePhotoPlacementLockStore.save(userId: userId, locked: true)
                 }
                 return .none
 
             case let .photoPlacementChanged(placement):
+                guard !state.isPhotoPlacementLocked else { return .none }
                 let clamped = placement.clamped()
                 state.photoPlacement = clamped
                 if let userId = state.profile?.id {
@@ -189,12 +200,26 @@ struct ProfileFeature {
                 }
                 return .none
 
+            case .photoAdjustTapped:
+                guard state.hasCardPhoto, let userId = state.profile?.id else { return .none }
+                state.isPhotoPlacementLocked = false
+                ProfilePhotoPlacementLockStore.save(userId: userId, locked: false)
+                return .none
+
+            case .photoAdjustFinished:
+                guard state.hasCardPhoto, let userId = state.profile?.id else { return .none }
+                state.isPhotoPlacementLocked = true
+                ProfilePhotoPlacementLockStore.save(userId: userId, locked: true)
+                return .none
+
             case .photoRemoved:
                 guard let userId = state.profile?.id else { return .none }
                 ProfilePhotoStore.delete(userId: userId)
                 ProfilePhotoPlacementStore.delete(userId: userId)
+                ProfilePhotoPlacementLockStore.delete(userId: userId)
                 state.avatarImageData = nil
                 state.photoPlacement = .default
+                state.isPhotoPlacementLocked = false
                 return .none
 
             case let .countryCodeChanged(code):
@@ -223,6 +248,10 @@ private extension ProfileFeature.State {
         birthDate = profile.birthYear.map { ProfileBirthDate.date(fromBirthYear: $0) }
         avatarImageData = ProfilePhotoStore.load(userId: profile.id)
         photoPlacement = ProfilePhotoPlacementStore.load(userId: profile.id)
+        isPhotoPlacementLocked = ProfilePhotoPlacementLockStore.isLocked(
+            userId: profile.id,
+            hasPhoto: avatarImageData != nil
+        )
         countryCode = ProfileCountryStore.load(userId: profile.id) ?? ProfileCountryStore.defaultCode()
     }
 

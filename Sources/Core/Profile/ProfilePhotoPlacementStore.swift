@@ -41,3 +41,28 @@ enum ProfilePhotoPlacementStore {
         UserDefaults.standard.removeObject(forKey: keyPrefix + userId)
     }
 }
+
+/// Whether the card photo position is locked (no drag/pinch after the image is saved).
+enum ProfilePhotoPlacementLockStore {
+    private static let keyPrefix = "rivalo.profile.photoPlacementLocked."
+
+    static func load(userId: String) -> Bool {
+        UserDefaults.standard.bool(forKey: keyPrefix + userId)
+    }
+
+    /// Existing photos without a stored flag are treated as locked.
+    static func isLocked(userId: String, hasPhoto: Bool) -> Bool {
+        guard hasPhoto else { return false }
+        let key = keyPrefix + userId
+        if UserDefaults.standard.object(forKey: key) == nil { return true }
+        return UserDefaults.standard.bool(forKey: key)
+    }
+
+    static func save(userId: String, locked: Bool) {
+        UserDefaults.standard.set(locked, forKey: keyPrefix + userId)
+    }
+
+    static func delete(userId: String) {
+        UserDefaults.standard.removeObject(forKey: keyPrefix + userId)
+    }
+}

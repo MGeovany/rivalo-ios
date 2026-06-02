@@ -17,7 +17,7 @@ struct ProfileView: View {
                             if let card = store.playerCard {
                                 PlayerProgressCard(
                                     model: card,
-                                    isPhotoAdjustable: store.hasCardPhoto && !store.isProcessingPhoto,
+                                    isPhotoAdjustable: store.canAdjustCardPhoto,
                                     onPhotoPlacementChange: { store.send(.photoPlacementChanged($0)) }
                                 )
 
@@ -25,8 +25,11 @@ struct ProfileView: View {
                                     ProfileCardPhotoControls(
                                         hasPhoto: store.hasCardPhoto,
                                         isProcessing: store.isProcessingPhoto,
+                                        isPlacementLocked: store.isPhotoPlacementLocked,
                                         onPhotoData: { store.send(.photoSelected($0)) },
-                                        onRemove: { store.send(.photoRemoved) }
+                                        onRemove: { store.send(.photoRemoved) },
+                                        onAdjust: { store.send(.photoAdjustTapped) },
+                                        onAdjustDone: { store.send(.photoAdjustFinished) }
                                     )
                                 }
                             } else {

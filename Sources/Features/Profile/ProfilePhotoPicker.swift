@@ -5,37 +5,66 @@ import SwiftUI
 struct ProfileCardPhotoControls: View {
     let hasPhoto: Bool
     let isProcessing: Bool
+    let isPlacementLocked: Bool
     let onPhotoData: (Data) -> Void
     let onRemove: () -> Void
+    let onAdjust: () -> Void
+    let onAdjustDone: () -> Void
 
     @State private var pickerItem: PhotosPickerItem?
 
     var body: some View {
-        HStack(spacing: Theme.Spacing.medium) {
-            PhotosPicker(selection: $pickerItem, matching: .images) {
-                Label(
-                    isProcessing ? "Cutting out…" : (hasPhoto ? "Change photo" : "Add photo"),
-                    systemImage: isProcessing ? "person.crop.rectangle" : "photo.on.rectangle.angled"
-                )
-                .font(Theme.Typography.button(size: 15))
-                .foregroundStyle(isProcessing ? Theme.Colors.textSecondary : Theme.Colors.accent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Theme.Spacing.medium)
-                .background(Theme.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-            }
-            .disabled(isProcessing)
-
-            if hasPhoto {
-                Button(action: onRemove) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Theme.Colors.negative)
-                        .frame(width: 48, height: 48)
-                        .background(Theme.Colors.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        VStack(spacing: Theme.Spacing.small) {
+            HStack(spacing: Theme.Spacing.medium) {
+                PhotosPicker(selection: $pickerItem, matching: .images) {
+                    Label(
+                        isProcessing ? "Cutting out…" : (hasPhoto ? "Change photo" : "Add photo"),
+                        systemImage: isProcessing ? "person.crop.rectangle" : "photo.on.rectangle.angled"
+                    )
+                    .font(Theme.Typography.button(size: 15))
+                    .foregroundStyle(isProcessing ? Theme.Colors.textSecondary : Theme.Colors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Theme.Spacing.medium)
+                    .background(Theme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
                 }
-                .buttonStyle(.plain)
+                .disabled(isProcessing)
+
+                if hasPhoto {
+                    Button(action: onRemove) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(Theme.Colors.negative)
+                            .frame(width: 48, height: 48)
+                            .background(Theme.Colors.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if hasPhoto, !isProcessing {
+                if isPlacementLocked {
+                    Button(action: onAdjust) {
+                        Label("Adjust position", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
+                            .font(Theme.Typography.button(size: 14))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Theme.Spacing.small)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: onAdjustDone) {
+                        Label("Done adjusting", systemImage: "checkmark.circle.fill")
+                            .font(Theme.Typography.button(size: 14))
+                            .foregroundStyle(Theme.Colors.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Theme.Spacing.small)
+                            .background(Theme.Colors.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .onChange(of: pickerItem) { _, item in

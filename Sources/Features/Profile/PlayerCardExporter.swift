@@ -1,41 +1,48 @@
 import SwiftUI
 import UIKit
 
-/// Renders a player card view to a shareable bitmap.
+/// Renders a player card view to a shareable bitmap at the native 1024×1536 canvas.
 enum PlayerCardExporter {
     @MainActor
     static func renderImage(
-        from view: some View,
-        size: CGSize = CGSize(width: PlayerCardLayout.canvasWidth, height: PlayerCardLayout.canvasHeight),
+        content: PlayerCardContent,
+        images: [PlayerCardLayer: UIImage],
+        avatarImageData: Data?,
+        photoPlacement: PlayerCardPhotoPlacement = .default,
         scale: CGFloat = 2
     ) -> UIImage? {
-        let content = view
-            .frame(width: size.width, height: size.height)
-            .background(Color.black)
+        let size = CGSize(width: PlayerCardLayout.canvasWidth, height: PlayerCardLayout.canvasHeight)
+        let canvas = PlayerProgressCardCanvas(
+            content: content,
+            canvasSize: size,
+            images: images,
+            avatarImageData: avatarImageData,
+            photoPlacement: photoPlacement,
+            isPhotoAdjustable: false
+        )
+        .frame(width: size.width, height: size.height)
+        .clipped()
 
-        let renderer = ImageRenderer(content: content)
+        let renderer = ImageRenderer(content: canvas)
         renderer.scale = scale
+        renderer.isOpaque = false
         return renderer.uiImage
     }
 
     @MainActor
     static func renderPNGData(
-        from view: some View,
-        size: CGSize = CGSize(width: PlayerCardLayout.canvasWidth, height: PlayerCardLayout.canvasHeight),
+        content: PlayerCardContent,
+        images: [PlayerCardLayer: UIImage],
+        avatarImageData: Data?,
+        photoPlacement: PlayerCardPhotoPlacement = .default,
         scale: CGFloat = 2
     ) -> Data? {
-        renderImage(from: view, size: size, scale: scale)?.pngData()
-    }
-}
-
-extension PlayerProgressCard {
-    @MainActor
-    func exportImage(scale: CGFloat = 2) -> UIImage? {
-        PlayerCardExporter.renderImage(from: self, scale: scale)
-    }
-
-    @MainActor
-    func exportPNGData(scale: CGFloat = 2) -> Data? {
-        PlayerCardExporter.renderPNGData(from: self, scale: scale)
+        renderImage(
+            content: content,
+            images: images,
+            avatarImageData: avatarImageData,
+            photoPlacement: photoPlacement,
+            scale: scale
+        )?.pngData()
     }
 }

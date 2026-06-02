@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct PersonalRecords: Equatable, Codable, Sendable {
     var records: [RecordEntry]
@@ -56,14 +57,28 @@ struct RecordEntry: Equatable, Codable, Sendable, Identifiable {
     var icon: String {
         switch metric {
         case "distance_m": return "figure.run"
-        case "duration_s": return "clock"
+        case "duration_s": return "clock.fill"
         case "speed_max_kmh": return "speedometer"
-        case "sprints": return "bolt.fill"
+        case "sprints": return "hare.fill"
         case "intensity": return "flame.fill"
         case "match_rating": return "star.fill"
         case "hr_max": return "heart.fill"
-        case "calories_kcal": return "bolt"
+        case "calories_kcal": return "bolt.fill"
         default: return "trophy.fill"
+        }
+    }
+
+    var accentColor: Color {
+        switch metric {
+        case "distance_m": return Theme.Colors.accentBright
+        case "duration_s": return Theme.Colors.accent
+        case "speed_max_kmh": return Color(red: 1, green: 0.85, blue: 0.35)
+        case "sprints": return Theme.Colors.accent
+        case "intensity": return Theme.Colors.accentBright
+        case "match_rating": return Color(red: 0.45, green: 0.85, blue: 1)
+        case "hr_max": return Color(red: 1, green: 0.45, blue: 0.45)
+        case "calories_kcal": return Color(red: 1, green: 0.6, blue: 0.2)
+        default: return Theme.Colors.accent
         }
     }
 }

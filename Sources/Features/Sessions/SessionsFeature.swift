@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Foundation
 
-/// Home feed: week activity, latest match, and recent activities (Strava-style).
+/// Home feed: week activity, latest match, and records promo (Strava-style).
 @Reducer
 struct SessionsFeature {
     @ObservableState
@@ -17,7 +17,8 @@ struct SessionsFeature {
         @Presents var entry: SessionEntryFeature.State?
         @Presents var detail: SessionDetailFeature.State?
         @Presents var records: RecordsFeature.State?
-        @Presents var insights: InsightsFeature.State?
+        /// Top records for the Home promo card.
+        var recordHighlights: [RecordEntry] = []
 
         var sortedByRecent: [SportSession] {
             sessions.sorted { $0.startedAt > $1.startedAt }
@@ -36,6 +37,7 @@ struct SessionsFeature {
         case binding(BindingAction<State>)
         case onAppear
         case listResponse(Result<[SportSession], APIError>)
+        case recordsPreviewResponse(Result<PersonalRecords, APIError>)
         case latestDetailResponse(Result<SportSession, APIError>)
         case addTapped
         case sessionTapped(SportSession)
@@ -44,8 +46,6 @@ struct SessionsFeature {
         case detail(PresentationAction<SessionDetailFeature.Action>)
         case recordsTapped
         case records(PresentationAction<RecordsFeature.Action>)
-        case insightsTapped
-        case insights(PresentationAction<InsightsFeature.Action>)
     }
 
     @Dependency(\.apiClient) var apiClient
@@ -72,16 +72,25 @@ struct SessionsFeature {
                 state.isLoading = false
                 state.sessions = sessions
                 let token = state.accessToken
+                let recordsEffect: Effect<Action> = .run { send in
+                    await send(.recordsPreviewResponse(Result {
+                        try await apiClient.fetchRecords(token)
+                    }.mapError { $0 as? APIError ?? .invalidResponse }))
+                }
                 guard let latestId = sessions.sorted(by: { $0.startedAt > $1.startedAt }).first?.id else {
                     state.latestSession = nil
-                    return .run { _ in
-                        await PitchesSync.refresh(accessToken: token, apiClient: apiClient)
-                        WatchCourtSync.pushCourts(for: sessions)
-                        WatchHalftimeAveragesSync.push(from: sessions)
-                    }
+                    return .merge(
+                        recordsEffect,
+                        .run { _ in
+                            await PitchesSync.refresh(accessToken: token, apiClient: apiClient)
+                            WatchCourtSync.pushCourts(for: sessions)
+                            WatchHalftimeAveragesSync.push(from: sessions)
+                        }
+                    )
                 }
                 state.isLoadingLatest = true
                 return .merge(
+                    recordsEffect,
                     .run { _ in
                         await PitchesSync.refresh(accessToken: token, apiClient: apiClient)
                         WatchCourtSync.pushCourts(for: sessions)
@@ -93,6 +102,13 @@ struct SessionsFeature {
                         }.mapError { $0 as? APIError ?? .invalidResponse }))
                     }
                 )
+
+            case let .recordsPreviewResponse(.success(pr)):
+                state.recordHighlights = Array(pr.records.prefix(3))
+                return .none
+
+            case .recordsPreviewResponse(.failure):
+                return .none
 
             case .listResponse(.failure):
                 state.isLoading = false
@@ -129,10 +145,6 @@ struct SessionsFeature {
                 state.records = RecordsFeature.State(accessToken: state.accessToken)
                 return .none
 
-            case .insightsTapped:
-                state.insights = InsightsFeature.State(accessToken: state.accessToken)
-                return .none
-
             case .entry(.presented(.delegate(.created))):
                 state.entry = nil
                 return .send(.onAppear)
@@ -162,7 +174,7 @@ struct SessionsFeature {
                 state.detail = nil
                 return .send(.onAppear)
 
-            case .entry, .detail, .records, .insights:
+            case .entry, .detail, .records:
                 return .none
             }
         }
@@ -174,9 +186,6 @@ struct SessionsFeature {
         }
         .ifLet(\.$records, action: \.records) {
             RecordsFeature()
-        }
-        .ifLet(\.$insights, action: \.insights) {
-            InsightsFeature()
         }
     }
 }

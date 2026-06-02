@@ -24,11 +24,13 @@ struct SessionPathPoint: Equatable, Codable, Sendable, Identifiable {
 struct FatigueDrop: Equatable, Codable, Sendable {
     let firstHalf: HalfMetrics
     let secondHalf: HalfMetrics
+    let dropPercentage: Double
     let hrAvgPctChange: Double?
     let highIntensityPctChange: Double?
 }
 
 struct HalfMetrics: Equatable, Codable, Sendable {
+    let distanceM: Double
     let hrAvg: Double?
     let speedMaxKmh: Double?
     let highIntensityS: Int
