@@ -41,6 +41,9 @@ struct ProfileFeature {
                 displayName: name,
                 position: profile.preferredPosition,
                 positionAbbrev: ProfileFormatting.positionAbbreviation(profile.preferredPosition),
+                matchCount: metrics.matchCount,
+                rank: metrics.rank,
+                tierProgress: metrics.tierProgress,
                 physicalRating: metrics.physicalRating,
                 topSpeedKmh: metrics.topSpeedKmh,
                 avgSprints: metrics.avgSprints,
@@ -216,6 +219,9 @@ struct PlayerCardModel: Equatable {
     let displayName: String
     let position: String?
     let positionAbbrev: String
+    let matchCount: Int
+    let rank: PlayerCardRank
+    let tierProgress: Int
     let physicalRating: Int?
     let topSpeedKmh: Double?
     let avgSprints: Int?

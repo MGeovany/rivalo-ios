@@ -14,6 +14,9 @@ enum PlayerCardBadge: Equatable {
 
 /// Aggregated metrics shown on the shareable player progress card.
 struct PlayerCardMetrics: Equatable {
+    let matchCount: Int
+    let rank: PlayerCardRank
+    let tierProgress: Int
     let physicalRating: Int?
     let topSpeedKmh: Double?
     let avgSprints: Int?
@@ -27,6 +30,9 @@ enum PlayerCardStatsBuilder {
     static func build(from sessions: [SportSession]) -> PlayerCardMetrics {
         guard !sessions.isEmpty else {
             return PlayerCardMetrics(
+                matchCount: 0,
+                rank: .unranked,
+                tierProgress: 0,
                 physicalRating: nil,
                 topSpeedKmh: nil,
                 avgSprints: nil,
@@ -35,6 +41,10 @@ enum PlayerCardStatsBuilder {
                 badge: nil
             )
         }
+
+        let matchCount = sessions.count
+        let rank = PlayerCardRank.resolve(matchCount: matchCount)
+        let tierProgress = PlayerCardRank.tierProgress(matchCount: matchCount)
 
         let snapshot = PerformanceSnapshot.build(from: sessions)
         let intensities = sessions.compactMap(\.intensity)
@@ -48,6 +58,9 @@ enum PlayerCardStatsBuilder {
             : fatigueValues.reduce(0, +) / Double(fatigueValues.count)
 
         return PlayerCardMetrics(
+            matchCount: matchCount,
+            rank: rank,
+            tierProgress: tierProgress,
             physicalRating: physicalRating,
             topSpeedKmh: snapshot.topSpeedKmh,
             avgSprints: snapshot.avgSprints,

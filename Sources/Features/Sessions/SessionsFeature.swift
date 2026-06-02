@@ -65,6 +65,7 @@ struct SessionsFeature {
             case let .listResponse(.success(sessions)):
                 state.isLoading = false
                 state.sessions = sessions
+                WatchCourtSync.pushCourts(for: sessions)
                 guard let latestId = sessions.sorted(by: { $0.startedAt > $1.startedAt }).first?.id else {
                     state.latestSession = nil
                     return .none

@@ -136,6 +136,12 @@ struct NewSportSession: Equatable, Codable, Sendable {
     var intensity: Double?
     var source: String
     var mode: String = "quick"
+    var matchType: String?
+    var surface: String?
+    var pitchId: String?
+    var pitchName: String?
+    var pitchLatitude: Double?
+    var pitchLongitude: Double?
     var halftimeOffsetS: Int?
     var samples: [SessionSample]?
 }
@@ -163,6 +169,12 @@ extension NewSportSession {
         self.intensity = info["intensity"] as? Double
         self.source = (info["source"] as? String) ?? "watch"
         self.mode = (info["mode"] as? String) ?? "quick"
+        self.matchType = info["match_type"] as? String
+        self.surface = info["surface"] as? String
+        self.pitchId = info["pitch_id"] as? String
+        self.pitchName = info["pitch_name"] as? String
+        self.pitchLatitude = info["pitch_latitude"] as? Double
+        self.pitchLongitude = info["pitch_longitude"] as? Double
         self.halftimeOffsetS = info["halftime_offset_s"] as? Int
 
         if let rawSamples = info["samples"] as? [[String: Any]] {

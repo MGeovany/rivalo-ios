@@ -65,14 +65,22 @@ struct MainTabFeature {
                 let watch = watchSyncClient
                 return .run { send in
                     for item in queue.all() {
-                        if (try? await api.createSession(token, item.payload)) != nil {
+                        if let created = try? await WatchSessionUpload.createFromWatch(
+                            accessToken: token,
+                            payload: item.payload,
+                            apiClient: api
+                        ) {
                             queue.remove(item.id)
-                            await send(.watchSessionsChanged)
+                            await send(.watchSessionUploaded(created))
                         }
                     }
                     for await received in watch.incomingSessions() {
                         let queued = queue.enqueue(received)
-                        if let created = try? await api.createSession(token, received) {
+                        if let created = try? await WatchSessionUpload.createFromWatch(
+                            accessToken: token,
+                            payload: received,
+                            apiClient: api
+                        ) {
                             queue.remove(queued.id)
                             await send(.watchSessionUploaded(created))
                         }
