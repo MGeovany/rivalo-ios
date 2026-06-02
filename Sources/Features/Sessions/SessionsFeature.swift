@@ -13,6 +13,7 @@ struct SessionsFeature {
         var isLoading = false
         var isLoadingLatest = false
         var errorMessage: String?
+        var performancePeriod: PerformancePeriod = .allTime
         @Presents var entry: SessionEntryFeature.State?
         @Presents var detail: SessionDetailFeature.State?
 
@@ -24,23 +25,13 @@ struct SessionsFeature {
             Array(sortedByRecent.prefix(20))
         }
 
-        var totalDistanceKm: Double {
-            sessions.reduce(0) { $0 + $1.distanceM } / 1000
-        }
-
-        var averageDurationMin: Int? {
-            guard !sessions.isEmpty else { return nil }
-            return sessions.reduce(0) { $0 + $1.durationS } / sessions.count / 60
-        }
-
-        var averageHr: Int? {
-            let values = sessions.compactMap(\.hrAvg)
-            guard !values.isEmpty else { return nil }
-            return values.reduce(0, +) / values.count
+        var performanceSnapshot: PerformanceSnapshot {
+            PerformanceSnapshot.build(from: performancePeriod.filter(sessions))
         }
     }
 
-    enum Action {
+    enum Action: BindableAction {
+        case binding(BindingAction<State>)
         case onAppear
         case listResponse(Result<[SportSession], APIError>)
         case latestDetailResponse(Result<SportSession, APIError>)
@@ -55,8 +46,13 @@ struct SessionsFeature {
     @Dependency(\.date) var date
 
     var body: some ReducerOf<Self> {
+        BindingReducer()
+
         Reduce { state, action in
             switch action {
+            case .binding:
+                return .none
+
             case .onAppear:
                 state.isLoading = state.sessions.isEmpty
                 state.errorMessage = nil

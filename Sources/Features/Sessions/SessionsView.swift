@@ -47,9 +47,7 @@ struct SessionsView: View {
                         AuthInlineMessage(text: message, kind: .error)
                     }
 
-                    if !store.sessions.isEmpty {
-                        performanceSection
-                    }
+                    performanceSection
 
                     SessionWeekStrip(sessions: store.sessions, referenceDate: Date())
 
@@ -82,10 +80,8 @@ struct SessionsView: View {
 
     private var performanceSection: some View {
         DashboardSummaryStrip(
-            sessions: store.sessions.count,
-            totalKm: store.totalDistanceKm,
-            avgMinutes: store.averageDurationMin,
-            avgHr: store.averageHr
+            period: $store.performancePeriod,
+            snapshot: store.performanceSnapshot
         )
     }
 
@@ -259,16 +255,5 @@ struct PerformanceAnalyticsView: View {
         }
         .rivalNavigationChrome(title: "Charts")
         .foregroundStyle(Theme.Colors.textPrimary)
-    }
-
-    private var averageDurationMin: Int? {
-        guard !sessions.isEmpty else { return nil }
-        return sessions.reduce(0) { $0 + $1.durationS } / sessions.count / 60
-    }
-
-    private var averageHr: Int? {
-        let values = sessions.compactMap(\.hrAvg)
-        guard !values.isEmpty else { return nil }
-        return values.reduce(0, +) / values.count
     }
 }

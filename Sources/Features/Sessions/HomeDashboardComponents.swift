@@ -1,22 +1,24 @@
 import Charts
 import SwiftUI
 
-// MARK: - Performance metrics
+// MARK: - Performance dashboard
 
 struct DashboardSummaryStrip: View {
-    let sessions: Int
-    let totalKm: Double
-    let avgMinutes: Int?
-    let avgHr: Int?
+    @Binding var period: PerformancePeriod
+    let snapshot: PerformanceSnapshot
 
     var body: some View {
-        VStack(spacing: Theme.Spacing.medium) {
+        VStack(alignment: .leading, spacing: Theme.Spacing.large) {
+            PerformancePeriodPicker(selection: $period)
+
             PerformanceHeroMetric(
-                value: String(format: "%.1f", totalKm),
+                value: snapshot.totalDistanceKm,
                 unit: "km",
                 label: "Total distance covered",
                 icon: "figure.run",
-                footnote: sessions > 0 ? "\(sessions) matches logged" : nil
+                footnote: snapshot.sessionCount > 0
+                    ? "\(snapshot.sessionCount) matches logged"
+                    : "No matches in this period"
             )
 
             LazyVGrid(
@@ -27,41 +29,114 @@ struct DashboardSummaryStrip: View {
                 spacing: Theme.Spacing.medium
             ) {
                 PerformanceStatCard(
-                    label: "Matches",
-                    value: "\(sessions)",
+                    label: "Top speed",
+                    value: snapshot.topSpeedKmh,
+                    format: .decimal(fractionDigits: 1),
+                    unit: snapshot.topSpeedKmh == nil ? nil : "km/h",
+                    icon: "bolt.fill",
+                    style: .speed,
+                    kind: .record
+                )
+                PerformanceStatCard(
+                    label: "Avg sprints",
+                    value: snapshot.avgSprints.map(Double.init),
+                    format: .integer,
                     unit: nil,
-                    icon: "sportscourt.fill",
-                    style: .matches
+                    icon: "hare.fill",
+                    style: .sprints,
+                    kind: .average
                 )
                 PerformanceStatCard(
-                    label: "Avg duration",
-                    value: avgMinutes.map { "\($0)" } ?? "—",
-                    unit: avgMinutes == nil ? nil : "min",
-                    icon: "clock.fill",
-                    style: .duration
-                )
-                PerformanceStatCard(
-                    label: "Avg heart rate",
-                    value: avgHr.map { "\($0)" } ?? "—",
-                    unit: avgHr == nil ? nil : "bpm",
-                    icon: "heart.fill",
-                    style: .heartRate
+                    label: "Sprint distance",
+                    value: snapshot.avgSprintDistanceKm,
+                    format: .decimal(fractionDigits: 1),
+                    unit: snapshot.avgSprintDistanceKm == nil ? nil : "km",
+                    icon: "arrow.up.forward",
+                    style: .sprintDistance,
+                    kind: .average
                 )
                 PerformanceStatCard(
                     label: "Avg per match",
-                    value: sessions > 0 ? String(format: "%.1f", totalKm / Double(sessions)) : "—",
-                    unit: sessions > 0 ? "km" : nil,
-                    icon: "chart.line.uptrend.xyaxis",
-                    style: .pace
+                    value: snapshot.avgKmPerMatch,
+                    format: .decimal(fractionDigits: 1),
+                    unit: snapshot.avgKmPerMatch == nil ? nil : "km",
+                    icon: "figure.run",
+                    style: .pace,
+                    kind: .average
                 )
             }
+        }
+        .animation(.spring(response: 0.45, dampingFraction: 0.86), value: period)
+    }
+}
+
+struct PerformancePeriodPicker: View {
+    @Binding var selection: PerformancePeriod
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Spacing.small) {
+                ForEach(PerformancePeriod.allCases) { period in
+                    Button {
+                        selection = period
+                    } label: {
+                        Text(period.rawValue)
+                            .font(Theme.Typography.caption(size: 13))
+                            .foregroundStyle(selection == period ? Color.black : Theme.Colors.textSecondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(selection == period ? Theme.Colors.accent : Theme.Colors.surface)
+                            )
+                            .overlay {
+                                if selection != period {
+                                    Capsule()
+                                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+private struct PerformanceMetricBadge: View {
+    let text: String
+    let kind: PerformanceMetricKind
+
+    var body: some View {
+        Text(text)
+            .font(Theme.Typography.statLabel(size: 8))
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(background)
+            .clipShape(Capsule())
+    }
+
+    private var foreground: Color {
+        switch kind {
+        case .total: Theme.Colors.textSecondary
+        case .average: Theme.Colors.accentBright
+        case .record: Color(red: 1, green: 0.85, blue: 0.35)
+        }
+    }
+
+    private var background: Color {
+        switch kind {
+        case .total: Color.white.opacity(0.08)
+        case .average: Theme.Colors.accent.opacity(0.2)
+        case .record: Color(red: 1, green: 0.75, blue: 0.2).opacity(0.2)
         }
     }
 }
 
 /// Full-width headline stat for total distance.
 private struct PerformanceHeroMetric: View {
-    let value: String
+    let value: Double
     let unit: String
     let label: String
     let icon: String
@@ -90,7 +165,7 @@ private struct PerformanceHeroMetric: View {
                         .tracking(1.4)
 
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(value)
+                        AnimatedMetricText(value: value, format: .decimal(fractionDigits: 1))
                             .font(Theme.Typography.metric(size: 56))
                             .foregroundStyle(
                                 LinearGradient(
@@ -112,6 +187,8 @@ private struct PerformanceHeroMetric: View {
                         Text(footnote)
                             .font(Theme.Typography.caption(size: 12))
                             .foregroundStyle(Theme.Colors.textSecondary)
+                            .contentTransition(.numericText())
+                            .animation(.spring(response: 0.45, dampingFraction: 0.86), value: footnote)
                     }
                 }
 
@@ -159,23 +236,25 @@ private struct PerformanceHeroMetric: View {
 
 private struct PerformanceStatCard: View {
     enum Style {
-        case matches, duration, heartRate, pace
+        case speed, sprints, sprintDistance, pace
 
-        var glow: Color {
+        var accent: Color {
             switch self {
-            case .matches: Theme.Colors.accent
-            case .duration: Color(red: 1, green: 0.55, blue: 0.2)
-            case .heartRate: Color(red: 1, green: 0.35, blue: 0.35)
+            case .speed: Color(red: 1, green: 0.85, blue: 0.35)
+            case .sprints: Theme.Colors.accent
+            case .sprintDistance: Color(red: 0.45, green: 0.85, blue: 1)
             case .pace: Theme.Colors.accentBright
             }
         }
     }
 
     let label: String
-    let value: String
+    let value: Double?
+    let format: AnimatedMetricText.Format
     let unit: String?
     let icon: String
     let style: Style
+    let kind: PerformanceMetricKind
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -195,30 +274,32 @@ private struct PerformanceStatCard: View {
                 HStack {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(style.glow.opacity(0.18))
+                            .fill(style.accent.opacity(0.18))
                             .frame(width: 36, height: 36)
                         Image(systemName: icon)
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(style.glow)
+                            .foregroundStyle(style.accent)
                     }
                     Spacer(minLength: 0)
+                    if let badge = kind.badge {
+                        PerformanceMetricBadge(text: badge, kind: kind)
+                    }
                 }
 
                 Spacer(minLength: Theme.Spacing.small)
 
                 HStack(alignment: .lastTextBaseline, spacing: 3) {
-                    Text(value)
+                    AnimatedMetricText(value: value, format: format)
                         .font(Theme.Typography.metric(size: 40))
                         .foregroundStyle(.white)
                         .monospacedDigit()
                         .minimumScaleFactor(0.65)
                         .lineLimit(1)
-                        .shadow(color: style.glow.opacity(0.35), radius: 8, y: 2)
 
                     if let unit {
                         Text(unit)
                             .font(Theme.Typography.caption(size: 13))
-                            .foregroundStyle(style.glow.opacity(0.95))
+                            .foregroundStyle(style.accent.opacity(0.95))
                             .padding(.bottom, 5)
                     }
                 }
@@ -238,7 +319,7 @@ private struct PerformanceStatCard: View {
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            style.glow.opacity(0.45),
+                            style.accent.opacity(0.45),
                             Color.white.opacity(0.06),
                             Color.clear,
                         ],
