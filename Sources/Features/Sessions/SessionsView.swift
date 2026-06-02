@@ -29,6 +29,9 @@ struct SessionsView: View {
         .sheet(item: $store.scope(state: \.detail, action: \.detail)) { detailStore in
             SessionDetailView(store: detailStore)
         }
+        .sheet(item: $store.scope(state: \.records, action: \.records)) { recordsStore in
+            RecordsView(store: recordsStore)
+        }
     }
 
     @ViewBuilder
@@ -65,6 +68,7 @@ struct SessionsView: View {
                         recentActivitiesSection
                     }
 
+                    recordsLink
                     analyticsLink
                 }
                 .padding(.horizontal, Theme.Spacing.large)
@@ -121,6 +125,28 @@ struct SessionsView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    private var recordsLink: some View {
+        Button { store.send(.recordsTapped) } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Personal Records")
+                        .font(Theme.Typography.button(size: 16))
+                    Text("Your best marks per category")
+                        .font(Theme.Typography.caption(size: 12))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            .padding(Theme.Spacing.medium)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .foregroundStyle(Theme.Colors.textPrimary)
+        }
+        .buttonStyle(.plain)
     }
 
     private var analyticsLink: some View {

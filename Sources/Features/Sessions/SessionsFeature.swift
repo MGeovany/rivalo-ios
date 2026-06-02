@@ -16,6 +16,7 @@ struct SessionsFeature {
         var performancePeriod: PerformancePeriod = .allTime
         @Presents var entry: SessionEntryFeature.State?
         @Presents var detail: SessionDetailFeature.State?
+        @Presents var records: RecordsFeature.State?
 
         var sortedByRecent: [SportSession] {
             sessions.sorted { $0.startedAt > $1.startedAt }
@@ -40,6 +41,8 @@ struct SessionsFeature {
         case showSummary(SportSession)
         case entry(PresentationAction<SessionEntryFeature.Action>)
         case detail(PresentationAction<SessionDetailFeature.Action>)
+        case recordsTapped
+        case records(PresentationAction<RecordsFeature.Action>)
     }
 
     @Dependency(\.apiClient) var apiClient
@@ -117,6 +120,10 @@ struct SessionsFeature {
                 )
                 return .none
 
+            case .recordsTapped:
+                state.records = RecordsFeature.State(accessToken: state.accessToken)
+                return .none
+
             case .entry(.presented(.delegate(.created))):
                 state.entry = nil
                 return .send(.onAppear)
@@ -146,7 +153,7 @@ struct SessionsFeature {
                 state.detail = nil
                 return .send(.onAppear)
 
-            case .entry, .detail:
+            case .entry, .detail, .records:
                 return .none
             }
         }
@@ -155,6 +162,9 @@ struct SessionsFeature {
         }
         .ifLet(\.$detail, action: \.detail) {
             SessionDetailFeature()
+        }
+        .ifLet(\.$records, action: \.records) {
+            RecordsFeature()
         }
     }
 }

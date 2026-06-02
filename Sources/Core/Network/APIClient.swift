@@ -39,6 +39,8 @@ struct APIClient {
     var listPitches: @Sendable (_ accessToken: String) async throws -> [Pitch]
     /// Creates a pitch via `POST /v1/pitches`.
     var createPitch: @Sendable (_ accessToken: String, _ new: NewPitch) async throws -> Pitch
+    /// Fetches personal bests via `GET /v1/sessions/records`.
+    var fetchRecords: @Sendable (_ accessToken: String) async throws -> PersonalRecords
 }
 
 extension APIClient: DependencyKey {
@@ -55,12 +57,16 @@ extension APIClient: DependencyKey {
             return try JSONDecoder().decode(HealthStatus.self, from: data)
         },
         me: { token in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/me", method: "GET", token: newToken), as: Profile.self)
             }
         },
         updateMe: { token, update in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 var request = authorizedRequest("v1/me", method: "PUT", token: newToken)
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try apiEncoder().encode(update)
@@ -68,7 +74,9 @@ extension APIClient: DependencyKey {
             }
         },
         createSession: { token, new in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 var request = authorizedRequest("v1/sessions", method: "POST", token: newToken)
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try apiEncoder().encode(new)
@@ -76,17 +84,23 @@ extension APIClient: DependencyKey {
             }
         },
         listSessions: { token in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/sessions", method: "GET", token: newToken), as: [SportSession].self)
             }
         },
         getSession: { token, id in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/sessions/\(id)", method: "GET", token: newToken), as: SportSession.self)
             }
         },
         patchSessionContext: { token, id, update in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 var request = authorizedRequest("v1/sessions/\(id)", method: "PATCH", token: newToken)
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try apiEncoder().encode(update)
@@ -94,7 +108,9 @@ extension APIClient: DependencyKey {
             }
         },
         updateSession: { token, id, update in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 var request = authorizedRequest("v1/sessions/\(id)", method: "PUT", token: newToken)
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try apiEncoder().encode(update)
@@ -102,21 +118,34 @@ extension APIClient: DependencyKey {
             }
         },
         deleteSession: { token, id in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSendEmpty(authorizedRequest("v1/sessions/\(id)", method: "DELETE", token: newToken))
             }
         },
         listPitches: { token in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/pitches", method: "GET", token: newToken), as: [Pitch].self)
             }
         },
         createPitch: { token, new in
-            try await retryOnUnauthorized(token) { newToken in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 var request = authorizedRequest("v1/pitches", method: "POST", token: newToken)
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try apiEncoder().encode(new)
                 return try await apiSend(request, as: Pitch.self)
+            }
+        },
+        fetchRecords: { token in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSend(authorizedRequest("v1/sessions/records", method: "GET", token: newToken), as: PersonalRecords.self)
             }
         }
     )
@@ -124,12 +153,15 @@ extension APIClient: DependencyKey {
 
 /// Wraps an authenticated API call with automatic token refresh on 401.
 /// Refreshes the session from the keychain and retries the request once.
-private func retryOnUnauthorized<T>(_ token: String, operation: @escaping (String) async throws -> T) async throws -> T {
+private func retryOnUnauthorized<T>(
+    _ token: String,
+    authClient: AuthClient,
+    tokenStore: TokenStore,
+    operation: @escaping (String) async throws -> T
+) async throws -> T {
     do {
         return try await operation(token)
     } catch APIError.statusCode(401) {
-        @Dependency(\.authClient) var authClient
-        @Dependency(\.tokenStore) var tokenStore
         guard let stored = tokenStore.load() else { throw APIError.statusCode(401) }
         let session = try await authClient.refresh(stored.refreshToken)
         try? tokenStore.save(session)
