@@ -13,6 +13,7 @@ struct InsightsFeature {
         var isLoading = false
         var isLoadingFatigue = false
         var errorMessage: String?
+        @Presents var positionInsights: PositionInsightsFeature.State?
     }
 
     enum Action: Equatable {
@@ -21,6 +22,8 @@ struct InsightsFeature {
         case sessionsResponse(Result<[SportSession], APIError>)
         case recordsResponse(Result<PersonalRecords, APIError>)
         case fatigueLoaded([SportSession])
+        case positionInsightsTapped
+        case positionInsights(PresentationAction<PositionInsightsFeature.Action>)
     }
 
     @Dependency(\.apiClient) var apiClient
@@ -92,7 +95,21 @@ struct InsightsFeature {
                 state.isLoadingFatigue = false
                 state.fatigueSessions = sessions
                 return .none
+
+            case .positionInsightsTapped:
+                state.positionInsights = PositionInsightsFeature.State(accessToken: state.accessToken)
+                return .none
+
+            case .positionInsights(.presented(.delegate(.dismissed))):
+                state.positionInsights = nil
+                return .none
+
+            case .positionInsights:
+                return .none
             }
+        }
+        .ifLet(\.$positionInsights, action: \.positionInsights) {
+            PositionInsightsFeature()
         }
     }
 }

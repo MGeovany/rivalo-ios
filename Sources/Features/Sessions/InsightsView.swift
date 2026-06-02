@@ -21,6 +21,9 @@ struct InsightsView: View {
             .task { store.send(.onAppear) }
         }
         .tint(Theme.Colors.accent)
+        .sheet(item: $store.scope(state: \.positionInsights, action: \.positionInsights)) { positionStore in
+            PositionInsightsView(store: positionStore)
+        }
     }
 
     private var loadingState: some View {
@@ -119,6 +122,18 @@ struct InsightsView: View {
                 if let rules = insights.insights, !rules.isEmpty, count >= InsightsAnalytics.minMatchesForStrongCallouts {
                     InsightsRulesCard(insights: rules)
                 }
+
+                Button {
+                    store.send(.positionInsightsTapped)
+                } label: {
+                    Label("Position insights", systemImage: "figure.soccer")
+                        .font(Theme.Typography.body(size: 15))
+                        .frame(maxWidth: .infinity)
+                        .padding(Theme.Spacing.medium)
+                        .background(Theme.Colors.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                }
+                .tint(Theme.Colors.accent)
             }
             .padding(.horizontal, Theme.Spacing.large)
             .padding(.top, Theme.Spacing.medium)
