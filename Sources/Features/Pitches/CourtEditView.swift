@@ -37,6 +37,10 @@ struct CourtEditView: View {
                 }
 
                 if store.isEditing {
+                    statsSection
+                }
+
+                if store.isEditing {
                     photosSection
                 } else {
                     Section {
@@ -75,6 +79,32 @@ struct CourtEditView: View {
                     }
                     selectedPhoto = nil
                 }
+            }
+            .task { store.send(.onAppear) }
+        }
+    }
+
+    @ViewBuilder
+    private var statsSection: some View {
+        Section("Stats here") {
+            if let stats = store.stats, stats.matchCount > 0 {
+                LabeledContent("Matches played", value: "\(stats.matchCount)")
+                if let rating = stats.avgRating {
+                    LabeledContent("Avg rating", value: String(format: "%.0f", rating))
+                }
+                if let dist = stats.avgDistanceM {
+                    LabeledContent("Avg distance", value: String(format: "%.2f km", dist / 1000))
+                }
+                if let sprints = stats.avgSprints {
+                    LabeledContent("Avg sprints", value: String(format: "%.0f", sprints))
+                }
+                if let last = stats.lastPlayedAt {
+                    LabeledContent("Last played", value: last.formatted(date: .abbreviated, time: .omitted))
+                }
+            } else {
+                Text("No sessions logged at this court yet.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
     }

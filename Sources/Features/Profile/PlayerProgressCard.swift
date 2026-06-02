@@ -10,11 +10,13 @@ struct PlayerProgressCardCanvas: View {
     var isPendingPhotoPlacement = false
     var photoPlacement: PlayerCardPhotoPlacement = .default
     var isPhotoAdjustable = false
+    var showsStatExplanations = false
     var onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)?
 
     @State private var placement: PlayerCardPhotoPlacement = .default
     @State private var dragTranslation: CGSize = .zero
     @State private var livePinchScale: CGFloat = 1
+    @State private var explainedStat: PlayerCardStatKind?
 
     private var style: PlayerCardRankStyle { content.tier.style }
     private var width: CGFloat { canvasSize.width }
@@ -44,6 +46,13 @@ struct PlayerProgressCardCanvas: View {
             placement = newValue
             dragTranslation = .zero
             livePinchScale = 1
+        }
+        .alert(item: $explainedStat) { stat in
+            Alert(
+                title: Text(stat.title),
+                message: Text(stat.explanation),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 
@@ -210,61 +219,76 @@ struct PlayerProgressCardCanvas: View {
     }
 
     private var statsOverlay: some View {
-        ZStack {
-            statColumn(
+        let leftArea = PlayerCardLayout.leftStats
+        let rightArea = PlayerCardLayout.rightStats
+        let bandTop = rightArea.y
+        let bandHeight = PlayerCardLayout.playerName.y - bandTop - 0.025
+        let rowWidth = rightArea.x + rightArea.width - leftArea.x
+
+        return HStack(alignment: .bottom, spacing: 0) {
+            statsColumn(
                 left: true,
-                area: PlayerCardLayout.leftStats,
+                columnWidth: width * leftArea.width,
+                dividerPadding: height * 0.010,
                 entries: [
-                    ("INT", content.intensityText),
-                    ("SPD", content.topSpeedText),
+                    (.intensity, content.intensityText),
+                    (.speed, content.topSpeedText),
                 ]
             )
-            statColumn(
+            Spacer(minLength: width * 0.06)
+            statsColumn(
                 left: false,
-                area: PlayerCardLayout.rightStats,
-                verticalAnchor: 0.30,
+                columnWidth: width * rightArea.width,
                 dividerPadding: height * 0.006,
                 entries: [
-                    ("SPR", content.sprintsText),
-                    ("KM", content.distanceText),
-                    ("MAT", content.matchesText),
+                    (.sprints, content.sprintsText),
+                    (.distance, content.distanceText),
+                    (.matches, content.matchesText),
                 ]
             )
         }
+        .frame(width: width * rowWidth, height: height * bandHeight, alignment: .bottom)
+        .position(
+            x: width * (leftArea.x + rowWidth / 2),
+            y: height * (bandTop + bandHeight / 2)
+        )
     }
 
-    private func statColumn(
+    private func statsColumn(
         left: Bool,
-        area: PlayerCardLayout.SafeArea,
-        verticalAnchor: CGFloat = 0.5,
-        dividerPadding: CGFloat? = nil,
-        entries: [(String, String)]
+        columnWidth: CGFloat,
+        dividerPadding: CGFloat,
+        entries: [(PlayerCardStatKind, String)]
     ) -> some View {
-        let rowGap = dividerPadding ?? height * 0.010
-
-        return VStack(alignment: left ? .leading : .trailing, spacing: 0) {
+        VStack(alignment: left ? .leading : .trailing, spacing: 0) {
             ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
                 if index > 0 {
                     Rectangle()
                         .fill(style.accent.opacity(0.45))
-                        .frame(width: width * area.width * 0.9, height: max(1, width * 0.001))
-                        .padding(.vertical, rowGap)
+                        .frame(width: columnWidth * 0.9, height: max(1, width * 0.001))
+                        .padding(.vertical, dividerPadding)
                 }
-                statBlock(abbrev: entry.0, value: entry.1, left: left, columnWidth: width * area.width)
+                statBlock(
+                    kind: entry.0,
+                    value: entry.1,
+                    left: left,
+                    columnWidth: columnWidth
+                )
             }
         }
-        .frame(width: width * area.width, alignment: left ? .leading : .trailing)
-        .position(
-            x: width * (area.x + area.width / 2),
-            y: height * (area.y + area.height * verticalAnchor)
-        )
+        .frame(width: columnWidth, alignment: left ? .leading : .trailing)
     }
 
-    private func statBlock(abbrev: String, value: String, left: Bool, columnWidth: CGFloat) -> some View {
+    @ViewBuilder
+    private func statBlock(
+        kind: PlayerCardStatKind,
+        value: String,
+        left: Bool,
+        columnWidth: CGFloat
+    ) -> some View {
         let alignment: Alignment = left ? .leading : .trailing
-
-        return VStack(alignment: left ? .leading : .trailing, spacing: height * 0.004) {
-            Text(abbrev)
+        let block = VStack(alignment: left ? .leading : .trailing, spacing: height * 0.004) {
+            Text(kind.abbrev)
                 .font(PlayerCardTypography.statLabel(size: width))
                 .foregroundStyle(style.accent.opacity(0.95))
                 .lineLimit(1)
@@ -275,6 +299,20 @@ struct PlayerProgressCardCanvas: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
                 .frame(maxWidth: columnWidth, alignment: alignment)
+        }
+        .accessibilityLabel("\(kind.title), \(value)")
+
+        if showsStatExplanations {
+            Button {
+                explainedStat = kind
+            } label: {
+                block
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Shows what this stat means")
+        } else {
+            block
         }
     }
 
@@ -392,6 +430,7 @@ struct PlayerProgressCard: View {
                 isPendingPhotoPlacement: isPendingPhotoPlacement,
                 photoPlacement: photoPlacement,
                 isPhotoAdjustable: isPhotoAdjustable,
+                showsStatExplanations: true,
                 onPhotoPlacementChange: onPhotoPlacementChange
             )
         }

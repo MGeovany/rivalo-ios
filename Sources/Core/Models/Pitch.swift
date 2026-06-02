@@ -39,6 +39,15 @@ struct NewPitch: Equatable, Encodable, Sendable {
     var notes: String?
 }
 
+/// Aggregate session stats for one court (`GET /v1/pitches/{id}/stats`).
+struct PitchStats: Equatable, Codable, Sendable {
+    var matchCount: Int
+    var avgRating: Double?
+    var avgDistanceM: Double?
+    var avgSprints: Double?
+    var lastPlayedAt: Date?
+}
+
 /// Body for `PUT /v1/pitches/{id}` (all optional; nil leaves the field unchanged).
 struct PitchUpdate: Equatable, Encodable, Sendable {
     var name: String?

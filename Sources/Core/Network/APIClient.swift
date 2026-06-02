@@ -43,6 +43,8 @@ struct APIClient {
     var updatePitch: @Sendable (_ accessToken: String, _ id: String, _ update: PitchUpdate) async throws -> Pitch
     /// Deletes a pitch via `DELETE /v1/pitches/{id}`.
     var deletePitch: @Sendable (_ accessToken: String, _ id: String) async throws -> Void
+    /// Fetches aggregate stats for a court via `GET /v1/pitches/{id}/stats`.
+    var fetchPitchStats: @Sendable (_ accessToken: String, _ id: String) async throws -> PitchStats
     /// Fetches personal bests via `GET /v1/sessions/records`.
     var fetchRecords: @Sendable (_ accessToken: String) async throws -> PersonalRecords
     /// Fetches session insights via `GET /v1/sessions/insights`.
@@ -166,6 +168,13 @@ extension APIClient: DependencyKey {
             @Dependency(\.tokenStore) var tokenStore
             try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSendEmpty(authorizedRequest("v1/pitches/\(id)", method: "DELETE", token: newToken))
+            }
+        },
+        fetchPitchStats: { token, id in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSend(authorizedRequest("v1/pitches/\(id)/stats", method: "GET", token: newToken), as: PitchStats.self)
             }
         },
         fetchRecords: { token in

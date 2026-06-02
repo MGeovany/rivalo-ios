@@ -12,6 +12,52 @@ enum PlayerCardBadge: Equatable {
     }
 }
 
+/// Card stat abbreviations (INT / SPD / SPR / KM / MAT) with tap-to-explain copy.
+enum PlayerCardStatKind: String, CaseIterable, Identifiable {
+    case intensity
+    case speed
+    case sprints
+    case distance
+    case matches
+
+    var id: String { rawValue }
+
+    var abbrev: String {
+        switch self {
+        case .intensity: "INT"
+        case .speed: "SPD"
+        case .sprints: "SPR"
+        case .distance: "KM"
+        case .matches: "MAT"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .intensity: "Intensity (INT)"
+        case .speed: "Top speed (SPD)"
+        case .sprints: "Sprints (SPR)"
+        case .distance: "Distance (KM)"
+        case .matches: "Matches (MAT)"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .intensity:
+            "Your overall physical load score, based on heart rate and effort across recorded matches."
+        case .speed:
+            "Your fastest sprint in km/h from all recorded matches."
+        case .sprints:
+            "Total high-speed runs above the sprint threshold across all matches."
+        case .distance:
+            "Total kilometers covered across all recorded matches."
+        case .matches:
+            "Number of matches logged — this drives your card tier and rank progress."
+        }
+    }
+}
+
 /// FUT card stat values shown on the shareable card (INT / SPD / SPR / KM / MAT).
 struct PlayerCardDisplayStats: Equatable {
     let intValue: String

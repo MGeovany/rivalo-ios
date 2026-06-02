@@ -17,6 +17,7 @@ struct CourtEditFeature {
         var indoor = false
         var notes = ""
         var photos: [PitchPhoto] = []
+        var stats: PitchStats?
         var isSaving = false
         var errorMessage: String?
 
@@ -44,6 +45,8 @@ struct CourtEditFeature {
 
     enum Action: BindableAction, Equatable {
         case binding(BindingAction<State>)
+        case onAppear
+        case statsResponse(Result<PitchStats, APIError>)
         case saveTapped
         case saveResponse(Result<Pitch, APIError>)
         case deleteTapped
@@ -68,6 +71,21 @@ struct CourtEditFeature {
         Reduce { state, action in
             switch action {
             case .binding:
+                return .none
+
+            case .onAppear:
+                guard let id = state.pitchId else { return .none }
+                let token = state.accessToken
+                return .run { send in
+                    await send(.statsResponse(Result { try await apiClient.fetchPitchStats(token, id) }
+                        .mapError { $0 as? APIError ?? .invalidResponse }))
+                }
+
+            case let .statsResponse(.success(stats)):
+                state.stats = stats
+                return .none
+
+            case .statsResponse(.failure):
                 return .none
 
             case .saveTapped:
