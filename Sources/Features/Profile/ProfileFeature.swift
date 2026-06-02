@@ -25,6 +25,7 @@ struct ProfileFeature {
         var sessions: [SportSession] = []
         /// PNG bytes for the player card cutout (device-local until backend avatar exists).
         var avatarImageData: Data?
+        var photoPlacement: PlayerCardPhotoPlacement = .default
         var isProcessingPhoto = false
 
         var canSave: Bool {
@@ -49,7 +50,8 @@ struct ProfileFeature {
                 displayStats: metrics.displayStats,
                 countryCode: countryCode,
                 initials: ProfileFormatting.initials(from: name),
-                avatarImageData: avatarImageData
+                avatarImageData: avatarImageData,
+                photoPlacement: photoPlacement
             )
         }
 
@@ -71,6 +73,7 @@ struct ProfileFeature {
         case weightUnitChanged(WeightUnit)
         case photoSelected(Data)
         case photoProcessed(Data?)
+        case photoPlacementChanged(PlayerCardPhotoPlacement)
         case photoRemoved
         case countryCodeChanged(String)
         case delegate(Delegate)
@@ -173,13 +176,25 @@ struct ProfileFeature {
                 guard let userId = state.profile?.id else { return .none }
                 if let data, let saved = ProfilePhotoStore.save(userId: userId, pngData: data) {
                     state.avatarImageData = saved
+                    state.photoPlacement = .default
+                    ProfilePhotoPlacementStore.save(userId: userId, placement: .default)
+                }
+                return .none
+
+            case let .photoPlacementChanged(placement):
+                let clamped = placement.clamped()
+                state.photoPlacement = clamped
+                if let userId = state.profile?.id {
+                    ProfilePhotoPlacementStore.save(userId: userId, placement: clamped)
                 }
                 return .none
 
             case .photoRemoved:
                 guard let userId = state.profile?.id else { return .none }
                 ProfilePhotoStore.delete(userId: userId)
+                ProfilePhotoPlacementStore.delete(userId: userId)
                 state.avatarImageData = nil
+                state.photoPlacement = .default
                 return .none
 
             case let .countryCodeChanged(code):
@@ -207,6 +222,7 @@ private extension ProfileFeature.State {
         weightText = weightUnit.format(kg: profile.weightKg)
         birthDate = profile.birthYear.map { ProfileBirthDate.date(fromBirthYear: $0) }
         avatarImageData = ProfilePhotoStore.load(userId: profile.id)
+        photoPlacement = ProfilePhotoPlacementStore.load(userId: profile.id)
         countryCode = ProfileCountryStore.load(userId: profile.id) ?? ProfileCountryStore.defaultCode()
     }
 
@@ -237,4 +253,5 @@ struct PlayerCardModel: Equatable {
     let countryCode: String
     let initials: String
     let avatarImageData: Data?
+    let photoPlacement: PlayerCardPhotoPlacement
 }

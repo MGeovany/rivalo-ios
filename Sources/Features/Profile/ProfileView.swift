@@ -15,7 +15,11 @@ struct ProfileView: View {
                     ScrollView {
                         VStack(spacing: Theme.Spacing.xl) {
                             if let card = store.playerCard {
-                                PlayerProgressCard(model: card)
+                                PlayerProgressCard(
+                                    model: card,
+                                    isPhotoAdjustable: store.hasCardPhoto && !store.isProcessingPhoto,
+                                    onPhotoPlacementChange: { store.send(.photoPlacementChanged($0)) }
+                                )
 
                                 if store.profile != nil {
                                     ProfileCardPhotoControls(

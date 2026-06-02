@@ -4,6 +4,12 @@ import UIKit
 /// FUT player card matching the tier mockups — cutout portrait, ornate frame, INT/SPD/SPR/KM/MAT.
 struct PlayerProgressCard: View {
     let model: PlayerCardModel
+    var isPhotoAdjustable = false
+    var onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)?
+
+    @State private var placement: PlayerCardPhotoPlacement = .default
+    @State private var dragTranslation: CGSize = .zero
+    @State private var livePinchScale: CGFloat = 1
 
     private var style: PlayerCardRankStyle { model.rank.style }
 
@@ -30,6 +36,12 @@ struct PlayerProgressCard: View {
         .aspectRatio(0.68, contentMode: .fit)
         .frame(maxWidth: 340)
         .frame(maxWidth: .infinity)
+        .onAppear { placement = model.photoPlacement }
+        .onChange(of: model.photoPlacement) { _, newValue in
+            placement = newValue
+            dragTranslation = .zero
+            livePinchScale = 1
+        }
     }
 
     private var cardContent: some View {
@@ -121,14 +133,22 @@ struct PlayerProgressCard: View {
 
     @ViewBuilder
     private func playerCutout(in size: CGSize) -> some View {
-        VStack {
-            Spacer()
+        let anchorX = size.width * (0.5 + placement.offsetX) + dragTranslation.width
+        let anchorY = size.height * (0.58 + placement.offsetY) + dragTranslation.height
+        let photoScale = placement.scale * livePinchScale
+
+        ZStack {
             if let data = model.avatarImageData, let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFit()
-                    .frame(maxWidth: size.width * 0.94, maxHeight: size.height * 0.72)
+                    .frame(
+                        maxWidth: size.width * 0.94 * photoScale,
+                        maxHeight: size.height * 0.72 * photoScale
+                    )
+                    .position(x: anchorX, y: anchorY)
                     .shadow(color: style.glow.opacity(0.6), radius: 16, y: 4)
+                    .gesture(photoAdjustGesture(in: size))
             } else {
                 ZStack {
                     Circle()
@@ -148,10 +168,69 @@ struct PlayerProgressCard: View {
                         .font(Theme.Typography.display(size: 48))
                         .foregroundStyle(style.accentBright)
                 }
-                .padding(.bottom, 40)
+                .position(x: size.width * 0.5, y: size.height * 0.52)
+            }
+
+            if isPhotoAdjustable, model.avatarImageData != nil {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(style.accent.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                    .frame(width: size.width * 0.88, height: size.height * 0.52)
+                    .position(x: size.width * 0.5, y: size.height * 0.48)
+                    .allowsHitTesting(false)
+
+                Text("Drag · Pinch to adjust")
+                    .font(Theme.Typography.statLabel(size: 9))
+                    .foregroundStyle(style.accentBright.opacity(0.75))
+                    .tracking(0.6)
+                    .position(x: size.width * 0.5, y: size.height * 0.74)
+                    .allowsHitTesting(false)
             }
         }
         .frame(width: size.width, height: size.height)
+    }
+
+    private func photoAdjustGesture(in size: CGSize) -> some Gesture {
+        let drag = DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                guard isPhotoAdjustable else { return }
+                dragTranslation = value.translation
+            }
+            .onEnded { value in
+                guard isPhotoAdjustable else { return }
+                commitDrag(value.translation, cardSize: size)
+            }
+
+        let pinch = MagnificationGesture()
+            .onChanged { value in
+                guard isPhotoAdjustable else { return }
+                livePinchScale = value
+            }
+            .onEnded { value in
+                guard isPhotoAdjustable else { return }
+                commitPinch(value, cardSize: size)
+            }
+
+        return SimultaneousGesture(drag, pinch)
+    }
+
+    private func commitDrag(_ translation: CGSize, cardSize: CGSize) {
+        var updated = placement
+        updated.offsetX += translation.width / cardSize.width
+        updated.offsetY += translation.height / cardSize.height
+        updated = updated.clamped()
+        placement = updated
+        dragTranslation = .zero
+        onPhotoPlacementChange?(updated)
+    }
+
+    private func commitPinch(_ multiplier: CGFloat, cardSize: CGSize) {
+        _ = cardSize
+        var updated = placement
+        updated.scale *= multiplier
+        updated = updated.clamped()
+        placement = updated
+        livePinchScale = 1
+        onPhotoPlacementChange?(updated)
     }
 
     // MARK: - Stats
@@ -235,7 +314,8 @@ private func previewModel(rank: PlayerCardRank, country: String = "CA") -> Playe
         ),
         countryCode: country,
         initials: "G",
-        avatarImageData: nil
+        avatarImageData: nil,
+        photoPlacement: .default
     )
 }
 
