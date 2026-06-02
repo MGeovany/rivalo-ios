@@ -195,6 +195,10 @@ struct SessionDetailView: View {
                 matchRatingCard(rating)
             }
 
+            if let averages = store.averages {
+                vsAverageSection(session, averages: averages)
+            }
+
             if let fd = session.fatigueDrop {
                 fatigueDropSection(fd)
             }
@@ -203,6 +207,97 @@ struct SessionDetailView: View {
                 comparePitchButton
             }
         }
+    }
+
+    private func recordBadge(_ records: [String]) -> some View {
+        let names = records.map(Self.recordLabel).joined(separator: " · ")
+        return HStack(spacing: Theme.Spacing.small) {
+            Image(systemName: "trophy.fill")
+                .font(.system(size: 14, weight: .bold))
+            Text("New personal record: \(names)")
+                .font(Theme.Typography.body(size: 14))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(Color.black)
+        .padding(Theme.Spacing.medium)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.accent)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
+    @ViewBuilder
+    private func vsAverageSection(_ session: SportSession, averages: StatsAverages) -> some View {
+        let rows = Self.comparisonRows(session: session, averages: averages)
+        if !rows.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                Text("VS YOUR AVERAGE")
+                    .font(Theme.Typography.statLabel(size: 11))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .tracking(1)
+
+                ForEach(rows, id: \.label) { row in
+                    HStack {
+                        Text(row.label)
+                            .font(Theme.Typography.body(size: 14))
+                        Spacer()
+                        Image(systemName: row.delta >= 0 ? "arrow.up.right" : "arrow.down.right")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(String(format: "%+.0f%%", row.delta))
+                            .font(Theme.Typography.metric(size: 15))
+                            .monospacedDigit()
+                    }
+                    .foregroundStyle(row.delta >= 0 ? Theme.Colors.positive : Theme.Colors.textSecondary)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, Theme.Spacing.medium)
+                    .background(Theme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                }
+            }
+        }
+    }
+
+    private static func recordLabel(_ metric: String) -> String {
+        switch metric {
+        case "distance_m": return "Distance"
+        case "duration_s": return "Time"
+        case "speed_max_kmh": return "Top speed"
+        case "sprints": return "Sprints"
+        case "intensity": return "Intensity"
+        case "match_rating": return "Rating"
+        case "hr_max": return "Max HR"
+        case "calories_kcal": return "Calories"
+        default: return metric
+        }
+    }
+
+    private struct ComparisonRow {
+        let label: String
+        let delta: Double
+    }
+
+    private static func comparisonRows(session: SportSession, averages: StatsAverages) -> [ComparisonRow] {
+        var rows: [ComparisonRow] = []
+        func pct(_ value: Double, _ avg: Double?) -> Double? {
+            guard let avg, avg > 0 else { return nil }
+            return (value - avg) / avg * 100
+        }
+        if let d = pct(session.distanceM, averages.distancePerMatch) {
+            rows.append(ComparisonRow(label: "Distance", delta: d))
+        }
+        if let d = pct(Double(session.durationS), averages.durationPerMatch) {
+            rows.append(ComparisonRow(label: "Time", delta: d))
+        }
+        if let d = pct(Double(session.sprints), averages.sprintsPerMatch) {
+            rows.append(ComparisonRow(label: "Sprints", delta: d))
+        }
+        if let intensity = session.intensity, let d = pct(intensity, averages.intensity) {
+            rows.append(ComparisonRow(label: "Intensity", delta: d))
+        }
+        if let rating = session.matchRating, let d = pct(rating, averages.matchRating) {
+            rows.append(ComparisonRow(label: "Rating", delta: d))
+        }
+        return rows
     }
 
     private var comparePitchButton: some View {
