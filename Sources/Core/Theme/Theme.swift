@@ -7,13 +7,13 @@ enum Theme {
         static let background = Color(red: 0.05, green: 0.06, blue: 0.07)
         /// Elevated surface (cards, sheets) in dark gray.
         static let surface = Color(red: 0.11, green: 0.12, blue: 0.14)
-        /// Vibrant sporty accent used for primary actions and highlights.
-        static let accent = Color(red: 0.0, green: 0.85, blue: 0.45)
+        /// Brand primary (#ff571b) — logo, buttons, and highlights.
+        static let accent = Color(red: 1.0, green: 87 / 255, blue: 27 / 255)
         /// Primary text on dark surfaces.
         static let textPrimary = Color.white
         /// Secondary, lower-emphasis text.
         static let textSecondary = Color(white: 0.65)
-        /// Positive / healthy status.
+        /// Positive / healthy status (distinct from brand primary).
         static let positive = Color(red: 0.0, green: 0.85, blue: 0.45)
         /// Negative / error status.
         static let negative = Color(red: 0.95, green: 0.30, blue: 0.30)
