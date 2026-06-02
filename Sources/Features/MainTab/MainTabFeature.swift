@@ -6,18 +6,21 @@ import ComposableArchitecture
 struct MainTabFeature {
     @ObservableState
     struct State: Equatable {
+        var sessions: SessionsFeature.State
         var profile: ProfileFeature.State
         var serverStatus = ServerStatusFeature.State()
-        var selectedTab: Tab = .profile
+        var selectedTab: Tab = .sessions
 
-        enum Tab: Equatable { case status, profile }
+        enum Tab: Equatable { case sessions, profile, status }
 
         init(accessToken: String) {
+            self.sessions = SessionsFeature.State(accessToken: accessToken)
             self.profile = ProfileFeature.State(accessToken: accessToken)
         }
     }
 
     enum Action {
+        case sessions(SessionsFeature.Action)
         case profile(ProfileFeature.Action)
         case serverStatus(ServerStatusFeature.Action)
         case selectedTabChanged(State.Tab)
@@ -29,6 +32,9 @@ struct MainTabFeature {
     }
 
     var body: some ReducerOf<Self> {
+        Scope(state: \.sessions, action: \.sessions) {
+            SessionsFeature()
+        }
         Scope(state: \.profile, action: \.profile) {
             ProfileFeature()
         }
@@ -45,7 +51,7 @@ struct MainTabFeature {
                 state.selectedTab = tab
                 return .none
 
-            case .profile, .serverStatus, .delegate:
+            case .sessions, .profile, .serverStatus, .delegate:
                 return .none
             }
         }

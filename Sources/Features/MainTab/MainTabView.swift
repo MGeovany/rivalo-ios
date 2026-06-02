@@ -6,6 +6,10 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: tabSelection) {
+            SessionsView(store: store.scope(state: \.sessions, action: \.sessions))
+                .tabItem { Label("Sessions", systemImage: "figure.run") }
+                .tag(MainTabFeature.State.Tab.sessions)
+
             ProfileView(store: store.scope(state: \.profile, action: \.profile))
                 .tabItem { Label("Profile", systemImage: "person.fill") }
                 .tag(MainTabFeature.State.Tab.profile)

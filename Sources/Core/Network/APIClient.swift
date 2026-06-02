@@ -23,6 +23,12 @@ struct APIClient {
     var me: @Sendable (_ accessToken: String) async throws -> Profile
     /// Updates the authenticated user's profile via `PUT /v1/me`.
     var updateMe: @Sendable (_ accessToken: String, _ update: ProfileUpdate) async throws -> Profile
+    /// Creates a sport session via `POST /v1/sessions`.
+    var createSession: @Sendable (_ accessToken: String, _ new: NewSportSession) async throws -> SportSession
+    /// Lists the user's sessions via `GET /v1/sessions`.
+    var listSessions: @Sendable (_ accessToken: String) async throws -> [SportSession]
+    /// Fetches a single session via `GET /v1/sessions/{id}`.
+    var getSession: @Sendable (_ accessToken: String, _ id: String) async throws -> SportSession
 }
 
 extension APIClient: DependencyKey {
@@ -44,10 +50,20 @@ extension APIClient: DependencyKey {
         updateMe: { token, update in
             var request = authorizedRequest("v1/me", method: "PUT", token: token)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            let encoder = JSONEncoder()
-            encoder.keyEncodingStrategy = .convertToSnakeCase
-            request.httpBody = try encoder.encode(update)
+            request.httpBody = try apiEncoder().encode(update)
             return try await apiSend(request, as: Profile.self)
+        },
+        createSession: { token, new in
+            var request = authorizedRequest("v1/sessions", method: "POST", token: token)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try apiEncoder().encode(new)
+            return try await apiSend(request, as: SportSession.self)
+        },
+        listSessions: { token in
+            try await apiSend(authorizedRequest("v1/sessions", method: "GET", token: token), as: [SportSession].self)
+        },
+        getSession: { token, id in
+            try await apiSend(authorizedRequest("v1/sessions/\(id)", method: "GET", token: token), as: SportSession.self)
         }
     )
 }
@@ -57,7 +73,27 @@ extension APIClient: DependencyKey {
 private func apiDecoder() -> JSONDecoder {
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
+    // Backend timestamps are RFC3339, sometimes with fractional seconds.
+    decoder.dateDecodingStrategy = .custom { d in
+        let string = try d.singleValueContainer().decode(String.self)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: string) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        if let date = formatter.date(from: string) { return date }
+        throw DecodingError.dataCorruptedError(
+            in: try d.singleValueContainer(),
+            debugDescription: "Unrecognized date format: \(string)"
+        )
+    }
     return decoder
+}
+
+private func apiEncoder() -> JSONEncoder {
+    let encoder = JSONEncoder()
+    encoder.keyEncodingStrategy = .convertToSnakeCase
+    encoder.dateEncodingStrategy = .iso8601
+    return encoder
 }
 
 private func authorizedRequest(_ path: String, method: String, token: String) -> URLRequest {
