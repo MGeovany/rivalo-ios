@@ -53,6 +53,8 @@ struct APIClient {
     var fetchPositionInsights: @Sendable (_ accessToken: String) async throws -> PositionInsights
     /// Fetches streaks via `GET /v1/sessions/streaks`.
     var fetchStreaks: @Sendable (_ accessToken: String) async throws -> Streaks
+    /// Fetches the weekly recap via `GET /v1/recap/weekly`.
+    var fetchWeeklyRecap: @Sendable (_ accessToken: String) async throws -> WeeklyRecap
 }
 
 extension APIClient: DependencyKey {
@@ -203,6 +205,13 @@ extension APIClient: DependencyKey {
             @Dependency(\.tokenStore) var tokenStore
             return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/sessions/streaks", method: "GET", token: newToken), as: Streaks.self)
+            }
+        },
+        fetchWeeklyRecap: { token in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSend(authorizedRequest("v1/recap/weekly", method: "GET", token: newToken), as: WeeklyRecap.self)
             }
         }
     )

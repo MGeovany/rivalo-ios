@@ -224,12 +224,16 @@ struct PlayerProgressCardCanvas: View {
         let bandTop = rightArea.y
         let bandHeight = PlayerCardLayout.playerName.y - bandTop - 0.025
         let rowWidth = rightArea.x + rightArea.width - leftArea.x
+        let columnWidth = width * leftArea.width
+        let dividerPadding = height * 0.008
+        let valueFont = statsValueFont
 
         return HStack(alignment: .bottom, spacing: 0) {
             statsColumn(
                 left: true,
-                columnWidth: width * leftArea.width,
-                dividerPadding: height * 0.010,
+                columnWidth: columnWidth,
+                dividerPadding: dividerPadding,
+                valueFont: valueFont,
                 entries: [
                     (.intensity, content.intensityText),
                     (.speed, content.topSpeedText),
@@ -238,8 +242,9 @@ struct PlayerProgressCardCanvas: View {
             Spacer(minLength: width * 0.06)
             statsColumn(
                 left: false,
-                columnWidth: width * rightArea.width,
-                dividerPadding: height * 0.006,
+                columnWidth: columnWidth,
+                dividerPadding: dividerPadding,
+                valueFont: valueFont,
                 entries: [
                     (.sprints, content.sprintsText),
                     (.distance, content.distanceText),
@@ -254,10 +259,23 @@ struct PlayerProgressCardCanvas: View {
         )
     }
 
+    /// One value size for both columns — sized to the longest stat so nothing scales unevenly.
+    private var statsValueFont: Font {
+        let values = [
+            content.intensityText,
+            content.topSpeedText,
+            content.sprintsText,
+            content.distanceText,
+            content.matchesText,
+        ]
+        return PlayerCardTypography.statValue(size: width, longestValueLength: values.map(\.count).max() ?? 1)
+    }
+
     private func statsColumn(
         left: Bool,
         columnWidth: CGFloat,
         dividerPadding: CGFloat,
+        valueFont: Font,
         entries: [(PlayerCardStatKind, String)]
     ) -> some View {
         VStack(alignment: left ? .leading : .trailing, spacing: 0) {
@@ -272,7 +290,8 @@ struct PlayerProgressCardCanvas: View {
                     kind: entry.0,
                     value: entry.1,
                     left: left,
-                    columnWidth: columnWidth
+                    columnWidth: columnWidth,
+                    valueFont: valueFont
                 )
             }
         }
@@ -284,7 +303,8 @@ struct PlayerProgressCardCanvas: View {
         kind: PlayerCardStatKind,
         value: String,
         left: Bool,
-        columnWidth: CGFloat
+        columnWidth: CGFloat,
+        valueFont: Font
     ) -> some View {
         let alignment: Alignment = left ? .leading : .trailing
         let block = VStack(alignment: left ? .leading : .trailing, spacing: height * 0.004) {
@@ -294,10 +314,10 @@ struct PlayerProgressCardCanvas: View {
                 .lineLimit(1)
                 .frame(maxWidth: columnWidth, alignment: alignment)
             Text(value)
-                .font(PlayerCardTypography.statValue(size: width))
+                .font(valueFont)
                 .foregroundStyle(.white)
+                .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.55)
                 .frame(maxWidth: columnWidth, alignment: alignment)
         }
         .accessibilityLabel("\(kind.title), \(value)")

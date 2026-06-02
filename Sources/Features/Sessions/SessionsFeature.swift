@@ -21,6 +21,8 @@ struct SessionsFeature {
         var recordHighlights: [RecordEntry] = []
         /// Weekly streak + awards for the Home card.
         var streaks: Streaks?
+        /// Current-week recap for the Home card.
+        var weeklyRecap: WeeklyRecap?
         var activitySearchText: String = ""
         var activityFilter: ActivityListFilter = .all
 
@@ -55,6 +57,7 @@ struct SessionsFeature {
         case listResponse(Result<[SportSession], APIError>)
         case recordsPreviewResponse(Result<PersonalRecords, APIError>)
         case streaksResponse(Result<Streaks, APIError>)
+        case weeklyRecapResponse(Result<WeeklyRecap, APIError>)
         case latestDetailResponse(Result<SportSession, APIError>)
         case addTapped
         case sessionTapped(SportSession)
@@ -89,6 +92,10 @@ struct SessionsFeature {
                     .run { send in
                         await send(.streaksResponse(Result { try await apiClient.fetchStreaks(token) }
                             .mapError { $0 as? APIError ?? .invalidResponse }))
+                    },
+                    .run { send in
+                        await send(.weeklyRecapResponse(Result { try await apiClient.fetchWeeklyRecap(token) }
+                            .mapError { $0 as? APIError ?? .invalidResponse }))
                     }
                 )
 
@@ -97,6 +104,13 @@ struct SessionsFeature {
                 return .none
 
             case .streaksResponse(.failure):
+                return .none
+
+            case let .weeklyRecapResponse(.success(recap)):
+                state.weeklyRecap = recap
+                return .none
+
+            case .weeklyRecapResponse(.failure):
                 return .none
 
             case let .listResponse(.success(sessions)):

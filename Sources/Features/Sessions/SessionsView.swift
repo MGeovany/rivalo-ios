@@ -53,6 +53,10 @@ struct SessionsView: View {
                         StreakCard(streaks: streaks)
                     }
 
+                    if let recap = store.weeklyRecap, recap.current.matchCount > 0 {
+                        WeeklyRecapCard(recap: recap)
+                    }
+
                     SessionWeekStrip(sessions: store.sessions, referenceDate: Date())
 
                     if let latest = store.latestSession {
