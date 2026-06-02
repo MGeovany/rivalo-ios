@@ -25,6 +25,10 @@
 	</dict>
 	<key>RivaloAPIBaseURL</key>
 	<string>$(RIVALO_API_BASE_URL)</string>
+	<key>SupabaseAnonKey</key>
+	<string>$(RIVALO_SUPABASE_ANON_KEY)</string>
+	<key>SupabaseURL</key>
+	<string>$(RIVALO_SUPABASE_URL)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
