@@ -45,6 +45,8 @@ struct APIClient {
     var fetchInsights: @Sendable (_ accessToken: String) async throws -> SessionInsights
     /// Fetches position insights via `GET /v1/sessions/position-insights`.
     var fetchPositionInsights: @Sendable (_ accessToken: String) async throws -> PositionInsights
+    /// Fetches streaks via `GET /v1/sessions/streaks`.
+    var fetchStreaks: @Sendable (_ accessToken: String) async throws -> Streaks
 }
 
 extension APIClient: DependencyKey {
@@ -164,6 +166,13 @@ extension APIClient: DependencyKey {
             @Dependency(\.tokenStore) var tokenStore
             return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/sessions/position-insights", method: "GET", token: newToken), as: PositionInsights.self)
+            }
+        },
+        fetchStreaks: { token in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSend(authorizedRequest("v1/sessions/streaks", method: "GET", token: newToken), as: Streaks.self)
             }
         }
     )

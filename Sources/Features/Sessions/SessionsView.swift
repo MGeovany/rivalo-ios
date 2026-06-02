@@ -49,6 +49,10 @@ struct SessionsView: View {
 
                     performanceSection
 
+                    if let streaks = store.streaks, streaks.currentWeeks > 0 || !streaks.activeSpecials.isEmpty {
+                        StreakCard(streaks: streaks)
+                    }
+
                     SessionWeekStrip(sessions: store.sessions, referenceDate: Date())
 
                     if let latest = store.latestSession {

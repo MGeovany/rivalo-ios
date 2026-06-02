@@ -2,7 +2,7 @@ import ComposableArchitecture
 import SwiftUI
 
 /// Compares sessions played at the same pitch: venue bests/averages plus a
-/// per-session list with the focused session highlighted (V2-F.9).
+/// per-session list with the focused session highlighted.
 struct PitchComparisonView: View {
     @Bindable var store: StoreOf<PitchComparisonFeature>
 

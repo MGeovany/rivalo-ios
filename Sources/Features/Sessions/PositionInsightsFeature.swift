@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Foundation
 
-/// Cautious, physical-only comparison across positions (V2-J). Never concludes a
+/// Cautious, physical-only comparison across positions. Never concludes a
 /// "best" position; surfaces an insufficient-data state below the threshold.
 @Reducer
 struct PositionInsightsFeature {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Saved pitch/court from `GET/POST /v1/pitches` (V2-F).
+/// Saved pitch/court from `GET/POST /v1/pitches`.
 struct Pitch: Equatable, Codable, Sendable, Identifiable {
     let id: String
     let name: String

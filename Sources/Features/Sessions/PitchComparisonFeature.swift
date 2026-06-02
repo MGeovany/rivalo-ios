@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Foundation
 
-/// Compares all sessions played at the same pitch (V2-F.9). Loads the user's
+/// Compares all sessions played at the same pitch. Loads the user's
 /// sessions, filters them by `pitchId`, and exposes per-session rows plus
 /// aggregate bests/averages for the venue.
 @Reducer

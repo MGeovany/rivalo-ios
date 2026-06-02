@@ -19,6 +19,8 @@ struct SessionsFeature {
         @Presents var records: RecordsFeature.State?
         /// Top records for the Home promo card.
         var recordHighlights: [RecordEntry] = []
+        /// Weekly streak + awards for the Home card.
+        var streaks: Streaks?
         var activitySearchText: String = ""
         var activityFilter: ActivityListFilter = .all
 
@@ -52,6 +54,7 @@ struct SessionsFeature {
         case onAppear
         case listResponse(Result<[SportSession], APIError>)
         case recordsPreviewResponse(Result<PersonalRecords, APIError>)
+        case streaksResponse(Result<Streaks, APIError>)
         case latestDetailResponse(Result<SportSession, APIError>)
         case addTapped
         case sessionTapped(SportSession)
@@ -78,10 +81,23 @@ struct SessionsFeature {
                 state.isLoading = state.sessions.isEmpty
                 state.errorMessage = nil
                 let token = state.accessToken
-                return .run { send in
-                    await send(.listResponse(Result { try await apiClient.listSessions(token) }
-                        .mapError { $0 as? APIError ?? .invalidResponse }))
-                }
+                return .merge(
+                    .run { send in
+                        await send(.listResponse(Result { try await apiClient.listSessions(token) }
+                            .mapError { $0 as? APIError ?? .invalidResponse }))
+                    },
+                    .run { send in
+                        await send(.streaksResponse(Result { try await apiClient.fetchStreaks(token) }
+                            .mapError { $0 as? APIError ?? .invalidResponse }))
+                    }
+                )
+
+            case let .streaksResponse(.success(streaks)):
+                state.streaks = streaks
+                return .none
+
+            case .streaksResponse(.failure):
+                return .none
 
             case let .listResponse(.success(sessions)):
                 state.isLoading = false

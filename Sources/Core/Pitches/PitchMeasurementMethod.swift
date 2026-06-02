@@ -1,6 +1,6 @@
 import Foundation
 
-/// V2-F: how a pitch is measured (`walk` / `manual` on Apple Watch).
+/// how a pitch is measured (`walk` / `manual` on Apple Watch).
 enum PitchMeasurementMethod: String, Equatable, Codable, Sendable, CaseIterable, Identifiable {
     case walk
     case manual

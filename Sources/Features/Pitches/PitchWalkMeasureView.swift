@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// V2-F walk measurement on iPhone (CoreLocation). Full capture ships in F.4.
+/// walk measurement on iPhone (CoreLocation).
 struct PitchWalkMeasureView: View {
     var onBack: () -> Void
 

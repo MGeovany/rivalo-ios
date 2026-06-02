@@ -1,6 +1,6 @@
 import Foundation
 
-/// Physical averages per position with neutral comparisons (V2-J).
+/// Physical averages per position with neutral comparisons.
 /// `hasEnoughData` is false until the user has ≥3 sessions in each of ≥2 positions.
 struct PositionInsights: Equatable, Codable, Sendable {
     var hasEnoughData: Bool

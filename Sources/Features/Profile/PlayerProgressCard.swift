@@ -167,13 +167,13 @@ struct PlayerProgressCardCanvas: View {
         return Text(content.ratingText)
             .font(PlayerCardTypography.rating(size: width))
             .foregroundStyle(style.ratingForeground)
-            .tracking(-2)
+            .tracking(-3)
             .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .frame(width: width * area.width, height: width * area.height * 0.72, alignment: .topLeading)
+            .minimumScaleFactor(0.65)
+            .frame(width: width * area.width, height: width * area.height * 0.82, alignment: .topLeading)
             .position(
                 x: width * (area.x + area.width / 2),
-                y: height * (area.y + area.height * 0.36)
+                y: height * (area.y + area.height * 0.38)
             )
     }
 

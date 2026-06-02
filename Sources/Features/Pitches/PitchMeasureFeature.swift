@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Foundation
 
-/// V2-F hub: measure on Apple Watch (walk); manual is watch-only.
+/// hub: measure on Apple Watch (walk); manual is watch-only.
 @Reducer
 struct PitchMeasureFeature {
     @ObservableState

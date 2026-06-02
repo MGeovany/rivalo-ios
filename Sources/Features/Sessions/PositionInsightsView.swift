@@ -1,8 +1,8 @@
 import ComposableArchitecture
 import SwiftUI
 
-/// Physical comparison across positions with a prudent, non-prescriptive tone
-/// (V2-J). Shows an insufficient-data state until the threshold is met.
+/// Physical comparison across positions with a prudent, non-prescriptive tone.
+/// Shows an insufficient-data state until the threshold is met.
 struct PositionInsightsView: View {
     @Bindable var store: StoreOf<PositionInsightsFeature>
 

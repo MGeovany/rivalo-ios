@@ -54,7 +54,7 @@ struct SportSession: Equatable, Codable, Identifiable {
     let source: String
     let mode: String?
     let halftimeOffsetS: Int?
-    // Post-match context (V2)
+    // Post-match context
     let matchType: String?
     let surface: String?
     let position: String?
@@ -62,7 +62,7 @@ struct SportSession: Equatable, Codable, Identifiable {
     let feeling: Int?
     let matchTag: String?
     let pitchId: String?
-    // Structured post-match result (V3)
+    // Structured post-match result
     let opponent: String?
     let outcome: String?
     let score: String?
@@ -120,7 +120,7 @@ struct SessionContextUpdate: Equatable, Encodable, Sendable {
     var feeling: Int?
     var matchTag: String?
     var pitchId: String?
-    // Structured post-match result (V3)
+    // Structured post-match result
     var opponent: String?
     var outcome: String?
     var score: String?

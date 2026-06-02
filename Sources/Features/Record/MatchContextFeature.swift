@@ -15,7 +15,7 @@ struct MatchContextFeature {
         var feeling: Int = 3
         var matchTag: String = ""
         var pitchId: String?
-        // Structured post-match result (V3)
+        // Structured post-match result
         var opponent: String = ""
         var outcome: String = ""
         var score: String = ""

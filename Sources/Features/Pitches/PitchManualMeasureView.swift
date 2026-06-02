@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// V2-F manual dimensions saved to the backend with GPS when available.
+/// manual dimensions saved to the backend with GPS when available.
 struct PitchManualMeasureView: View {
     let accessToken: String
     var onBack: () -> Void

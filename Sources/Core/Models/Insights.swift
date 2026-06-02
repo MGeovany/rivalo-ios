@@ -10,7 +10,7 @@ struct SessionInsights: Equatable, Codable, Sendable {
     var insights: [Insight]?
 }
 
-/// One explainable, rule-based observation (V2-H), computed server-side.
+/// One explainable, rule-based observation, computed server-side.
 struct Insight: Equatable, Codable, Sendable, Identifiable {
     var kind: String
     var title: String

@@ -8,7 +8,7 @@ struct MatchOpenEvent: Equatable, Sendable {
     let openResult: Bool
 }
 
-/// Local notifications for the post-match flow (V3-A): a summary notification when
+/// Local notifications for the post-match flow: a summary notification when
 /// an activity finishes, plus a later reminder to add the result if it wasn't
 /// filled. Degrades gracefully when permission is denied.
 final class MatchNotifications: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
