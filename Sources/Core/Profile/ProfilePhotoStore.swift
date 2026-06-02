@@ -68,12 +68,23 @@ enum ProfilePhotoProcessor {
             return nil
         }
 
-        let hasAlpha = hasTransparentBackground(cutout)
-        ProfilePhotoLog.info("prepareForCard: cutout ready, hasTransparency=\(hasAlpha)")
-
-        guard hasAlpha else {
-            ProfilePhotoLog.error("prepareForCard: cutout has no transparent pixels — treating as failure")
+        guard ProfilePhotoAlpha.isValidCutout(cutout) else {
+            if let stats = ProfilePhotoAlpha.stats(for: cutout) {
+                ProfilePhotoLog.error(
+                    "prepareForCard: invalid cutout — opaque \(String(format: "%.1f", stats.opaqueRatio * 100))%, "
+                        + "transparent \(String(format: "%.1f", stats.transparentRatio * 100))%"
+                )
+            } else {
+                ProfilePhotoLog.error("prepareForCard: invalid cutout — could not sample alpha")
+            }
             return nil
+        }
+
+        if let stats = ProfilePhotoAlpha.stats(for: cutout) {
+            ProfilePhotoLog.info(
+                "prepareForCard: valid cutout — opaque \(String(format: "%.1f", stats.opaqueRatio * 100))%, "
+                    + "transparent \(String(format: "%.1f", stats.transparentRatio * 100))%"
+            )
         }
 
         guard let png = cutout.pngData() else {
@@ -85,55 +96,14 @@ enum ProfilePhotoProcessor {
         return png
     }
 
-    /// Returns true when the image likely has a removed background (non-opaque pixels).
+    /// Returns true when the image is a cutout with background removed.
     static func hasTransparentBackground(_ data: Data) -> Bool {
         guard let image = UIImage(data: data) else { return false }
-        return hasTransparentBackground(image)
+        return ProfilePhotoAlpha.isValidCutout(image)
     }
 
     static func hasTransparentBackground(_ image: UIImage) -> Bool {
-        guard let cgImage = image.cgImage else { return false }
-
-        let alphaInfo = cgImage.alphaInfo
-        if alphaInfo == .none || alphaInfo == .noneSkipFirst || alphaInfo == .noneSkipLast {
-            return false
-        }
-
-        let sampleSize = 48
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.opaque = false
-        let renderer = UIGraphicsImageRenderer(
-            size: CGSize(width: sampleSize, height: sampleSize),
-            format: format
-        )
-        let sample = renderer.image { _ in
-            image.draw(in: CGRect(x: 0, y: 0, width: sampleSize, height: sampleSize))
-        }
-
-        guard let sampleCG = sample.cgImage,
-              let data = sampleCG.dataProvider?.data,
-              let bytes = CFDataGetBytePtr(data)
-        else {
-            return false
-        }
-
-        let bytesPerPixel = sampleCG.bitsPerPixel / 8
-        guard bytesPerPixel >= 4 else { return false }
-
-        let pixelCount = sampleCG.width * sampleCG.height
-        var transparentCount = 0
-        for index in 0..<pixelCount {
-            let offset = index * bytesPerPixel
-            let alpha = bytes[offset + 3]
-            if alpha < 250 {
-                transparentCount += 1
-            }
-        }
-
-        let ratio = Double(transparentCount) / Double(pixelCount)
-        ProfilePhotoLog.debug("hasTransparentBackground: \(transparentCount)/\(pixelCount) transparent (\(String(format: "%.1f", ratio * 100))%)")
-        return transparentCount > pixelCount / 20
+        ProfilePhotoAlpha.isValidCutout(image)
     }
 
     private static func normalized(_ image: UIImage) -> UIImage {

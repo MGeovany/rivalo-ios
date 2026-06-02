@@ -149,20 +149,53 @@ enum BackgroundRemover {
         let scaleX = ciImage.extent.width / mask.extent.width
         let scaleY = ciImage.extent.height / mask.extent.height
         mask = mask.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
-        let transparent = CIImage(color: .clear).cropped(to: ciImage.extent)
-        let filter = CIFilter.blendWithMask()
-        filter.inputImage = ciImage
-        filter.backgroundImage = transparent
-        filter.maskImage = mask
-        guard let output = filter.outputImage else {
-            ProfilePhotoLog.error("applyMask: blendWithMask produced no output")
-            return nil
+
+        if let cutout = blendMask(mask, over: ciImage, invert: false),
+           ProfilePhotoAlpha.isValidCutout(cutout) {
+            logCutoutStats(cutout, label: "normal mask")
+            return cutout
         }
-        let context = CIContext(options: [.useSoftwareRenderer: false])
-        guard let outputCG = context.createCGImage(output, from: ciImage.extent) else {
-            ProfilePhotoLog.error("applyMask: createCGImage failed")
+
+        if let cutout = blendMask(mask, over: ciImage, invert: true),
+           ProfilePhotoAlpha.isValidCutout(cutout) {
+            ProfilePhotoLog.info("applyMask: used inverted mask")
+            logCutoutStats(cutout, label: "inverted mask")
+            return cutout
+        }
+
+        ProfilePhotoLog.error("applyMask: cutout empty or fully opaque after normal + inverted mask")
+        return nil
+    }
+
+    private static func blendMask(_ mask: CIImage, over image: CIImage, invert: Bool) -> UIImage? {
+        var workingMask = mask
+        if invert {
+            workingMask = workingMask.applyingFilter("CIColorInvert")
+        }
+        let transparent = CIImage(color: .clear).cropped(to: image.extent)
+        let filter = CIFilter.blendWithMask()
+        filter.inputImage = image
+        filter.backgroundImage = transparent
+        filter.maskImage = workingMask
+        guard let output = filter.outputImage else { return nil }
+
+        let context = CIContext(options: nil)
+        guard let outputCG = context.createCGImage(
+            output,
+            from: image.extent,
+            format: .RGBA8,
+            colorSpace: CGColorSpaceCreateDeviceRGB()
+        ) else {
             return nil
         }
         return UIImage(cgImage: outputCG, scale: 1, orientation: .up)
+    }
+
+    private static func logCutoutStats(_ image: UIImage, label: String) {
+        guard let stats = ProfilePhotoAlpha.stats(for: image) else { return }
+        ProfilePhotoLog.debug(
+            "applyMask \(label): opaque \(String(format: "%.1f", stats.opaqueRatio * 100))%, "
+                + "transparent \(String(format: "%.1f", stats.transparentRatio * 100))%"
+        )
     }
 }
