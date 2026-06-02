@@ -59,6 +59,14 @@ struct APIClient {
     var fetchBadges: @Sendable (_ accessToken: String) async throws -> [Badge]
     /// Fetches rivalry histories via `GET /v1/rivalries`.
     var fetchRivalries: @Sendable (_ accessToken: String) async throws -> [Rivalry]
+    /// Lists personal goals via `GET /v1/goals`.
+    var fetchGoals: @Sendable (_ accessToken: String) async throws -> [Goal]
+    /// Creates a personal goal via `POST /v1/goals`.
+    var createGoal: @Sendable (_ accessToken: String, _ new: NewGoal) async throws -> Goal
+    /// Updates a personal goal via `PATCH /v1/goals/{id}`.
+    var updateGoal: @Sendable (_ accessToken: String, _ id: String, _ update: GoalUpdate) async throws -> Goal
+    /// Deletes a personal goal via `DELETE /v1/goals/{id}`.
+    var deleteGoal: @Sendable (_ accessToken: String, _ id: String) async throws -> Void
 }
 
 extension APIClient: DependencyKey {
@@ -230,6 +238,40 @@ extension APIClient: DependencyKey {
             @Dependency(\.tokenStore) var tokenStore
             return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/rivalries", method: "GET", token: newToken), as: [Rivalry].self)
+            }
+        },
+        fetchGoals: { token in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSend(authorizedRequest("v1/goals", method: "GET", token: newToken), as: [Goal].self)
+            }
+        },
+        createGoal: { token, new in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                var request = authorizedRequest("v1/goals", method: "POST", token: newToken)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try apiEncoder().encode(new)
+                return try await apiSend(request, as: Goal.self)
+            }
+        },
+        updateGoal: { token, id, update in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                var request = authorizedRequest("v1/goals/\(id)", method: "PATCH", token: newToken)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try apiEncoder().encode(update)
+                return try await apiSend(request, as: Goal.self)
+            }
+        },
+        deleteGoal: { token, id in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSendEmpty(authorizedRequest("v1/goals/\(id)", method: "DELETE", token: newToken))
             }
         }
     )

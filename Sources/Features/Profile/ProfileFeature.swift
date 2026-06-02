@@ -36,6 +36,7 @@ struct ProfileFeature {
         @Presents var courts: CourtsFeature.State?
         @Presents var badges: BadgesFeature.State?
         @Presents var rivalries: RivalriesFeature.State?
+        @Presents var goals: GoalsFeature.State?
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
@@ -115,6 +116,8 @@ struct ProfileFeature {
         case badges(PresentationAction<BadgesFeature.Action>)
         case rivalriesTapped
         case rivalries(PresentationAction<RivalriesFeature.Action>)
+        case goalsTapped
+        case goals(PresentationAction<GoalsFeature.Action>)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -348,6 +351,17 @@ struct ProfileFeature {
             case .rivalries:
                 return .none
 
+            case .goalsTapped:
+                state.goals = GoalsFeature.State(accessToken: state.accessToken)
+                return .none
+
+            case .goals(.presented(.delegate(.dismissed))):
+                state.goals = nil
+                return .none
+
+            case .goals:
+                return .none
+
             case .binding, .delegate:
                 return .none
             }
@@ -360,6 +374,9 @@ struct ProfileFeature {
         }
         .ifLet(\.$rivalries, action: \.rivalries) {
             RivalriesFeature()
+        }
+        .ifLet(\.$goals, action: \.goals) {
+            GoalsFeature()
         }
     }
 }
