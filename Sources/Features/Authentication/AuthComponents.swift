@@ -51,10 +51,7 @@ struct AuthScreenLayout<Content: View, Footer: View>: View {
 
 struct AuthLogo: View {
     var body: some View {
-        Image("Wordmark")
-            .resizable()
-            .scaledToFit()
-            .frame(height: 36)
+        BrandLogo(style: .wordmark, height: 36)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

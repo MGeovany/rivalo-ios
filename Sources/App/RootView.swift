@@ -9,10 +9,7 @@ struct RootView: View {
     var body: some View {
         Group {
             if store.isLoading {
-                ZStack {
-                    Theme.Colors.background.ignoresSafeArea()
-                    ProgressView().tint(Theme.Colors.accent)
-                }
+                SplashView()
             } else if let mainStore = store.scope(state: \.main, action: \.main) {
                 MainTabView(store: mainStore)
             } else {

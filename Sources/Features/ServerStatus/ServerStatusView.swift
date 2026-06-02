@@ -10,10 +10,7 @@ struct ServerStatusView: View {
             Theme.Colors.background.ignoresSafeArea()
 
             VStack(spacing: Theme.Spacing.large) {
-                Image("Wordmark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 28)
+                BrandLogo(style: .wordmark, height: 28)
                     .frame(maxWidth: .infinity)
 
                 statusCard

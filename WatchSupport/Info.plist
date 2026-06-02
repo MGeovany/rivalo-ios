@@ -34,6 +34,15 @@
 		<string>SpaceMono-Regular.ttf</string>
 		<string>SpaceMono-Bold.ttf</string>
 	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>Isotipo</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<true/>
+	</dict>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKBackgroundModes</key>
