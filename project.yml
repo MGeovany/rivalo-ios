@@ -25,6 +25,11 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+        excludes:
+          - Resources/PlayerCardAssets
+    resources:
+      - path: Sources/Resources/PlayerCardAssets
+        type: folder
     dependencies:
       - package: ComposableArchitecture
         product: ComposableArchitecture

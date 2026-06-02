@@ -1,9 +1,11 @@
 import SwiftUI
 import UIKit
 
-/// Composes rank template assets with a user cutout and live stat overlays.
+/// Composes layered tier assets with a user cutout and live stat overlays.
 struct PlayerProgressCard: View {
-    let model: PlayerCardModel
+    let content: PlayerCardContent
+    var avatarImageData: Data?
+    var photoPlacement: PlayerCardPhotoPlacement = .default
     var isPhotoAdjustable = false
     var onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)?
 
@@ -11,33 +13,57 @@ struct PlayerProgressCard: View {
     @State private var dragTranslation: CGSize = .zero
     @State private var livePinchScale: CGFloat = 1
 
-    private var style: PlayerCardRankStyle { model.rank.style }
+    private var style: PlayerCardRankStyle { content.tier.style }
+
+    init(
+        content: PlayerCardContent,
+        avatarImageData: Data? = nil,
+        photoPlacement: PlayerCardPhotoPlacement = .default,
+        isPhotoAdjustable: Bool = false,
+        onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)? = nil
+    ) {
+        self.content = content
+        self.avatarImageData = avatarImageData
+        self.photoPlacement = photoPlacement
+        self.isPhotoAdjustable = isPhotoAdjustable
+        self.onPhotoPlacementChange = onPhotoPlacementChange
+    }
+
+    init(
+        model: PlayerCardModel,
+        isPhotoAdjustable: Bool = false,
+        onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)? = nil
+    ) {
+        self.init(
+            content: model.content,
+            avatarImageData: model.avatarImageData,
+            photoPlacement: model.photoPlacement,
+            isPhotoAdjustable: isPhotoAdjustable,
+            onPhotoPlacementChange: onPhotoPlacementChange
+        )
+    }
 
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
 
             ZStack {
-                Image(PlayerCardTemplate.assetName(for: model.rank))
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: size.width, height: size.height)
-                    .clipped()
+                layerImage(.background, size: size)
 
-                if model.avatarImageData != nil {
+                if avatarImageData != nil {
                     playerPhoto(in: size)
                 }
 
+                layerImage(.frame, size: size)
                 ratingOverlay(in: size)
                 flagOverlay(in: size)
                 statsOverlay(in: size)
                 nameOverlay(in: size)
+                tierLabelOverlay(in: size)
 
-                if model.rank == .unranked {
-                    tierLabelOverlay(in: size, text: "UNRANKED")
-                }
+                layerImage(.fxOverlay, size: size)
 
-                if isPhotoAdjustable, model.avatarImageData != nil {
+                if isPhotoAdjustable, avatarImageData != nil {
                     photoAdjustHint(in: size)
                 }
             }
@@ -45,49 +71,77 @@ struct PlayerProgressCard: View {
         .aspectRatio(PlayerCardLayout.aspectRatio, contentMode: .fit)
         .frame(maxWidth: 340)
         .frame(maxWidth: .infinity)
-        .onAppear { placement = model.photoPlacement }
-        .onChange(of: model.photoPlacement) { _, newValue in
+        .onAppear { placement = photoPlacement }
+        .onChange(of: photoPlacement) { _, newValue in
             placement = newValue
             dragTranslation = .zero
             livePinchScale = 1
         }
     }
 
+    // MARK: - Layers
+
+    private func layerImage(_ layer: PlayerCardLayer, size: CGSize) -> some View {
+        PlayerCardTierAssets.image(for: content.tier, layer: layer)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: size.width, height: size.height)
+            .clipped()
+            .allowsHitTesting(false)
+    }
+
     // MARK: - Player photo
 
     @ViewBuilder
     private func playerPhoto(in size: CGSize) -> some View {
-        if let data = model.avatarImageData, let uiImage = UIImage(data: data) {
-            let anchorX = size.width * (PlayerCardLayout.photoAnchorX + placement.offsetX) + dragTranslation.width
-            let anchorY = size.height * (PlayerCardLayout.photoAnchorY + placement.offsetY) + dragTranslation.height
+        if let data = avatarImageData, let uiImage = UIImage(data: data) {
+            let anchor = portraitCenter(in: size)
+            let portrait = PlayerCardLayout.portrait.frame(in: size)
             let photoScale = placement.scale * livePinchScale
+            let photoWidth = portrait.width * photoScale
+            let photoHeight = portrait.height * photoScale
 
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFit()
-                .frame(
-                    maxWidth: size.width * PlayerCardLayout.photoMaxWidth * photoScale,
-                    maxHeight: size.height * PlayerCardLayout.photoMaxHeight * photoScale
-                )
-                .position(x: anchorX, y: anchorY)
-                .highPriorityGesture(photoAdjustGesture(in: size))
+            ZStack {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: photoWidth, height: photoHeight)
+                    .position(x: anchor.x, y: anchor.y)
+            }
+            .frame(width: size.width, height: size.height)
+            .mask(softPhotoMask(in: size))
+            .highPriorityGesture(photoAdjustGesture(in: size))
         }
     }
 
+    private func portraitCenter(in size: CGSize) -> CGPoint {
+        let portrait = PlayerCardLayout.portrait
+        CGPoint(
+            x: size.width * (portrait.x + portrait.width / 2 + placement.offsetX) + dragTranslation.width,
+            y: size.height * (portrait.y + portrait.height / 2 + placement.offsetY) + dragTranslation.height
+        )
+    }
+
+    private func softPhotoMask(in size: CGSize) -> some View {
+        PlayerCardTierAssets.image(for: content.tier, layer: .photoMask)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: size.width, height: size.height)
+    }
+
     private func photoAdjustHint(in size: CGSize) -> some View {
-        ZStack {
+        let portrait = PlayerCardLayout.portrait.frame(in: size)
+
+        return ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(style.accent.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                .frame(width: size.width * 0.72, height: size.height * 0.48)
-                .position(
-                    x: size.width * PlayerCardLayout.photoAnchorX,
-                    y: size.height * PlayerCardLayout.photoAnchorY
-                )
+                .frame(width: portrait.width, height: portrait.height)
+                .position(x: portrait.midX, y: portrait.midY)
 
             Text("Drag · Pinch to adjust")
                 .font(Theme.Typography.statLabel(size: 9))
                 .foregroundStyle(style.accentBright.opacity(0.8))
-                .position(x: size.width * 0.5, y: size.height * 0.64)
+                .position(x: size.width * 0.5, y: portrait.maxY + size.height * 0.02)
         }
         .allowsHitTesting(false)
     }
@@ -95,36 +149,39 @@ struct PlayerProgressCard: View {
     // MARK: - Overlays
 
     private func ratingOverlay(in size: CGSize) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(model.displayStats.intValue)
+        let area = PlayerCardLayout.rating
+
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(content.ratingText)
                 .font(Theme.Typography.display(size: size.width * 0.15))
                 .foregroundStyle(style.ratingForeground)
                 .tracking(-1)
                 .shadow(color: .black.opacity(0.85), radius: 2, y: 2)
                 .shadow(color: style.glow, radius: 6, y: 0)
 
-            Text(model.positionAbbrev)
+            Text(content.positionAbbrev)
                 .font(Theme.Typography.button(size: size.width * 0.045))
                 .foregroundStyle(style.accentBright)
                 .tracking(1.2)
                 .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
                 .padding(.top, -2)
         }
-        .position(x: size.width * PlayerCardLayout.ratingX, y: size.height * PlayerCardLayout.ratingY)
+        .frame(width: size.width * area.width, alignment: .leading)
+        .position(area.center(in: size))
     }
 
     private func flagOverlay(in size: CGSize) -> some View {
         VStack(spacing: size.height * 0.006) {
-            Text(FootballCountry.flagEmoji(for: model.countryCode))
+            Text(FootballCountry.flagEmoji(for: content.countryCode))
                 .font(.system(size: size.width * 0.07))
-            Text(model.countryCode.uppercased())
+            Text(content.countryCode.uppercased())
                 .font(Theme.Typography.statLabel(size: size.width * 0.028))
                 .foregroundStyle(style.accentBright.opacity(0.9))
                 .tracking(0.8)
         }
         .shadow(color: .black.opacity(0.6), radius: 3, y: 1)
-        .position(x: size.width * PlayerCardLayout.flagX, y: size.height * PlayerCardLayout.flagY)
-        .accessibilityLabel(FootballCountry.name(for: model.countryCode))
+        .position(PlayerCardLayout.country.center(in: size))
+        .accessibilityLabel(FootballCountry.name(for: content.countryCode))
     }
 
     private func statsOverlay(in size: CGSize) -> some View {
@@ -132,29 +189,30 @@ struct PlayerProgressCard: View {
             statColumn(
                 left: true,
                 size: size,
+                area: PlayerCardLayout.leftStats,
                 entries: [
-                    ("INT", model.displayStats.intValue),
-                    ("SPD", model.displayStats.spdValue),
+                    ("INT", content.intensityText),
+                    ("SPD", content.topSpeedText),
                 ]
             )
-            .position(x: size.width * PlayerCardLayout.statsLeftX, y: size.height * PlayerCardLayout.statsY)
 
             statColumn(
                 left: false,
                 size: size,
+                area: PlayerCardLayout.rightStats,
                 entries: [
-                    ("SPR", model.displayStats.sprValue),
-                    ("KM", model.displayStats.kmValue),
-                    ("MAT", model.displayStats.matValue),
+                    ("SPR", content.sprintsText),
+                    ("KM", content.distanceText),
+                    ("MAT", content.matchesText),
                 ]
             )
-            .position(x: size.width * PlayerCardLayout.statsRightX, y: size.height * PlayerCardLayout.statsY)
         }
     }
 
     private func statColumn(
         left: Bool,
         size: CGSize,
+        area: PlayerCardLayout.SafeArea,
         entries: [(String, String)]
     ) -> some View {
         VStack(alignment: left ? .leading : .trailing, spacing: 0) {
@@ -162,12 +220,14 @@ struct PlayerProgressCard: View {
                 if index > 0 {
                     Rectangle()
                         .fill(style.accent.opacity(0.35))
-                        .frame(width: size.width * 0.14, height: 1)
+                        .frame(width: size.width * area.width * 0.85, height: 1)
                         .padding(.vertical, size.height * 0.012)
                 }
                 statBlock(abbrev: entry.0, value: entry.1, size: size, left: left)
             }
         }
+        .frame(width: size.width * area.width)
+        .position(area.center(in: size))
     }
 
     private func statBlock(abbrev: String, value: String, size: CGSize, left: Bool) -> some View {
@@ -183,28 +243,25 @@ struct PlayerProgressCard: View {
     }
 
     private func nameOverlay(in size: CGSize) -> some View {
-        Text(model.displayName.uppercased())
+        Text(content.name.uppercased())
             .font(Theme.Typography.display(size: size.width * 0.062))
             .foregroundStyle(style.ratingForeground)
             .tracking(1)
             .lineLimit(1)
             .minimumScaleFactor(0.5)
-            .frame(maxWidth: size.width * 0.62)
+            .frame(maxWidth: size.width * PlayerCardLayout.playerName.width)
             .shadow(color: .black.opacity(0.8), radius: 2, y: 2)
             .shadow(color: style.glow, radius: 6, y: 0)
-            .position(x: size.width * 0.5, y: size.height * PlayerCardLayout.nameY)
+            .position(PlayerCardLayout.playerName.center(in: size))
     }
 
-    private func tierLabelOverlay(in size: CGSize, text: String) -> some View {
-        Text(text)
+    private func tierLabelOverlay(in size: CGSize) -> some View {
+        Text(content.tierLabel)
             .font(Theme.Typography.statLabel(size: size.width * 0.028))
             .foregroundStyle(style.accentBright)
             .tracking(1.4)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 3)
-            .background(Color.black.opacity(0.55))
-            .clipShape(Capsule())
-            .position(x: size.width * 0.5, y: size.height * PlayerCardLayout.tierLabelY)
+            .shadow(color: .black.opacity(0.75), radius: 2, y: 1)
+            .position(PlayerCardLayout.tierLabel.center(in: size))
     }
 
     // MARK: - Gestures
@@ -256,43 +313,35 @@ struct PlayerProgressCard: View {
 
 // MARK: - Previews
 
-private func previewModel(rank: PlayerCardRank, country: String = "CA") -> PlayerCardModel {
-    PlayerCardModel(
-        displayName: "Geovany",
-        position: "Midfielder",
-        positionAbbrev: "CM",
-        matchCount: 5,
-        rank: rank,
-        tierProgress: 5,
-        physicalRating: 74,
-        displayStats: PlayerCardDisplayStats(
-            intValue: "74",
-            spdValue: "25.0",
-            sprValue: "46",
-            kmValue: "42.6",
-            matValue: "5"
-        ),
+private func previewContent(tier: PlayerCardRank, country: String = "CA") -> PlayerCardContent {
+    PlayerCardContent(
+        name: "Geovany",
         countryCode: country,
-        initials: "G",
-        avatarImageData: nil,
-        photoPlacement: .default
+        position: "Midfielder",
+        rating: 74,
+        tier: tier,
+        matches: 5,
+        distanceKm: 42.6,
+        topSpeed: 25.0,
+        sprints: 46,
+        intensity: 74
     )
 }
 
-#Preview("Bronze template") {
-    PlayerProgressCard(model: previewModel(rank: .bronze))
+#Preview("Bronze card") {
+    PlayerProgressCard(content: previewContent(tier: .bronze))
         .padding()
         .background(Color.black)
 }
 
-#Preview("Gold template") {
-    PlayerProgressCard(model: previewModel(rank: .gold))
+#Preview("Gold card") {
+    PlayerProgressCard(content: previewContent(tier: .gold))
         .padding()
         .background(Color.black)
 }
 
-#Preview("Holographic template") {
-    PlayerProgressCard(model: previewModel(rank: .holographic))
+#Preview("Holographic card") {
+    PlayerProgressCard(content: previewContent(tier: .holographic))
         .padding()
         .background(Color.black)
 }

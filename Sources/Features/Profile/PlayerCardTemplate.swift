@@ -1,38 +1,88 @@
+import CoreGraphics
 import SwiftUI
+import UIKit
 
-/// Asset catalog names for rank card frame templates (1024×1536).
-enum PlayerCardTemplate {
-    static func assetName(for rank: PlayerCardRank) -> String {
+/// Layered player card assets stored under `PlayerCardAssets/<tier>/` in the app bundle.
+enum PlayerCardLayer: String, CaseIterable {
+    case background
+    case frame
+    case fxOverlay = "fx-overlay"
+    case photoMask = "photo-mask-soft"
+
+    var fileName: String { "\(rawValue).png" }
+}
+
+enum PlayerCardTierAssets {
+    static let bundleSubdirectory = "PlayerCardAssets"
+
+    static func tierFolder(for rank: PlayerCardRank) -> String {
         switch rank {
-        case .unranked, .bronze: "PlayerCardBronze"
-        case .silver: "PlayerCardSilver"
-        case .gold: "PlayerCardGold"
-        case .platinum: "PlayerCardPlatinum"
-        case .emerald: "PlayerCardEmerald"
-        case .diamond: "PlayerCardDiamond"
-        case .holographic: "PlayerCardHolographic"
+        case .unranked, .bronze: "bronze"
+        case .silver: "silver"
+        case .gold: "gold"
+        case .platinum: "platinum"
+        case .emerald: "emerald"
+        case .diamond: "diamond"
+        case .holographic: "holographic"
         }
+    }
+
+    static func image(for rank: PlayerCardRank, layer: PlayerCardLayer) -> Image {
+        if let uiImage = uiImage(for: rank, layer: layer) {
+            return Image(uiImage: uiImage)
+        }
+        return Image(systemName: "photo")
+    }
+
+    static func uiImage(for rank: PlayerCardRank, layer: PlayerCardLayer) -> UIImage? {
+        let tier = tierFolder(for: rank)
+        let resource = layer.rawValue
+        let subdirectory = "\(bundleSubdirectory)/\(tier)"
+
+        guard let url = Bundle.main.url(forResource: resource, withExtension: "png", subdirectory: subdirectory),
+              let image = UIImage(contentsOfFile: url.path)
+        else {
+            return nil
+        }
+        return image
     }
 }
 
-/// Normalized layout coordinates for overlays on the 1024×1536 templates.
+/// Normalized layout from `PlayerCardAssets/layout-guide.json`.
 enum PlayerCardLayout {
-    static let aspectRatio: CGFloat = 1024.0 / 1536.0
+    static let canvasWidth: CGFloat = 1024
+    static let canvasHeight: CGFloat = 1536
+    static let aspectRatio: CGFloat = canvasWidth / canvasHeight
 
-    static let photoAnchorX: CGFloat = 0.5
-    static let photoAnchorY: CGFloat = 0.39
-    static let photoMaxWidth: CGFloat = 0.84
-    static let photoMaxHeight: CGFloat = 0.56
+    struct SafeArea {
+        let x: CGFloat
+        let y: CGFloat
+        let width: CGFloat
+        let height: CGFloat
 
-    static let ratingX: CGFloat = 0.11
-    static let ratingY: CGFloat = 0.11
-    static let flagX: CGFloat = 0.89
-    static let flagY: CGFloat = 0.115
+        func center(in size: CGSize) -> CGPoint {
+            CGPoint(
+                x: size.width * (x + width / 2),
+                y: size.height * (y + height / 2)
+            )
+        }
 
-    static let statsLeftX: CGFloat = 0.13
-    static let statsRightX: CGFloat = 0.87
-    static let statsY: CGFloat = 0.545
+        func frame(in size: CGSize) -> CGRect {
+            CGRect(
+                x: size.width * x,
+                y: size.height * y,
+                width: size.width * width,
+                height: size.height * height
+            )
+        }
+    }
 
-    static let nameY: CGFloat = 0.735
-    static let tierLabelY: CGFloat = 0.885
+    static let rating = SafeArea(x: 0.11, y: 0.08, width: 0.23, height: 0.17)
+    static let position = SafeArea(x: 0.13, y: 0.23, width: 0.16, height: 0.07)
+    static let country = SafeArea(x: 0.77, y: 0.08, width: 0.14, height: 0.11)
+    static let portrait = SafeArea(x: 0.15, y: 0.13, width: 0.70, height: 0.62)
+    static let leftStats = SafeArea(x: 0.15, y: 0.56, width: 0.18, height: 0.18)
+    static let rightStats = SafeArea(x: 0.72, y: 0.55, width: 0.17, height: 0.23)
+    static let playerName = SafeArea(x: 0.20, y: 0.79, width: 0.60, height: 0.09)
+    static let tierLabel = SafeArea(x: 0.34, y: 0.90, width: 0.32, height: 0.05)
 }

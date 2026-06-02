@@ -1,0 +1,65 @@
+{
+  "canvas": {
+    "width": 1024,
+    "height": 1536,
+    "aspectRatio": "2:3"
+  },
+  "layerOrderBottomToTop": [
+    "background.png",
+    "user-photo.png (runtime)",
+    "photo-mask-soft.png (runtime mask)",
+    "frame.png",
+    "text-and-stats (runtime)",
+    "fx-overlay.png"
+  ],
+  "safeAreasNormalized": {
+    "rating": {
+      "x": 0.11,
+      "y": 0.08,
+      "w": 0.23,
+      "h": 0.17
+    },
+    "position": {
+      "x": 0.13,
+      "y": 0.23,
+      "w": 0.16,
+      "h": 0.07
+    },
+    "country": {
+      "x": 0.77,
+      "y": 0.08,
+      "w": 0.14,
+      "h": 0.11
+    },
+    "portrait": {
+      "x": 0.15,
+      "y": 0.13,
+      "w": 0.7,
+      "h": 0.62
+    },
+    "leftStats": {
+      "x": 0.15,
+      "y": 0.56,
+      "w": 0.18,
+      "h": 0.18
+    },
+    "rightStats": {
+      "x": 0.72,
+      "y": 0.55,
+      "w": 0.17,
+      "h": 0.23
+    },
+    "playerName": {
+      "x": 0.2,
+      "y": 0.79,
+      "w": 0.6,
+      "h": 0.09
+    },
+    "tierLabel": {
+      "x": 0.34,
+      "y": 0.9,
+      "w": 0.32,
+      "h": 0.05
+    }
+  }
+}
