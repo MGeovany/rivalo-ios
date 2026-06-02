@@ -9,9 +9,9 @@ struct RecordView: View {
             ZStack {
                 Theme.Colors.background.ignoresSafeArea()
 
-                if let liveStore = store.scope(state: \.liveMatch, action: \.liveMatch) {
+                IfLetStore(store.scope(state: \.$liveMatch, action: \.liveMatch)) { liveStore in
                     LiveMatchView(store: liveStore)
-                } else {
+                } else: {
                     VStack(spacing: Theme.Spacing.xl) {
                         Spacer()
 

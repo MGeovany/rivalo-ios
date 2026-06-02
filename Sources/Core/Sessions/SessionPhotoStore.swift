@@ -18,7 +18,7 @@ enum SessionPhotoStore {
 
     @discardableResult
     static func append(sessionId: String, rawImageData: Data) -> Data? {
-        guard let prepared = ProfilePhotoProcessor.prepareForCard(rawImageData, maxPixel: 1200) else { return nil }
+        let prepared = rawImageData
         let dir = directory(sessionId: sessionId)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let name = "\(Int(Date().timeIntervalSince1970)).jpg"

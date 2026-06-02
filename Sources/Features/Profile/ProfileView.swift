@@ -20,6 +20,7 @@ struct ProfileView: View {
                                 if store.profile != nil {
                                     ProfileCardPhotoControls(
                                         hasPhoto: store.hasCardPhoto,
+                                        isProcessing: store.isProcessingPhoto,
                                         onPhotoData: { store.send(.photoSelected($0)) },
                                         onRemove: { store.send(.photoRemoved) }
                                     )

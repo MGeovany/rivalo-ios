@@ -4,6 +4,7 @@ import SwiftUI
 /// Native photo picker controls for the FIFA player card.
 struct ProfileCardPhotoControls: View {
     let hasPhoto: Bool
+    let isProcessing: Bool
     let onPhotoData: (Data) -> Void
     let onRemove: () -> Void
 
@@ -13,16 +14,17 @@ struct ProfileCardPhotoControls: View {
         HStack(spacing: Theme.Spacing.medium) {
             PhotosPicker(selection: $pickerItem, matching: .images) {
                 Label(
-                    hasPhoto ? "Change photo" : "Add photo",
-                    systemImage: "photo.on.rectangle.angled"
+                    isProcessing ? "Cutting out…" : (hasPhoto ? "Change photo" : "Add photo"),
+                    systemImage: isProcessing ? "person.crop.rectangle" : "photo.on.rectangle.angled"
                 )
                 .font(Theme.Typography.button(size: 15))
-                .foregroundStyle(Theme.Colors.accent)
+                .foregroundStyle(isProcessing ? Theme.Colors.textSecondary : Theme.Colors.accent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Theme.Spacing.medium)
                 .background(Theme.Colors.surface)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
             }
+            .disabled(isProcessing)
 
             if hasPhoto {
                 Button(action: onRemove) {

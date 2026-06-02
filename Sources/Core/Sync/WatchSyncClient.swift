@@ -237,9 +237,11 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
     // MARK: WCSessionDelegate
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-        if userInfo[WatchCommand.actionKey] as? String == WatchCommand.savePitch {
+        if userInfo[WatchCommand.actionKey] as? String == WatchCommand.savePitch,
+           let data = try? JSONSerialization.data(withJSONObject: userInfo),
+           let copy = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             Task {
-                await PitchesSync.createFromWatchPayload(userInfo)
+                await PitchesSync.createFromWatchPayload(copy)
             }
             return
         }

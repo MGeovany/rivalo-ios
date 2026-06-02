@@ -6,7 +6,7 @@ struct RecordFeature {
     @ObservableState
     struct State: Equatable {
         var recordAlertMessage: String?
-        var liveMatch: LiveMatchFeature.State?
+        @Presents var liveMatch: LiveMatchFeature.State?
     }
 
     enum Action: Equatable {
@@ -27,10 +27,6 @@ struct RecordFeature {
     @Dependency(\.watchSyncClient) var watchSyncClient
 
     var body: some ReducerOf<Self> {
-        ifLet(\.liveMatch, action: \.liveMatch) {
-            LiveMatchFeature()
-        }
-
         Reduce { state, action in
             switch action {
             case .measureCourtTapped:
@@ -86,6 +82,9 @@ struct RecordFeature {
             case .delegate:
                 return .none
             }
+        }
+        .ifLet(\.$liveMatch, action: \.liveMatch) {
+            LiveMatchFeature()
         }
     }
 }
