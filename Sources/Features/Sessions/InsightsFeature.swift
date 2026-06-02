@@ -8,7 +8,10 @@ struct InsightsFeature {
         var accessToken: String
         var insights: SessionInsights?
         var recentSessions: [SportSession] = []
+        var fatigueSessions: [SportSession] = []
+        var speedRecordSessionId: String?
         var isLoading = false
+        var isLoadingFatigue = false
         var errorMessage: String?
     }
 
@@ -16,6 +19,8 @@ struct InsightsFeature {
         case onAppear
         case loadResponse(Result<SessionInsights, APIError>)
         case sessionsResponse(Result<[SportSession], APIError>)
+        case recordsResponse(Result<PersonalRecords, APIError>)
+        case fatigueLoaded([SportSession])
     }
 
     @Dependency(\.apiClient) var apiClient
@@ -37,6 +42,11 @@ struct InsightsFeature {
                         await send(.sessionsResponse(Result {
                             try await apiClient.listSessions(token)
                         }.mapError { $0 as? APIError ?? .invalidResponse }))
+                    },
+                    .run { send in
+                        await send(.recordsResponse(Result {
+                            try await apiClient.fetchRecords(token)
+                        }.mapError { $0 as? APIError ?? .invalidResponse }))
                     }
                 )
 
@@ -52,9 +62,35 @@ struct InsightsFeature {
 
             case let .sessionsResponse(.success(sessions)):
                 state.recentSessions = sessions.sorted { $0.startedAt > $1.startedAt }
-                return .none
+                state.isLoadingFatigue = true
+                let token = state.accessToken
+                let ids = InsightsAnalytics.structuredSessionIds(from: sessions)
+                return .run { send in
+                    var loaded: [SportSession] = []
+                    for id in ids {
+                        if let detail = try? await apiClient.getSession(token, id),
+                           detail.fatigueDrop != nil {
+                            loaded.append(detail)
+                        }
+                    }
+                    await send(.fatigueLoaded(loaded))
+                }
 
             case .sessionsResponse(.failure):
+                return .none
+
+            case let .recordsResponse(.success(records)):
+                state.speedRecordSessionId = records.records
+                    .first { $0.metric == "speed_max_kmh" }?
+                    .sessionId
+                return .none
+
+            case .recordsResponse(.failure):
+                return .none
+
+            case let .fatigueLoaded(sessions):
+                state.isLoadingFatigue = false
+                state.fatigueSessions = sessions
                 return .none
             }
         }

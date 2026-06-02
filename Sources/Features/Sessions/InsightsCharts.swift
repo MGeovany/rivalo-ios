@@ -1,380 +1,273 @@
 import Charts
 import SwiftUI
 
-enum InsightsChartStyle {
-    case donut
-    case verticalBars
-    case horizontalBars
-    case line
-    case area
-}
-
 enum InsightsCharts {
-    // MARK: - Trend (sessions)
+    // MARK: - Sections
 
-    struct MatchTrendPoint: Identifiable {
-        let index: Int
-        let label: String
-        let distanceKm: Double
-        let rating: Double?
-
-        var id: Int { index }
-    }
-
-    static func recentMatchesTrendCard(sessions: [SportSession]) -> some View {
-        let points = trendPoints(from: sessions)
-        return chartShell(
-            title: "Recent matches",
-            subtitle: "Distance per match (newest on the right)",
-            icon: "chart.xyaxis.line"
+    static func matchRatingTrendSection(
+        points: [InsightsAnalytics.MatchPoint],
+        callout: InsightsAnalytics.TrendCallout?,
+        sessionCount: Int
+    ) -> some View {
+        InsightsSection(
+            title: "Match rating trend",
+            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts
+                ? "Based on \(sessionCount) matches — early sample"
+                : nil
         ) {
-            if points.isEmpty {
-                emptyChartPlaceholder("Log matches to see trends")
+            if points.count < InsightsAnalytics.minMatchesForTrends {
+                emptyState("Need at least \(InsightsAnalytics.minMatchesForTrends) rated matches")
             } else {
-                Chart(points) { point in
-                    AreaMark(
-                        x: .value("Match", point.label),
-                        y: .value("km", point.distanceKm)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Theme.Colors.accent.opacity(0.35), Theme.Colors.accent.opacity(0.02)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                    if let callout {
+                        TrendCalloutBadge(callout: callout)
+                    }
+                    Chart(points) { point in
+                        LineMark(
+                            x: .value("Match", point.label),
+                            y: .value("Rating", point.value)
                         )
-                    )
-                    LineMark(
-                        x: .value("Match", point.label),
-                        y: .value("km", point.distanceKm)
-                    )
-                    .foregroundStyle(Theme.Colors.accentBright)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5))
-                    .interpolationMethod(.catmullRom)
-                    PointMark(
-                        x: .value("Match", point.label),
-                        y: .value("km", point.distanceKm)
-                    )
-                    .foregroundStyle(Theme.Colors.accent)
-                    .symbolSize(40)
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { _ in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                            .foregroundStyle(Color.white.opacity(0.08))
-                        AxisValueLabel()
-                            .foregroundStyle(Theme.Colors.textSecondary)
+                        .foregroundStyle(Theme.Colors.accentBright)
+                        .interpolationMethod(.catmullRom)
+                        PointMark(
+                            x: .value("Match", point.label),
+                            y: .value("Rating", point.value)
+                        )
+                        .foregroundStyle(Theme.Colors.accent)
+                        .symbolSize(45)
                     }
-                }
-                .chartXAxis {
-                    AxisMarks { _ in
-                        AxisValueLabel()
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                            .font(Theme.Typography.statLabel(size: 9))
+                    .chartYScale(domain: 0...100)
+                    .chartYAxis {
+                        AxisMarks(position: .leading) { _ in
+                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                                .foregroundStyle(Color.white.opacity(0.08))
+                            AxisValueLabel()
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
                     }
+                    .frame(height: 160)
                 }
             }
         }
     }
 
-    static func matchRatingTrendCard(sessions: [SportSession]) -> some View {
-        let rated = sessions
-            .filter { $0.matchRating != nil }
-            .sorted { $0.startedAt < $1.startedAt }
-            .suffix(8)
-        return chartShell(
-            title: "Match rating",
-            subtitle: "Score trend (0–100)",
-            icon: "star.fill"
-        ) {
-            if rated.isEmpty {
-                emptyChartPlaceholder("Ratings appear after Watch matches")
+    static func fatigueDropSection(
+        summary: InsightsAnalytics.FatigueSummary?,
+        isLoading: Bool
+    ) -> some View {
+        InsightsSection(title: "Fatigue drop") {
+            if isLoading {
+                ProgressView().tint(Theme.Colors.accent).frame(maxWidth: .infinity, minHeight: 120)
+            } else if let summary {
+                VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(String(format: "%.0f%%", summary.dropPercent))
+                            .font(Theme.Typography.metric(size: 36))
+                            .foregroundStyle(summary.dropPercent > 12 ? Theme.Colors.negative : Theme.Colors.textPrimary)
+                            .monospacedDigit()
+                        Text("avg drop 1st → 2nd half")
+                            .font(Theme.Typography.caption(size: 12))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+
+                    Chart {
+                        BarMark(
+                            x: .value("Half", "1st half"),
+                            y: .value("Min", summary.firstHalfAvgMinutes)
+                        )
+                        .foregroundStyle(Theme.Colors.accent.gradient)
+                        .cornerRadius(8)
+                        BarMark(
+                            x: .value("Half", "2nd half"),
+                            y: .value("Min", summary.secondHalfAvgMinutes)
+                        )
+                        .foregroundStyle(Theme.Colors.positive.opacity(0.85))
+                        .cornerRadius(8)
+                    }
+                    .chartYAxis {
+                        AxisMarks(position: .leading) { _ in
+                            AxisValueLabel()
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                    }
+                    .frame(height: 140)
+
+                    Text("From \(summary.sessionCount) structured \(summary.sessionCount == 1 ? "match" : "matches") · high-intensity min per half")
+                        .font(Theme.Typography.caption(size: 11))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
             } else {
-                Chart(Array(rated.enumerated()), id: \.element.id) { index, session in
+                emptyState("Structured matches with halves show fatigue here")
+            }
+        }
+    }
+
+    static func sprintsTrendSection(
+        points: [InsightsAnalytics.MatchPoint],
+        sessionCount: Int
+    ) -> some View {
+        InsightsSection(
+            title: "Sprints trend",
+            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Early sample" : nil
+        ) {
+            if points.count < InsightsAnalytics.minMatchesForTrends {
+                emptyState("Log a few matches with sprint data")
+            } else {
+                Chart(points) { point in
                     BarMark(
-                        x: .value("Match", shortLabel(for: session.startedAt, index: index)),
-                        y: .value("Score", session.matchRating ?? 0)
+                        x: .value("Match", point.label),
+                        y: .value("Sprints", point.value)
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color(red: 0.45, green: 0.85, blue: 1), Theme.Colors.accent],
+                            colors: [Color(red: 1, green: 0.85, blue: 0.35), Theme.Colors.accent],
                             startPoint: .bottom,
                             endPoint: .top
                         )
                     )
                     .cornerRadius(6)
                 }
-                .chartYScale(domain: 0...100)
-                .chartYAxis {
-                    AxisMarks(position: .leading) { _ in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                            .foregroundStyle(Color.white.opacity(0.08))
-                        AxisValueLabel()
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                }
+                .frame(height: 160)
             }
         }
     }
 
-    // MARK: - Breakdowns (context groups)
-
-    static func breakdownCard(
-        title: String,
-        groups: [ContextGroup],
-        style: InsightsChartStyle
+    static func topSpeedTrendSection(
+        points: [InsightsAnalytics.MatchPoint],
+        sessionCount: Int
     ) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text(title.uppercased())
-                .font(Theme.Typography.statLabel(size: 10))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .tracking(1.2)
-
-            chartShell(title: chartStyleLabel(style), subtitle: breakdownSubtitle(style), icon: chartIcon(style)) {
-                if groups.isEmpty {
-                    emptyChartPlaceholder("No data yet")
-                } else {
-                    switch style {
-                    case .donut:
-                        donutChart(groups: groups)
-                    case .verticalBars:
-                        verticalBarChart(groups: groups)
-                    case .horizontalBars:
-                        horizontalBarChart(groups: groups)
-                    case .line:
-                        lineChart(groups: groups, metric: \.avgIntensity)
-                    case .area:
-                        areaChart(groups: groups, metric: \.avgDistance)
-                    }
-                }
-            }
-
-            breakdownLegend(groups: groups)
-        }
-    }
-
-    static func averagesBarCard(averages: StatsAverages) -> some View {
-        let items: [(String, Double, String)] = [
-            averages.distancePerMatch.map { ("Distance", $0 / 1000, "km") },
-            averages.durationPerMatch.map { ("Duration", $0 / 60, "min") },
-            averages.sprintsPerMatch.map { ("Sprints", $0, "") },
-            averages.intensity.map { ("Intensity", $0, "%") },
-            averages.matchRating.map { ("Rating", $0, "") },
-        ].compactMap { $0 }
-
-        return chartShell(
-            title: "Per match",
-            subtitle: "Average metrics compared",
-            icon: "chart.bar.fill"
+        InsightsSection(
+            title: "Top speed trend",
+            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Early sample" : nil
         ) {
-            if items.isEmpty {
-                emptyChartPlaceholder("Log more matches to see averages")
+            if points.count < InsightsAnalytics.minMatchesForTrends {
+                emptyState("Speed data appears on Watch matches")
             } else {
-                Chart(items, id: \.0) { item in
-                    BarMark(
-                        x: .value("Metric", item.0),
-                        y: .value("Value", item.1)
-                    )
-                    .foregroundStyle(averageBarColor(for: item.0))
-                    .cornerRadius(8)
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { _ in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                            .foregroundStyle(Color.white.opacity(0.08))
-                        AxisValueLabel()
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Private chart builders
-
-    private static func donutChart(groups: [ContextGroup]) -> some View {
-        Chart(groups) { group in
-            SectorMark(
-                angle: .value("Matches", group.count),
-                innerRadius: .ratio(0.55),
-                angularInset: 1.5
-            )
-            .foregroundStyle(donutColor(for: group, in: groups))
-            .cornerRadius(4)
-        }
-    }
-
-    private static func verticalBarChart(groups: [ContextGroup]) -> some View {
-        Chart(groups) { group in
-            BarMark(
-                x: .value("Type", shortValue(group.value)),
-                y: .value("Matches", group.count)
-            )
-            .foregroundStyle(
-                LinearGradient(
-                    colors: [Theme.Colors.accentBright, Theme.Colors.accent],
-                    startPoint: .bottom,
-                    endPoint: .top
-                )
-            )
-            .cornerRadius(6)
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading) { _ in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                    .foregroundStyle(Color.white.opacity(0.08))
-                AxisValueLabel()
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-        }
-    }
-
-    private static func horizontalBarChart(groups: [ContextGroup]) -> some View {
-        Chart(groups) { group in
-            BarMark(
-                x: .value("Matches", group.count),
-                y: .value("Type", shortValue(group.value))
-            )
-            .foregroundStyle(Theme.Colors.accent.gradient)
-            .cornerRadius(6)
-        }
-        .chartXAxis {
-            AxisMarks { _ in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                    .foregroundStyle(Color.white.opacity(0.08))
-                AxisValueLabel()
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-        }
-    }
-
-    private static func lineChart(
-        groups: [ContextGroup],
-        metric: KeyPath<ContextGroup, Double?>
-    ) -> some View {
-        let points = groups.compactMap { group -> (String, Double)? in
-            guard let value = group[keyPath: metric] else { return nil }
-            return (shortValue(group.value), value)
-        }
-        return Group {
-            if points.isEmpty {
-                emptyChartPlaceholder("Intensity data not available")
-            } else {
-                Chart(points, id: \.0) { point in
+                Chart(points) { point in
                     LineMark(
-                        x: .value("Type", point.0),
-                        y: .value("Avg", point.1)
+                        x: .value("Match", point.label),
+                        y: .value("km/h", point.value)
                     )
-                    .foregroundStyle(Theme.Colors.accentBright)
+                    .foregroundStyle(Color(red: 1, green: 0.85, blue: 0.35))
                     .interpolationMethod(.catmullRom)
                     PointMark(
-                        x: .value("Type", point.0),
-                        y: .value("Avg", point.1)
+                        x: .value("Match", point.label),
+                        y: .value("km/h", point.value)
                     )
-                    .foregroundStyle(Theme.Colors.accent)
-                    .symbolSize(50)
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { _ in
-                        AxisValueLabel()
-                            .foregroundStyle(Theme.Colors.textSecondary)
+                    .foregroundStyle(Color(red: 1, green: 0.85, blue: 0.35))
+                    .symbolSize(point.isNewPR ? 70 : 40)
+                    .annotation(position: .top, spacing: 2) {
+                        if point.isNewPR {
+                            Text("NEW PR")
+                                .font(Theme.Typography.statLabel(size: 8))
+                                .foregroundStyle(Theme.Colors.accentBright)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Theme.Colors.accent.opacity(0.25))
+                                .clipShape(Capsule())
+                        }
                     }
                 }
+                .frame(height: 170)
             }
         }
     }
 
-    private static func areaChart(
-        groups: [ContextGroup],
-        metric: KeyPath<ContextGroup, Double?>
-    ) -> some View {
-        let points = groups.compactMap { group -> (String, Double)? in
-            guard let meters = group[keyPath: metric] else { return nil }
-            return (shortValue(group.value), meters / 1000)
-        }
-        return Group {
-            if points.isEmpty {
-                emptyChartPlaceholder("Distance data not available")
-            } else {
-                Chart(points, id: \.0) { point in
-                    AreaMark(
-                        x: .value("Type", point.0),
-                        y: .value("km", point.1)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Theme.Colors.positive.opacity(0.4), Theme.Colors.positive.opacity(0.05)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    LineMark(
-                        x: .value("Type", point.0),
-                        y: .value("km", point.1)
-                    )
-                    .foregroundStyle(Theme.Colors.positive)
-                }
-            }
-        }
-    }
-
-    private static func breakdownLegend(groups: [ContextGroup]) -> some View {
-        VStack(spacing: Theme.Spacing.small) {
-            ForEach(groups) { group in
-                HStack(spacing: Theme.Spacing.small) {
-                    Text(group.value)
-                        .font(Theme.Typography.body(size: 14))
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                        .lineLimit(1)
-                    Spacer(minLength: 8)
-                    Text("\(group.count)")
-                        .font(Theme.Typography.metric(size: 16))
-                        .foregroundStyle(Theme.Colors.accent)
-                        .monospacedDigit()
-                    if let rating = group.avgMatchRating {
-                        Text(String(format: "%.0f", rating))
-                            .font(Theme.Typography.statLabel(size: 11))
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(Capsule())
-                    }
-                }
-            }
-        }
-        .padding(Theme.Spacing.medium)
-        .background(Theme.Colors.surface.opacity(0.6))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-    }
-
-    // MARK: - Shell
-
-    private static func chartShell<Content: View>(
+    static func performanceSection(
         title: String,
-        subtitle: String,
-        icon: String,
-        @ViewBuilder content: () -> Content
+        rows: [InsightsAnalytics.PerformanceRow],
+        sessionCount: Int
     ) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.Colors.accent)
-                VStack(alignment: .leading, spacing: 2) {
+        InsightsSection(
+            title: title,
+            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Scores may shift with more data" : nil
+        ) {
+            if rows.isEmpty {
+                emptyState("Add match context to compare")
+            } else {
+                let maxScore = rows.map(\.avgScore).max() ?? 100
+                VStack(spacing: Theme.Spacing.medium) {
+                    ForEach(rows) { row in
+                        PerformanceBarRow(row: row, maxScore: maxScore)
+                    }
+                }
+            }
+        }
+    }
+
+    static func consistencySection(
+        summary: InsightsAnalytics.ConsistencySummary?,
+        sessionCount: Int
+    ) -> some View {
+        InsightsSection(title: "Consistency") {
+            if let summary {
+                HStack(alignment: .center, spacing: Theme.Spacing.large) {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.08), lineWidth: 8)
+                        Circle()
+                            .trim(from: 0, to: CGFloat(summary.score) / 100)
+                            .stroke(
+                                AngularGradient(
+                                    colors: [Theme.Colors.accentBright, Theme.Colors.accent],
+                                    center: .center
+                                ),
+                                style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                        Text("\(summary.score)%")
+                            .font(Theme.Typography.metric(size: 28))
+                            .foregroundStyle(.white)
+                            .monospacedDigit()
+                    }
+                    .frame(width: 88, height: 88)
+
+                    Text(summary.detail)
+                        .font(Theme.Typography.caption(size: 13))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if sessionCount < InsightsAnalytics.minMatchesForTrends {
+                emptyState("Rate at least \(InsightsAnalytics.minMatchesForTrends) matches to see consistency")
+            } else {
+                emptyState("Match ratings unlock this insight")
+            }
+        }
+    }
+
+    // MARK: - Building blocks
+
+    private struct InsightsSection<Content: View>: View {
+        let title: String
+        var footnote: String?
+        @ViewBuilder var content: () -> Content
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(title.uppercased())
                         .font(Theme.Typography.statLabel(size: 10))
-                        .tracking(0.8)
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                    Text(subtitle)
-                        .font(Theme.Typography.caption(size: 11))
                         .foregroundStyle(Theme.Colors.textSecondary)
+                        .tracking(1.2)
+                    if let footnote {
+                        Text(footnote)
+                            .font(Theme.Typography.caption(size: 11))
+                            .foregroundStyle(Theme.Colors.textSecondary.opacity(0.85))
+                    }
                 }
+                content()
             }
-            content()
-                .frame(height: 180)
+            .padding(Theme.Spacing.medium)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(sectionBackground)
+            .overlay {
+                RoundedRectangle(cornerRadius: Theme.Radius.card)
+                    .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+            }
         }
-        .padding(Theme.Spacing.medium)
-        .background(
+
+        private var sectionBackground: some View {
             RoundedRectangle(cornerRadius: Theme.Radius.card)
                 .fill(
                     LinearGradient(
@@ -383,96 +276,91 @@ enum InsightsCharts {
                         endPoint: .bottom
                     )
                 )
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: Theme.Radius.card)
-                .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
         }
-        .foregroundStyle(Theme.Colors.textPrimary)
     }
 
-    private static func emptyChartPlaceholder(_ text: String) -> some View {
+    private struct TrendCalloutBadge: View {
+        let callout: InsightsAnalytics.TrendCallout
+
+        var body: some View {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(callout.text)
+                    .font(Theme.Typography.caption(size: 12))
+            }
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(foreground.opacity(0.12))
+            .clipShape(Capsule())
+        }
+
+        private var icon: String {
+            switch callout.tone {
+            case .up: "arrow.up.right"
+            case .down: "arrow.down.right"
+            case .neutral: "minus"
+            }
+        }
+
+        private var foreground: Color {
+            switch callout.tone {
+            case .up: Theme.Colors.positive
+            case .down: Theme.Colors.negative
+            case .neutral: Theme.Colors.textSecondary
+            }
+        }
+    }
+
+    private struct PerformanceBarRow: View {
+        let row: InsightsAnalytics.PerformanceRow
+        let maxScore: Double
+
+        private var fraction: CGFloat {
+            guard maxScore > 0 else { return 0 }
+            return CGFloat(row.avgScore / maxScore)
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(row.value)
+                        .font(Theme.Typography.body(size: 14))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(String(format: "%.0f", row.avgScore))
+                        .font(Theme.Typography.metric(size: 16))
+                        .foregroundStyle(Theme.Colors.accent)
+                        .monospacedDigit()
+                    Text("· \(row.matchCount)")
+                        .font(Theme.Typography.caption(size: 11))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.06))
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Theme.Colors.accentBright, Theme.Colors.accent],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: max(8, proxy.size.width * fraction))
+                    }
+                }
+                .frame(height: 8)
+            }
+        }
+    }
+
+    private static func emptyState(_ text: String) -> some View {
         Text(text)
             .font(Theme.Typography.caption())
             .foregroundStyle(Theme.Colors.textSecondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Helpers
-
-    private static func trendPoints(from sessions: [SportSession]) -> [MatchTrendPoint] {
-        let recent = sessions.sorted { $0.startedAt < $1.startedAt }.suffix(8)
-        return recent.enumerated().map { index, session in
-            MatchTrendPoint(
-                index: index,
-                label: shortLabel(for: session.startedAt, index: index),
-                distanceKm: session.distanceM / 1000,
-                rating: session.matchRating
-            )
-        }
-    }
-
-    private static func shortLabel(for date: Date, index: Int) -> String {
-        let day = date.formatted(.dateTime.day().month(.abbreviated))
-        return "\(day)"
-    }
-
-    private static func shortValue(_ value: String) -> String {
-        value.count > 10 ? String(value.prefix(9)) + "…" : value
-    }
-
-    private static func averageBarColor(for metric: String) -> Color {
-        switch metric {
-        case "Distance": Theme.Colors.accentBright
-        case "Duration": Theme.Colors.accent
-        case "Sprints": Color(red: 1, green: 0.85, blue: 0.35)
-        case "Intensity": Theme.Colors.accent
-        case "Rating": Color(red: 0.45, green: 0.85, blue: 1)
-        default: Theme.Colors.accent
-        }
-    }
-
-    private static func donutColor(for group: ContextGroup, in groups: [ContextGroup]) -> Color {
-        let colors: [Color] = [
-            Theme.Colors.accentBright,
-            Theme.Colors.accent,
-            Color(red: 1, green: 0.85, blue: 0.35),
-            Color(red: 0.45, green: 0.85, blue: 1),
-            Theme.Colors.positive,
-        ]
-        guard let index = groups.firstIndex(where: { $0.id == group.id }) else {
-            return Theme.Colors.accent
-        }
-        return colors[index % colors.count]
-    }
-
-    private static func chartStyleLabel(_ style: InsightsChartStyle) -> String {
-        switch style {
-        case .donut: "Distribution"
-        case .verticalBars: "By count"
-        case .horizontalBars: "Comparison"
-        case .line: "Avg intensity"
-        case .area: "Avg distance"
-        }
-    }
-
-    private static func breakdownSubtitle(_ style: InsightsChartStyle) -> String {
-        switch style {
-        case .donut: "Share of matches"
-        case .verticalBars: "Matches per category"
-        case .horizontalBars: "Volume comparison"
-        case .line: "Intensity across categories"
-        case .area: "Distance across categories"
-        }
-    }
-
-    private static func chartIcon(_ style: InsightsChartStyle) -> String {
-        switch style {
-        case .donut: "chart.pie.fill"
-        case .verticalBars: "chart.bar.fill"
-        case .horizontalBars: "chart.bar.xaxis"
-        case .line: "chart.line.uptrend.xyaxis"
-        case .area: "chart.line.uptrend.xyaxis"
-        }
+            .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
     }
 }

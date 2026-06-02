@@ -51,51 +51,73 @@ struct InsightsView: View {
     }
 
     private func insightsContent(_ insights: SessionInsights) -> some View {
-        ScrollView {
+        let sessions = store.recentSessions
+        let count = insights.totals.sessionCount
+        let rating = InsightsAnalytics.ratingTrend(sessions: sessions)
+        let sprints = InsightsAnalytics.sprintsTrend(sessions: sessions)
+        let speed = InsightsAnalytics.topSpeedTrend(
+            sessions: sessions,
+            speedRecordSessionId: store.speedRecordSessionId
+        )
+        let fatigue = InsightsAnalytics.fatigueSummary(from: store.fatigueSessions)
+        let byPosition = InsightsAnalytics.performanceRows(from: insights.byPosition)
+        let byMatchType = InsightsAnalytics.performanceRows(
+            from: insights.byMatchType,
+            preferredOrder: InsightsAnalytics.matchTypeOrder
+        )
+        let consistency = InsightsAnalytics.consistency(sessions: sessions, totalCount: count)
+
+        return ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 InsightsHeroCard(totals: insights.totals)
 
-                if !store.recentSessions.isEmpty {
-                    InsightsCharts.recentMatchesTrendCard(sessions: store.recentSessions)
-                    InsightsCharts.matchRatingTrendCard(sessions: store.recentSessions)
+                if count < InsightsAnalytics.minMatchesForStrongCallouts {
+                    InsightsEarlySampleBanner(
+                        sessionCount: count,
+                        needed: InsightsAnalytics.minMatchesForStrongCallouts
+                    )
                 }
 
-                InsightsCharts.averagesBarCard(averages: insights.averages)
-                InsightsAveragesGrid(averages: insights.averages)
+                InsightsCharts.matchRatingTrendSection(
+                    points: rating.points,
+                    callout: rating.callout,
+                    sessionCount: count
+                )
 
-                if let rules = insights.insights, !rules.isEmpty {
+                InsightsCharts.fatigueDropSection(
+                    summary: fatigue,
+                    isLoading: store.isLoadingFatigue && fatigue == nil
+                )
+
+                InsightsCharts.sprintsTrendSection(
+                    points: sprints,
+                    sessionCount: count
+                )
+
+                InsightsCharts.topSpeedTrendSection(
+                    points: speed,
+                    sessionCount: count
+                )
+
+                InsightsCharts.performanceSection(
+                    title: "Performance by position",
+                    rows: byPosition,
+                    sessionCount: count
+                )
+
+                InsightsCharts.performanceSection(
+                    title: "Performance by match type",
+                    rows: byMatchType,
+                    sessionCount: count
+                )
+
+                InsightsCharts.consistencySection(
+                    summary: consistency,
+                    sessionCount: count
+                )
+
+                if let rules = insights.insights, !rules.isEmpty, count >= InsightsAnalytics.minMatchesForStrongCallouts {
                     InsightsRulesCard(insights: rules)
-                } else if insights.totals.sessionCount < 5 {
-                    InsightsLockedHint(sessionCount: insights.totals.sessionCount)
-                }
-
-                if !insights.byMatchType.isEmpty {
-                    InsightsCharts.breakdownCard(
-                        title: "Match type",
-                        groups: insights.byMatchType,
-                        style: .donut
-                    )
-                }
-                if !insights.bySurface.isEmpty {
-                    InsightsCharts.breakdownCard(
-                        title: "Surface",
-                        groups: insights.bySurface,
-                        style: .verticalBars
-                    )
-                }
-                if !insights.byPosition.isEmpty {
-                    InsightsCharts.breakdownCard(
-                        title: "Position",
-                        groups: insights.byPosition,
-                        style: .line
-                    )
-                }
-                if !insights.byMatchType.isEmpty, insights.byMatchType.contains(where: { $0.avgDistance != nil }) {
-                    InsightsCharts.breakdownCard(
-                        title: "Distance by type",
-                        groups: insights.byMatchType,
-                        style: .area
-                    )
                 }
             }
             .padding(.horizontal, Theme.Spacing.large)
@@ -106,72 +128,50 @@ struct InsightsView: View {
     }
 }
 
-// MARK: - Rule-based insights (V2-H)
+// MARK: - Chrome
+
+private struct InsightsEarlySampleBanner: View {
+    let sessionCount: Int
+    let needed: Int
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.medium) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.Colors.accent)
+            Text("\(sessionCount)/\(needed) matches — trends are indicative, not definitive.")
+                .font(Theme.Typography.caption(size: 12))
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .padding(Theme.Spacing.medium)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.accent.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+}
 
 private struct InsightsRulesCard: View {
     let insights: [Insight]
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("INSIGHTS")
+            Text("FROM YOUR DATA")
                 .font(Theme.Typography.statLabel(size: 10))
                 .foregroundStyle(Theme.Colors.accentBright.opacity(0.9))
-                .tracking(1.4)
+                .tracking(1.2)
 
-            ForEach(insights) { insight in
-                HStack(alignment: .top, spacing: Theme.Spacing.medium) {
-                    Image(systemName: Self.icon(for: insight.kind))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.Colors.accent)
-                        .frame(width: 24)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(insight.title)
-                            .font(Theme.Typography.body(size: 15))
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                        Text(insight.detail)
-                            .font(Theme.Typography.caption(size: 12))
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                    Spacer(minLength: 0)
+            ForEach(insights.prefix(2)) { insight in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(insight.title)
+                        .font(Theme.Typography.body(size: 14))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                    Text(insight.detail)
+                        .font(Theme.Typography.caption(size: 11))
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
         }
-        .padding(Theme.Spacing.large)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-    }
-
-    private static func icon(for kind: String) -> String {
-        switch kind {
-        case let k where k.hasPrefix("best_"): return "star.fill"
-        case "most_played": return "person.fill"
-        case let k where k.hasPrefix("distance_standout"): return "figure.run"
-        case "recent_trend_up": return "chart.line.uptrend.xyaxis"
-        case "recent_trend_down": return "chart.line.downtrend.xyaxis"
-        default: return "sparkles"
-        }
-    }
-}
-
-private struct InsightsLockedHint: View {
-    let sessionCount: Int
-
-    var body: some View {
-        HStack(spacing: Theme.Spacing.medium) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.Colors.textSecondary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Insights unlock at 5 sessions")
-                    .font(Theme.Typography.body(size: 15))
-                Text("\(sessionCount)/5 played — keep going.")
-                    .font(Theme.Typography.caption(size: 12))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(Theme.Spacing.large)
+        .padding(Theme.Spacing.medium)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
@@ -282,125 +282,5 @@ private struct InsightsHeroCard: View {
         let minutes = (seconds % 3600) / 60
         if hours > 0 { return "\(hours)h \(minutes)m on pitch" }
         return "\(minutes)m on pitch"
-    }
-}
-
-// MARK: - Averages grid
-
-private struct InsightsAveragesGrid: View {
-    let averages: StatsAverages
-
-    private var items: [(label: String, value: String, icon: String, accent: Color)] {
-        var rows: [(String, String, String, Color)] = []
-        if let km = averages.distancePerMatch {
-            rows.append(("Distance", formatDistance(km), "figure.run", Theme.Colors.accentBright))
-        }
-        if let duration = averages.durationPerMatch {
-            rows.append(("Duration", formatDuration(Int(duration)), "clock.fill", Theme.Colors.accent))
-        }
-        if let sprints = averages.sprintsPerMatch {
-            rows.append(("Sprints", String(format: "%.0f", sprints), "hare.fill", Color(red: 1, green: 0.85, blue: 0.35)))
-        }
-        if let intensity = averages.intensity {
-            rows.append(("Intensity", String(format: "%.0f", intensity), "flame.fill", Theme.Colors.accent))
-        }
-        if let rating = averages.matchRating {
-            rows.append(("Rating", String(format: "%.0f", rating), "star.fill", Color(red: 0.45, green: 0.85, blue: 1)))
-        }
-        return rows
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("PER MATCH")
-                .font(Theme.Typography.statLabel(size: 10))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .tracking(1.2)
-
-            if items.isEmpty {
-                Text("Log more matches to see averages.")
-                    .font(Theme.Typography.caption())
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            } else {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(), spacing: Theme.Spacing.medium),
-                        GridItem(.flexible(), spacing: Theme.Spacing.medium),
-                    ],
-                    spacing: Theme.Spacing.medium
-                ) {
-                    ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                        InsightsStatTile(
-                            label: item.label,
-                            value: item.value,
-                            icon: item.icon,
-                            accent: item.accent
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private func formatDistance(_ meters: Double) -> String {
-        let km = meters / 1000
-        if km >= 1 { return String(format: "%.1f km", km) }
-        return "\(Int(meters)) m"
-    }
-
-    private func formatDuration(_ seconds: Int) -> String {
-        let minutes = seconds / 60
-        if minutes >= 60 { return "\(minutes / 60)h \(minutes % 60)m" }
-        return "\(minutes)m"
-    }
-}
-
-private struct InsightsStatTile: View {
-    let label: String
-    let value: String
-    let icon: String
-    let accent: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            HStack {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(accent.opacity(0.18))
-                        .frame(width: 34, height: 34)
-                    Image(systemName: icon)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(accent)
-                }
-                Spacer(minLength: 0)
-            }
-
-            Text(value)
-                .font(Theme.Typography.metric(size: 26))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-
-            Text(label.uppercased())
-                .font(Theme.Typography.statLabel(size: 9))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .tracking(0.8)
-        }
-        .padding(Theme.Spacing.medium)
-        .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.Colors.surface, Color(red: 0.1, green: 0.1, blue: 0.11)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
-        }
     }
 }
