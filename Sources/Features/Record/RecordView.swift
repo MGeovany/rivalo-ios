@@ -9,32 +9,50 @@ struct RecordView: View {
             ZStack {
                 Theme.Colors.background.ignoresSafeArea()
 
-                VStack(spacing: Theme.Spacing.xl) {
-                    Spacer()
+                if let liveStore = store.scope(state: \.liveMatch, action: \.liveMatch) {
+                    LiveMatchView(store: liveStore)
+                } else {
+                    VStack(spacing: Theme.Spacing.xl) {
+                        Spacer()
 
-                    VStack(spacing: Theme.Spacing.large) {
-                        RecordStartOrb {
-                            store.send(.recordTapped)
+                        VStack(spacing: Theme.Spacing.large) {
+                            RecordStartOrb {
+                                store.send(.recordTapped)
+                            }
+
+                            VStack(spacing: Theme.Spacing.small) {
+                                Text("Start match")
+                                    .font(Theme.Typography.title(size: 26))
+                                    .foregroundStyle(Theme.Colors.textPrimary)
+
+                                Text("Captures live stats on your Apple Watch")
+                                    .font(Theme.Typography.body(size: 15))
+                                    .foregroundStyle(Theme.Colors.textSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
 
-                        VStack(spacing: Theme.Spacing.small) {
-                            Text("Start match")
-                                .font(Theme.Typography.title(size: 26))
-                                .foregroundStyle(Theme.Colors.textPrimary)
-
-                            Text("Captures live stats on your Apple Watch")
-                                .font(Theme.Typography.body(size: 15))
-                                .foregroundStyle(Theme.Colors.textSecondary)
-                                .multilineTextAlignment(.center)
+                        Button {
+                            store.send(.measureCourtTapped)
+                        } label: {
+                            Label("Measure court", systemImage: "ruler")
+                                .font(Theme.Typography.button(size: 16))
+                                .foregroundStyle(Theme.Colors.accent)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .overlay {
+                                    Capsule()
+                                        .strokeBorder(Theme.Colors.accent.opacity(0.5), lineWidth: 1)
+                                }
                         }
+                        .padding(.bottom, Theme.Spacing.xl)
+
+                        Spacer()
                     }
-
-                    Spacer()
-                    Spacer()
+                    .padding(.horizontal, Theme.Spacing.xl)
                 }
-                .padding(.horizontal, Theme.Spacing.xl)
             }
-            .rivalNavigationChrome(title: "Record")
+            .rivalNavigationChrome(title: store.liveMatch != nil ? "Live Match" : "Record")
             .alert(
                 "Record match",
                 isPresented: recordAlertPresented,

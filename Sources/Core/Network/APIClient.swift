@@ -35,6 +35,10 @@ struct APIClient {
     var updateSession: @Sendable (_ accessToken: String, _ id: String, _ update: SportSessionUpdate) async throws -> SportSession
     /// Deletes a session via `DELETE /v1/sessions/{id}`.
     var deleteSession: @Sendable (_ accessToken: String, _ id: String) async throws -> Void
+    /// Lists saved pitches via `GET /v1/pitches`.
+    var listPitches: @Sendable (_ accessToken: String) async throws -> [Pitch]
+    /// Creates a pitch via `POST /v1/pitches`.
+    var createPitch: @Sendable (_ accessToken: String, _ new: NewPitch) async throws -> Pitch
 }
 
 extension APIClient: DependencyKey {
@@ -100,6 +104,19 @@ extension APIClient: DependencyKey {
         deleteSession: { token, id in
             try await retryOnUnauthorized(token) { newToken in
                 try await apiSendEmpty(authorizedRequest("v1/sessions/\(id)", method: "DELETE", token: newToken))
+            }
+        },
+        listPitches: { token in
+            try await retryOnUnauthorized(token) { newToken in
+                try await apiSend(authorizedRequest("v1/pitches", method: "GET", token: newToken), as: [Pitch].self)
+            }
+        },
+        createPitch: { token, new in
+            try await retryOnUnauthorized(token) { newToken in
+                var request = authorizedRequest("v1/pitches", method: "POST", token: newToken)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try apiEncoder().encode(new)
+                return try await apiSend(request, as: Pitch.self)
             }
         }
     )

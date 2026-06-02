@@ -50,6 +50,7 @@ struct ProfileFeature {
                 avgDistanceKm: metrics.avgDistanceKm,
                 fatigueDropPct: metrics.fatigueDropPct,
                 badge: metrics.badge,
+                countryCode: countryCode,
                 initials: ProfileFormatting.initials(from: name),
                 avatarImageData: avatarImageData
             )
@@ -228,6 +229,7 @@ struct PlayerCardModel: Equatable {
     let avgDistanceKm: Double?
     let fatigueDropPct: Double?
     let badge: PlayerCardBadge?
+    let countryCode: String
     let initials: String
     let avatarImageData: Data?
 }

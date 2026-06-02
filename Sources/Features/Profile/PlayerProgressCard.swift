@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Shareable player progress card — rank tier drives the visual design (LoL-style ladder).
+/// FUT-style player card with rank-colored frame, wing ribbons, and real metrics.
 struct PlayerProgressCard: View {
     let model: PlayerCardModel
 
@@ -9,377 +9,319 @@ struct PlayerProgressCard: View {
 
     var body: some View {
         ZStack {
-            VStack(spacing: 0) {
-                rankHeader
-                heroSection
-                identitySection
-                ratingSection
-                metricsGrid
-                brandFooter
-            }
+            FUTCardShape()
+                .fill(style.frameGradient)
+                .shadow(color: style.frameDeep.opacity(0.65), radius: 22, y: 12)
+                .shadow(color: style.glow, radius: model.rank.isHolographic ? 24 : 8, y: 0)
+
+            FUTCardShape()
+                .fill(style.innerTint)
+                .padding(6)
+
+            cardContent
+                .padding(7)
+                .clipShape(FUTCardShape())
 
             if model.rank.isHolographic {
                 CardRankHolographicEffect()
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .clipShape(FUTCardShape())
+                    .padding(6)
             }
+
+            FUTCardShape()
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.65), Color.clear, style.frameDeep.opacity(0.5)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+                .padding(6)
         }
-        .background(cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(cardBorder)
-        .overlay(rankFrameGlow)
-        .shadow(color: style.glow, radius: model.rank.isHolographic ? 28 : 18, y: 10)
-        .shadow(color: .black.opacity(0.45), radius: 16, y: 8)
-        .aspectRatio(0.62, contentMode: .fit)
+        .aspectRatio(0.715, contentMode: .fit)
         .frame(maxWidth: 340)
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Rank header
+    // MARK: - Layout
 
-    private var rankHeader: some View {
-        HStack(alignment: .center, spacing: 10) {
-            rankEmblem
+    private var cardContent: some View {
+        ZStack {
+            cardBackgroundPattern
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(model.rank.displayName.uppercased())
-                    .font(Theme.Typography.button(size: 13))
-                    .foregroundStyle(style.accentBright)
-                    .tracking(1.2)
+            VStack(spacing: 0) {
+                topBand
+                    .frame(height: 86)
 
-                Text(rankProgressLabel)
-                    .font(Theme.Typography.statLabel(size: 9))
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                ZStack(alignment: .bottom) {
+                    heroWithRibbons
+                    statsOverlay
+                }
+                .frame(maxHeight: .infinity)
+
+                namePlate
+                    .frame(height: 54)
+            }
+        }
+    }
+
+    private var cardBackgroundPattern: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width * 0.5, y: size.height * 0.3)
+            for index in 0 ..< 24 {
+                let angle = (Double(index) / 24.0) * 2 * .pi
+                let end = CGPoint(
+                    x: center.x + cos(angle) * size.width * 0.8,
+                    y: center.y + sin(angle) * size.height * 0.85
+                )
+                var path = Path()
+                path.move(to: center)
+                path.addLine(to: end)
+                context.stroke(path, with: .color(style.accent.opacity(0.04)), lineWidth: 0.5)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private var topBand: some View {
+        HStack(alignment: .top) {
+            ratingBlock
+            Spacer(minLength: 8)
+            flagBlock
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+    }
+
+    private var ratingBlock: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let rating = model.physicalRating {
+                Text("\(rating)")
+                    .font(Theme.Typography.display(size: 54))
+                    .foregroundStyle(style.ratingForeground)
+                    .tracking(-2)
+                    .shadow(color: .black.opacity(0.7), radius: 2, y: 2)
+                    .shadow(color: style.glow, radius: 6, y: 0)
+            } else {
+                Text("—")
+                    .font(Theme.Typography.display(size: 44))
+                    .foregroundStyle(Color.white.opacity(0.35))
             }
 
-            Spacer(minLength: 0)
-
-            tierProgressPips
+            Text(model.positionAbbrev)
+                .font(Theme.Typography.button(size: 15))
+                .foregroundStyle(style.accentBright)
+                .tracking(1.5)
+                .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
+                .padding(.top, -4)
         }
-        .padding(.horizontal, Theme.Spacing.medium)
-        .padding(.vertical, 12)
-        .background(
+    }
+
+    private var flagBlock: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .fill(Color.black.opacity(0.3))
+                    .frame(width: 46, height: 46)
+                Circle()
+                    .stroke(style.accent.opacity(0.55), lineWidth: 1.5)
+                    .frame(width: 46, height: 46)
+                Text(FootballCountry.flagEmoji(for: model.countryCode))
+                    .font(.system(size: 28))
+            }
+            .shadow(color: .black.opacity(0.45), radius: 4, y: 2)
+            .accessibilityLabel(FootballCountry.name(for: model.countryCode))
+        }
+    }
+
+    private var heroWithRibbons: some View {
+        ZStack {
+            playerPhotoBackground
+
+            RankRibbonFrame(rank: model.rank, style: style)
+
+            if model.avatarImageData == nil {
+                playerPortrait
+                    .frame(width: 118, height: 118)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [style.frameTop, style.frameDeep],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2.5
+                            )
+                    )
+                    .shadow(color: style.glow, radius: 10, y: 2)
+                    .offset(y: -18)
+            }
+
             LinearGradient(
-                colors: [style.frameDeep.opacity(0.55), Color.clear],
+                colors: [style.innerTint.opacity(0.45), Color.clear, Color.black.opacity(0.92)],
                 startPoint: .top,
                 endPoint: .bottom
             )
-        )
-    }
-
-    private var rankEmblem: some View {
-        ZStack {
-            Circle()
-                .fill(style.frameGradient)
-                .frame(width: 40, height: 40)
-            Circle()
-                .stroke(Color.white.opacity(0.25), lineWidth: 1)
-                .frame(width: 40, height: 40)
-            Image(systemName: rankIcon)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(style.accentBright)
-                .shadow(color: style.glow, radius: 4)
+            .allowsHitTesting(false)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var rankIcon: String {
-        switch model.rank {
-        case .unranked: "questionmark"
-        case .bronze: "shield.fill"
-        case .silver: "shield.lefthalf.filled"
-        case .gold: "crown.fill"
-        case .platinum: "hexagon.fill"
-        case .emerald: "leaf.fill"
-        case .diamond: "diamond.fill"
-        case .holographic: "sparkles"
-        }
-    }
-
-    private var tierProgressPips: some View {
-        HStack(spacing: 4) {
-            ForEach(0 ..< PlayerCardRank.matchesPerTier, id: \.self) { index in
-                Capsule()
-                    .fill(index < model.tierProgress ? style.accent : Color.white.opacity(0.12))
-                    .frame(width: 14, height: 4)
-            }
-        }
-    }
-
-    private var rankProgressLabel: String {
-        if model.rank == .holographic {
-            return "\(model.matchCount) matches · Max rank"
-        }
-        let next = model.rank == .unranked ? PlayerCardRank.bronze : model.rank.nextRank() ?? model.rank
-        return "\(model.tierProgress)/\(PlayerCardRank.matchesPerTier) to \(next.displayName)"
-    }
-
-    // MARK: - Sections
-
-    private var heroSection: some View {
-        ZStack(alignment: .topTrailing) {
-            ZStack(alignment: .bottom) {
-                playerPhoto
-                    .frame(height: 148)
-
-                LinearGradient(
-                    colors: [Color.clear, style.innerTint.opacity(0.95)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
-                .allowsHitTesting(false)
-            }
-
-            if let badge = model.badge {
-                progressBadge(badge)
-                    .padding(14)
-            }
-        }
-    }
-
-    private var playerPhoto: some View {
+    private var playerPhotoBackground: some View {
         Group {
             if let data = model.avatarImageData, let uiImage = UIImage(data: data) {
                 GeometryReader { proxy in
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.height * 1.1)
-                        .offset(y: proxy.size.height * 0.02)
+                        .frame(width: proxy.size.width, height: proxy.size.height * 1.12)
+                        .offset(y: proxy.size.height * 0.03)
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipped()
                 }
             } else {
-                ZStack {
-                    RadialGradient(
-                        colors: [style.accent.opacity(0.2), style.innerTint],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 140
-                    )
-
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(0.04))
-                            .frame(width: 96, height: 96)
-                        Circle()
-                            .stroke(style.borderGradient, lineWidth: 2)
-                            .frame(width: 96, height: 96)
-                        Text(model.initials)
-                            .font(Theme.Typography.display(size: 38))
-                            .foregroundStyle(style.accentBright)
-                    }
-                }
+                RadialGradient(
+                    colors: [style.accent.opacity(0.12), style.innerTint],
+                    center: UnitPoint(x: 0.5, y: 0.35),
+                    startRadius: 0,
+                    endRadius: 180
+                )
             }
         }
     }
 
-    private var identitySection: some View {
-        VStack(spacing: 4) {
-            Text(model.displayName)
-                .font(Theme.Typography.display(size: 26))
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-
-            HStack(spacing: 6) {
-                if let position = model.position, !position.isEmpty {
-                    Text(position)
-                        .font(Theme.Typography.caption(size: 13))
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                }
-                if let position = model.position, !position.isEmpty, !model.positionAbbrev.isEmpty {
-                    Text("·")
-                        .foregroundStyle(Theme.Colors.textSecondary.opacity(0.5))
-                }
-                if !model.positionAbbrev.isEmpty {
-                    Text(model.positionAbbrev)
-                        .font(Theme.Typography.button(size: 13))
-                        .foregroundStyle(style.accent)
-                        .tracking(1.2)
-                }
+    @ViewBuilder
+    private var playerPortrait: some View {
+        if let data = model.avatarImageData, let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            ZStack {
+                RadialGradient(
+                    colors: [style.accent.opacity(0.15), style.innerTint],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 70
+                )
+                Text(model.initials)
+                    .font(Theme.Typography.display(size: 44))
+                    .foregroundStyle(style.accentBright)
             }
         }
-        .padding(.horizontal, Theme.Spacing.large)
-        .padding(.bottom, Theme.Spacing.medium)
     }
 
-    private var ratingSection: some View {
-        VStack(spacing: 6) {
-            Text("PHYSICAL RATING")
-                .font(Theme.Typography.statLabel(size: 10))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .tracking(1.4)
-
-            if let rating = model.physicalRating {
-                Text("\(rating)")
-                    .font(Theme.Typography.metric(size: 52))
-                    .foregroundStyle(style.ratingForeground)
-                    .monospacedDigit()
-                    .shadow(color: style.glow, radius: 12, y: 0)
-            } else {
-                Text("—")
-                    .font(Theme.Typography.metric(size: 44))
-                    .foregroundStyle(Theme.Colors.textSecondary.opacity(0.4))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Theme.Spacing.medium)
-        .background(
-            LinearGradient(
-                colors: [style.accent.opacity(0.1), Color.clear],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .overlay(alignment: .top) {
+    private var statsOverlay: some View {
+        VStack(spacing: 0) {
             Rectangle()
                 .fill(
                     LinearGradient(
-                        colors: [style.accent.opacity(0.55), style.accent.opacity(0.08)],
+                        colors: [style.accent.opacity(0.5), style.accent.opacity(0.15)],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
                 )
                 .frame(height: 1)
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.white.opacity(0.06))
-                .frame(height: 1)
-        }
-    }
 
-    private var metricsGrid: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: 10),
-                GridItem(.flexible(), spacing: 10),
-            ],
-            spacing: 10
-        ) {
-            metricCell(label: "Top speed", value: formattedSpeed, icon: "bolt.fill")
-            metricCell(label: "Avg sprints", value: formattedSprints, icon: "hare.fill")
-            metricCell(label: "Avg distance", value: formattedDistance, icon: "figure.run")
-            metricCell(
-                label: "Fatigue drop",
-                value: formattedFatigueDrop,
-                icon: "arrow.down.right",
-                valueColor: fatigueDropColor
-            )
-        }
-        .padding(Theme.Spacing.medium)
-    }
-
-    private var brandFooter: some View {
-        HStack {
-            Text("RIVALO")
-                .font(Theme.Typography.logo(size: 11))
-                .foregroundStyle(style.accent.opacity(0.55))
-                .tracking(3)
-            Spacer()
-            Text(model.rank.displayName.uppercased())
-                .font(Theme.Typography.statLabel(size: 9))
-                .foregroundStyle(style.accent.opacity(0.75))
-                .tracking(1)
-        }
-        .padding(.horizontal, Theme.Spacing.medium)
-        .padding(.vertical, 10)
-        .background(style.frameDeep.opacity(0.35))
-    }
-
-    // MARK: - Components
-
-    private func progressBadge(_ badge: PlayerCardBadge) -> some View {
-        Text(badge.label)
-            .font(Theme.Typography.statLabel(size: 9))
-            .foregroundStyle(.white)
-            .tracking(0.8)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [style.accentBright, style.accent],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-            )
-            .shadow(color: style.glow, radius: 8, y: 3)
-    }
-
-    private func metricCell(
-        label: String,
-        value: String,
-        icon: String,
-        valueColor: Color = Theme.Colors.textPrimary
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(style.accent.opacity(0.9))
-                Text(label.uppercased())
-                    .font(Theme.Typography.statLabel(size: 9))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .tracking(0.6)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+            HStack(alignment: .top, spacing: 0) {
+                statColumn(left: true)
+                Spacer(minLength: 0)
+                statColumn(left: false)
             }
-
-            Text(value)
-                .font(Theme.Typography.button(size: 20))
-                .foregroundStyle(valueColor)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.Colors.surface, style.innerTint],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.55), Color.black.opacity(0.9)],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(style.accent.opacity(0.12), lineWidth: 1)
-        )
+            )
+        }
     }
 
-    private var cardBackground: some View {
-        LinearGradient(
-            colors: [
-                style.innerTint.opacity(0.9),
-                Theme.Colors.background,
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+    private func statColumn(left: Bool) -> some View {
+        VStack(alignment: left ? .leading : .trailing, spacing: 6) {
+            if left {
+                statRow(abbrev: "SPD", value: formattedSpeed, left: true)
+                statRow(abbrev: "DIST", value: formattedDistance, left: true)
+            } else {
+                statRow(abbrev: "SPR", value: formattedSprints, left: false)
+                statRow(abbrev: "FD", value: formattedFatigueDrop, left: false, valueColor: fatigueDropColor)
+            }
+        }
     }
 
-    private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .stroke(style.borderGradient, lineWidth: model.rank.isHolographic ? 2 : 1.5)
+    private func statRow(
+        abbrev: String,
+        value: String,
+        left: Bool,
+        valueColor: Color = .white
+    ) -> some View {
+        HStack(spacing: 6) {
+            if left {
+                Text(abbrev)
+                    .font(Theme.Typography.statLabel(size: 10))
+                    .foregroundStyle(style.accentBright.opacity(0.9))
+                    .frame(width: 30, alignment: .leading)
+                Text(value)
+                    .font(Theme.Typography.button(size: 17))
+                    .foregroundStyle(valueColor)
+                    .shadow(color: .black.opacity(0.8), radius: 2, y: 1)
+            } else {
+                Text(value)
+                    .font(Theme.Typography.button(size: 17))
+                    .foregroundStyle(valueColor)
+                    .shadow(color: .black.opacity(0.8), radius: 2, y: 1)
+                Text(abbrev)
+                    .font(Theme.Typography.statLabel(size: 10))
+                    .foregroundStyle(style.accentBright.opacity(0.9))
+                    .frame(width: 30, alignment: .trailing)
+            }
+        }
     }
 
-    private var rankFrameGlow: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .stroke(style.frameTop.opacity(0.35), lineWidth: 0.5)
-            .padding(2)
-            .opacity(model.rank == .unranked ? 0.4 : 1)
+    private var namePlate: some View {
+        ZStack {
+            LinearGradient(
+                colors: [style.frameTop, style.frameMid, style.frameDeep],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            Rectangle()
+                .fill(Color.white.opacity(0.15))
+                .frame(height: 1)
+                .frame(maxHeight: .infinity, alignment: .top)
+
+            VStack(spacing: 2) {
+                Text(model.displayName.uppercased())
+                    .font(Theme.Typography.display(size: 21))
+                    .foregroundStyle(Color(red: 0.10, green: 0.06, blue: 0.02))
+                    .tracking(1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .padding(.horizontal, 10)
+
+                if let position = model.position, !position.isEmpty {
+                    Text(position)
+                        .font(Theme.Typography.statLabel(size: 10))
+                        .foregroundStyle(Color.black.opacity(0.5))
+                        .lineLimit(1)
+                }
+            }
+            .padding(.vertical, 7)
+        }
     }
 
     // MARK: - Formatting
 
     private var formattedSpeed: String {
         guard let speed = model.topSpeedKmh else { return "—" }
-        return String(format: "%.1f km/h", speed)
+        return String(format: "%.1f", speed)
     }
 
     private var formattedSprints: String {
@@ -389,7 +331,7 @@ struct PlayerProgressCard: View {
 
     private var formattedDistance: String {
         guard let km = model.avgDistanceKm else { return "—" }
-        return String(format: "%.1f km", km)
+        return String(format: "%.1f", km)
     }
 
     private var formattedFatigueDrop: String {
@@ -398,59 +340,55 @@ struct PlayerProgressCard: View {
     }
 
     private var fatigueDropColor: Color {
-        guard let pct = model.fatigueDropPct else { return Theme.Colors.textPrimary }
+        guard let pct = model.fatigueDropPct else { return .white }
         if pct <= -10 { return Theme.Colors.negative }
         if pct >= 0 { return Theme.Colors.positive }
-        return Theme.Colors.textPrimary
+        return .white
     }
 }
 
 // MARK: - Previews
 
-private func previewModel(
-    rank: PlayerCardRank,
-    matchCount: Int,
-    tierProgress: Int,
-    badge: PlayerCardBadge? = nil
-) -> PlayerCardModel {
+private func previewModel(rank: PlayerCardRank, country: String = "MX") -> PlayerCardModel {
     PlayerCardModel(
         displayName: "Geovany",
         position: "Midfielder",
         positionAbbrev: "CM",
-        matchCount: matchCount,
+        matchCount: 17,
         rank: rank,
-        tierProgress: tierProgress,
+        tierProgress: 3,
         physicalRating: 74,
-        topSpeedKmh: 25.0,
+        topSpeedKmh: 26.3,
         avgSprints: 9,
         avgDistanceKm: 8.5,
-        fatigueDropPct: -12,
-        badge: badge,
+        fatigueDropPct: nil,
+        badge: nil,
+        countryCode: country,
         initials: "G",
         avatarImageData: nil
     )
 }
 
-#Preview("Bronze") {
-    PlayerProgressCard(model: previewModel(rank: .bronze, matchCount: 7, tierProgress: 3))
+#Preview("Gold") {
+    PlayerProgressCard(model: previewModel(rank: .gold))
         .padding()
         .background(Theme.Colors.background)
 }
 
-#Preview("Gold") {
-    PlayerProgressCard(model: previewModel(rank: .gold, matchCount: 17, tierProgress: 3))
+#Preview("Diamond") {
+    PlayerProgressCard(model: previewModel(rank: .diamond))
         .padding()
         .background(Theme.Colors.background)
 }
 
 #Preview("Holographic") {
-    PlayerProgressCard(model: previewModel(rank: .holographic, matchCount: 42, tierProgress: 5, badge: .newPR))
+    PlayerProgressCard(model: previewModel(rank: .holographic, country: "AR"))
         .padding()
         .background(Theme.Colors.background)
 }
 
-#Preview("Unranked") {
-    PlayerProgressCard(model: previewModel(rank: .unranked, matchCount: 3, tierProgress: 3))
+#Preview("Bronze") {
+    PlayerProgressCard(model: previewModel(rank: .bronze, country: "CA"))
         .padding()
         .background(Theme.Colors.background)
 }

@@ -10,6 +10,7 @@ struct MainTabFeature {
         var record = RecordFeature.State()
         var profile: ProfileFeature.State
         var selectedTab: Tab = .home
+        @Presents var pitchMeasure: PitchMeasureFeature.State?
 
         enum Tab: Equatable {
             case home
@@ -34,6 +35,8 @@ struct MainTabFeature {
         case record(RecordFeature.Action)
         case profile(ProfileFeature.Action)
         case selectedTabChanged(State.Tab)
+        case openPitchMeasure(PitchMeasurementMethod)
+        case pitchMeasure(PresentationAction<PitchMeasureFeature.Action>)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -55,6 +58,9 @@ struct MainTabFeature {
         Scope(state: \.profile, action: \.profile) {
             ProfileFeature()
         }
+        .ifLet(\.$pitchMeasure, action: \.pitchMeasure) {
+            PitchMeasureFeature()
+        }
 
         Reduce { state, action in
             switch action {
@@ -64,6 +70,7 @@ struct MainTabFeature {
                 let queue = pendingSessions
                 let watch = watchSyncClient
                 return .run { send in
+                    await PitchesSync.refresh(accessToken: token, apiClient: api)
                     for item in queue.all() {
                         if let created = try? await WatchSessionUpload.createFromWatch(
                             accessToken: token,
@@ -74,18 +81,46 @@ struct MainTabFeature {
                             await send(.watchSessionUploaded(created))
                         }
                     }
-                    for await received in watch.incomingSessions() {
-                        let queued = queue.enqueue(received)
-                        if let created = try? await WatchSessionUpload.createFromWatch(
-                            accessToken: token,
-                            payload: received,
-                            apiClient: api
-                        ) {
-                            queue.remove(queued.id)
-                            await send(.watchSessionUploaded(created))
+                    await withDiscardingTaskGroup { group in
+                        group.addTask {
+                            for await received in watch.incomingSessions() {
+                                let queued = queue.enqueue(received)
+                                if let created = try? await WatchSessionUpload.createFromWatch(
+                                    accessToken: token,
+                                    payload: received,
+                                    apiClient: api
+                                ) {
+                                    queue.remove(queued.id)
+                                    await send(.watchSessionUploaded(created))
+                                }
+                            }
+                        }
+                        group.addTask {
+                            for await method in watch.incomingMeasureCourt() {
+                                await send(.openPitchMeasure(method))
+                            }
+                        }
+                        group.addTask {
+                            for await event in watch.liveMatchEvents() {
+                                await send(.record(.liveEventReceived(event)))
+                            }
                         }
                     }
                 }
+
+            case let .openPitchMeasure(method):
+                state.pitchMeasure = PitchMeasureFeature.State(
+                    accessToken: state.accessToken,
+                    prefill: method
+                )
+                return .none
+
+            case .pitchMeasure(.presented(.delegate(.dismissed))):
+                state.pitchMeasure = nil
+                return .none
+
+            case .pitchMeasure:
+                return .none
 
             case .watchSessionsChanged:
                 return .send(.sessions(.onAppear))
@@ -110,6 +145,10 @@ struct MainTabFeature {
                 case .record, .activities, .plan:
                     return .none
                 }
+
+            case .record(.delegate(.openMeasureCourt)):
+                state.pitchMeasure = PitchMeasureFeature.State(accessToken: state.accessToken)
+                return .none
 
             case .sessions, .record, .profile, .delegate:
                 return .none
