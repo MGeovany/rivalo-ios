@@ -3,16 +3,18 @@ import SwiftUI
 /// Visual theme for Rivalo: a modern, dark, sporty look shared across screens.
 enum Theme {
     enum Colors {
-        /// Near-black app background.
-        static let background = Color(red: 0.05, green: 0.06, blue: 0.07)
-        /// Elevated surface (cards, sheets) in dark gray.
-        static let surface = Color(red: 0.11, green: 0.12, blue: 0.14)
-        /// Brand primary (#ff571b) — logo, buttons, and highlights.
-        static let accent = Color(red: 1.0, green: 87 / 255, blue: 27 / 255)
-        /// Primary text on dark surfaces.
-        static let textPrimary = Color.white
-        /// Secondary, lower-emphasis text.
-        static let textSecondary = Color(white: 0.65)
+        /// Near-black app background (#040506).
+        static let background = Color(red: 4 / 255, green: 5 / 255, blue: 6 / 255)
+        /// Elevated surface (#242526).
+        static let surface = Color(red: 36 / 255, green: 37 / 255, blue: 38 / 255)
+        /// Brand primary orange (#FF5A00).
+        static let accent = Color(red: 1.0, green: 90 / 255, blue: 0)
+        /// Secondary orange highlight (#FF9D00).
+        static let accentBright = Color(red: 1.0, green: 157 / 255, blue: 0)
+        /// Primary text (#F5F5F5).
+        static let textPrimary = Color(red: 245 / 255, green: 245 / 255, blue: 245 / 255)
+        /// Secondary text (#666666).
+        static let textSecondary = Color(red: 102 / 255, green: 102 / 255, blue: 102 / 255)
         /// Positive / healthy status (distinct from brand primary).
         static let positive = Color(red: 0.0, green: 0.85, blue: 0.45)
         /// Negative / error status.

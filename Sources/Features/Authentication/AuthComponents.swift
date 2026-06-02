@@ -51,10 +51,10 @@ struct AuthScreenLayout<Content: View, Footer: View>: View {
 
 struct AuthLogo: View {
     var body: some View {
-        Text("RIVALO")
-            .font(Theme.Typography.logo(size: 32))
-            .tracking(8)
-            .foregroundStyle(Theme.Colors.accent)
+        Image("Wordmark")
+            .resizable()
+            .scaledToFit()
+            .frame(height: 36)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

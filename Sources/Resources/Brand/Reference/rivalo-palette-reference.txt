@@ -1,0 +1,11 @@
+RIVALO — PALETA DE REFERENCIA
+
+Los siguientes valores son aproximaciones tomadas del mockup generado.
+Para la versión vectorial final conviene fijar oficialmente los colores.
+
+Orange Deep:   #FF5A00
+Orange Bright: #FF9D00
+Background:    #040506
+Dark Gray:     #242526
+Mid Gray:      #666666
+White:         #F5F5F5
