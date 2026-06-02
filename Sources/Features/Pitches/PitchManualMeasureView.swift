@@ -1,18 +1,20 @@
 import SwiftUI
 
-/// V2-F manual dimensions (F.6). Persists locally until `/v1/pitches` ships.
+/// V2-F manual dimensions saved to the backend with GPS when available.
 struct PitchManualMeasureView: View {
+    let accessToken: String
     var onBack: () -> Void
 
     @State private var name = ""
     @State private var lengthText = ""
     @State private var widthText = ""
     @State private var savedMessage: String?
+    @State private var isSaving = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.large) {
-                Text("Enter pitch size in meters. You can correct these later.")
+                Text("Enter pitch size in meters. Saved with your account and synced to your watch.")
                     .font(Theme.Typography.body(size: 15))
                     .foregroundStyle(Theme.Colors.textSecondary)
 
@@ -26,16 +28,16 @@ struct PitchManualMeasureView: View {
                         .foregroundStyle(Theme.Colors.accent)
                 }
 
-                Button("Save locally") {
-                    saveDraft()
+                Button(isSaving ? "Saving…" : "Save court") {
+                    Task { await savePitch() }
                 }
                 .font(Theme.Typography.button(size: 16))
                 .foregroundStyle(Color.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(canSave ? Theme.Colors.accent : Theme.Colors.surface)
+                .background(canSave && !isSaving ? Theme.Colors.accent : Theme.Colors.surface)
                 .clipShape(Capsule())
-                .disabled(!canSave)
+                .disabled(!canSave || isSaving)
 
                 Button("Back to methods", action: onBack)
                     .font(Theme.Typography.body(size: 15))
@@ -73,19 +75,31 @@ struct PitchManualMeasureView: View {
         }
     }
 
-    private func saveDraft() {
+    private func savePitch() async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+
         let courtName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let length = Double(lengthText.replacingOccurrences(of: ",", with: ".")) ?? 0
         let width = Double(widthText.replacingOccurrences(of: ",", with: ".")) ?? 0
-        PitchDraftStore.save(
-            PitchDraft(
-                name: courtName.isEmpty ? "My court" : courtName,
-                lengthM: length,
-                widthM: width,
-                measurementMethod: PitchMeasurementMethod.manual.rawValue
+
+        do {
+            _ = try await PitchesSync.create(
+                accessToken: accessToken,
+                apiClient: APIClient.liveValue,
+                pitch: NewPitch(
+                    name: courtName.isEmpty ? "My court" : courtName,
+                    latitude: nil,
+                    longitude: nil,
+                    lengthM: length,
+                    widthM: width,
+                    measurementMethod: PitchMeasurementMethod.manual.rawValue
+                )
             )
-        )
-        savedMessage = "Saved on this iPhone. Backend sync arrives with V2-F API."
-        WatchCourtSync.pushDraftCourts()
+            savedMessage = "Court saved. It will appear on your watch when you're nearby."
+        } catch {
+            savedMessage = "Could not save. Check your connection and try again."
+        }
     }
 }

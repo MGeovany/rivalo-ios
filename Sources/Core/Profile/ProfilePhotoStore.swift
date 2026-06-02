@@ -11,16 +11,15 @@ enum ProfilePhotoStore {
         return try? Data(contentsOf: url)
     }
 
-    static func save(userId: String, rawImageData: Data) -> Data? {
-        guard let prepared = ProfilePhotoProcessor.prepareForCard(rawImageData) else { return nil }
+    static func save(userId: String, pngData: Data) -> Data? {
         let url = fileURL(userId: userId)
         do {
             try FileManager.default.createDirectory(
                 at: url.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            try prepared.write(to: url, options: .atomic)
-            return prepared
+            try pngData.write(to: url, options: .atomic)
+            return pngData
         } catch {
             return nil
         }
@@ -35,19 +34,20 @@ enum ProfilePhotoStore {
         let safeId = userId.replacingOccurrences(of: "/", with: "_")
         return base
             .appendingPathComponent(folderName, isDirectory: true)
-            .appendingPathComponent("\(safeId).jpg")
+            .appendingPathComponent("\(safeId).png")
     }
 }
 
 enum ProfilePhotoProcessor {
-    /// Downscales and JPEG-compresses for the FIFA card photo slot.
-    static func prepareForCard(_ data: Data, maxPixel: CGFloat = 900) -> Data? {
+    /// Normalizes, downscales, removes background, and returns PNG bytes for the card cutout.
+    static func prepareForCard(_ data: Data, maxPixel: CGFloat = 900) async -> Data? {
         guard let image = UIImage(data: data) else { return nil }
-        let resized = resize(normalized(image), maxPixel: maxPixel)
-        return resized.jpegData(compressionQuality: 0.82)
+        let normalized = normalized(image)
+        let resized = resize(normalized, maxPixel: maxPixel)
+        let cutout = await BackgroundRemover.removeBackground(from: resized) ?? resized
+        return cutout.pngData()
     }
 
-    /// Applies EXIF orientation so width/height match how the photo is displayed.
     private static func normalized(_ image: UIImage) -> UIImage {
         guard image.imageOrientation != .up else { return image }
         let format = UIGraphicsImageRendererFormat()

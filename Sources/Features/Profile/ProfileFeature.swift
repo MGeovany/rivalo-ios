@@ -23,8 +23,9 @@ struct ProfileFeature {
         /// ISO country code stored locally per user (profile UI).
         var countryCode: String = ProfileCountryStore.defaultCode()
         var sessions: [SportSession] = []
-        /// JPEG bytes for the player card photo (device-local until backend avatar exists).
+        /// PNG bytes for the player card cutout (device-local until backend avatar exists).
         var avatarImageData: Data?
+        var isProcessingPhoto = false
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
@@ -45,11 +46,7 @@ struct ProfileFeature {
                 rank: metrics.rank,
                 tierProgress: metrics.tierProgress,
                 physicalRating: metrics.physicalRating,
-                topSpeedKmh: metrics.topSpeedKmh,
-                avgSprints: metrics.avgSprints,
-                avgDistanceKm: metrics.avgDistanceKm,
-                fatigueDropPct: metrics.fatigueDropPct,
-                badge: metrics.badge,
+                displayStats: metrics.displayStats,
                 countryCode: countryCode,
                 initials: ProfileFormatting.initials(from: name),
                 avatarImageData: avatarImageData
@@ -73,6 +70,7 @@ struct ProfileFeature {
         case heightUnitChanged(HeightUnit)
         case weightUnitChanged(WeightUnit)
         case photoSelected(Data)
+        case photoProcessed(Data?)
         case photoRemoved
         case countryCodeChanged(String)
         case delegate(Delegate)
@@ -164,7 +162,18 @@ struct ProfileFeature {
 
             case let .photoSelected(data):
                 guard let userId = state.profile?.id else { return .none }
-                state.avatarImageData = ProfilePhotoStore.save(userId: userId, rawImageData: data)
+                state.isProcessingPhoto = true
+                return .run { send in
+                    let prepared = await ProfilePhotoProcessor.prepareForCard(data)
+                    await send(.photoProcessed(prepared))
+                }
+
+            case let .photoProcessed(data):
+                state.isProcessingPhoto = false
+                guard let userId = state.profile?.id else { return .none }
+                if let data, let saved = ProfilePhotoStore.save(userId: userId, pngData: data) {
+                    state.avatarImageData = saved
+                }
                 return .none
 
             case .photoRemoved:
@@ -224,11 +233,7 @@ struct PlayerCardModel: Equatable {
     let rank: PlayerCardRank
     let tierProgress: Int
     let physicalRating: Int?
-    let topSpeedKmh: Double?
-    let avgSprints: Int?
-    let avgDistanceKm: Double?
-    let fatigueDropPct: Double?
-    let badge: PlayerCardBadge?
+    let displayStats: PlayerCardDisplayStats
     let countryCode: String
     let initials: String
     let avatarImageData: Data?

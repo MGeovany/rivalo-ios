@@ -65,18 +65,26 @@ struct SessionsFeature {
             case let .listResponse(.success(sessions)):
                 state.isLoading = false
                 state.sessions = sessions
-                WatchCourtSync.pushCourts(for: sessions)
+                let token = state.accessToken
                 guard let latestId = sessions.sorted(by: { $0.startedAt > $1.startedAt }).first?.id else {
                     state.latestSession = nil
-                    return .none
+                    return .run { _ in
+                        await PitchesSync.refresh(accessToken: token, apiClient: apiClient)
+                        WatchCourtSync.pushCourts(for: sessions)
+                    }
                 }
                 state.isLoadingLatest = true
-                let token = state.accessToken
-                return .run { send in
-                    await send(.latestDetailResponse(Result {
-                        try await apiClient.getSession(token, latestId)
-                    }.mapError { $0 as? APIError ?? .invalidResponse }))
-                }
+                return .merge(
+                    .run { _ in
+                        await PitchesSync.refresh(accessToken: token, apiClient: apiClient)
+                        WatchCourtSync.pushCourts(for: sessions)
+                    },
+                    .run { send in
+                        await send(.latestDetailResponse(Result {
+                            try await apiClient.getSession(token, latestId)
+                        }.mapError { $0 as? APIError ?? .invalidResponse }))
+                    }
+                )
 
             case .listResponse(.failure):
                 state.isLoading = false

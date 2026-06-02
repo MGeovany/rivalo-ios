@@ -12,17 +12,30 @@ enum PlayerCardBadge: Equatable {
     }
 }
 
+/// FUT card stat values shown on the shareable card (INT / SPD / SPR / KM / MAT).
+struct PlayerCardDisplayStats: Equatable {
+    let intValue: String
+    let spdValue: String
+    let sprValue: String
+    let kmValue: String
+    let matValue: String
+
+    static let empty = PlayerCardDisplayStats(
+        intValue: "—",
+        spdValue: "—",
+        sprValue: "—",
+        kmValue: "—",
+        matValue: "—"
+    )
+}
+
 /// Aggregated metrics shown on the shareable player progress card.
 struct PlayerCardMetrics: Equatable {
     let matchCount: Int
     let rank: PlayerCardRank
     let tierProgress: Int
     let physicalRating: Int?
-    let topSpeedKmh: Double?
-    let avgSprints: Int?
-    let avgDistanceKm: Double?
-    /// Average high-intensity drop across structured sessions (negative = fatigue).
-    let fatigueDropPct: Double?
+    let displayStats: PlayerCardDisplayStats
     let badge: PlayerCardBadge?
 }
 
@@ -34,10 +47,7 @@ enum PlayerCardStatsBuilder {
                 rank: .unranked,
                 tierProgress: 0,
                 physicalRating: nil,
-                topSpeedKmh: nil,
-                avgSprints: nil,
-                avgDistanceKm: nil,
-                fatigueDropPct: nil,
+                displayStats: .empty,
                 badge: nil
             )
         }
@@ -52,20 +62,23 @@ enum PlayerCardStatsBuilder {
             ? nil
             : Int((intensities.reduce(0, +) / Double(intensities.count)).rounded())
 
-        let fatigueValues = sessions.compactMap(\.fatigueDrop?.highIntensityPctChange)
-        let fatigueDropPct = fatigueValues.isEmpty
-            ? nil
-            : fatigueValues.reduce(0, +) / Double(fatigueValues.count)
+        let totalSprints = sessions.reduce(0) { $0 + $1.sprints }
+        let totalKm = sessions.reduce(0.0) { $0 + $1.distanceM } / 1000
+
+        let displayStats = PlayerCardDisplayStats(
+            intValue: physicalRating.map { "\($0)" } ?? "—",
+            spdValue: snapshot.topSpeedKmh.map { String(format: "%.1f", $0) } ?? "—",
+            sprValue: "\(totalSprints)",
+            kmValue: String(format: "%.1f", totalKm),
+            matValue: "\(matchCount)"
+        )
 
         return PlayerCardMetrics(
             matchCount: matchCount,
             rank: rank,
             tierProgress: tierProgress,
             physicalRating: physicalRating,
-            topSpeedKmh: snapshot.topSpeedKmh,
-            avgSprints: snapshot.avgSprints,
-            avgDistanceKm: snapshot.avgKmPerMatch,
-            fatigueDropPct: fatigueDropPct,
+            displayStats: displayStats,
             badge: detectBadge(from: sessions)
         )
     }
