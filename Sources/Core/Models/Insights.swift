@@ -6,6 +6,17 @@ struct SessionInsights: Equatable, Codable, Sendable {
     var byMatchType: [ContextGroup]
     var bySurface: [ContextGroup]
     var byPosition: [ContextGroup]
+    /// Rule-based, explainable statements; nil/empty below the backend threshold (≥5 sessions).
+    var insights: [Insight]?
+}
+
+/// One explainable, rule-based observation (V2-H), computed server-side.
+struct Insight: Equatable, Codable, Sendable, Identifiable {
+    var kind: String
+    var title: String
+    var detail: String
+
+    var id: String { kind }
 }
 
 struct StatsTotals: Equatable, Codable, Sendable {

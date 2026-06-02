@@ -168,6 +168,10 @@ struct SessionDetailView: View {
 
     private func metaSection(_ session: SportSession) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            if let records = session.newRecords, !records.isEmpty {
+                recordBadge(records)
+            }
+
             Text(session.startedAt.formatted(date: .complete, time: .shortened))
                 .font(Theme.Typography.title(size: 22))
 

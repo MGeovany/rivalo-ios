@@ -17,6 +17,8 @@ struct SessionDetailFeature {
         var showVenuePrompt = false
         var venueDraft = ""
         var showDeleteConfirm = false
+        /// User's own averages, for the session-vs-average comparison (G.4).
+        var averages: StatsAverages?
         @Presents var comparison: PitchComparisonFeature.State?
 
         var id: String { sessionId }
@@ -35,6 +37,7 @@ struct SessionDetailFeature {
     enum Action: Equatable {
         case onAppear
         case loadResponse(Result<SportSession, APIError>)
+        case averagesResponse(Result<SessionInsights, APIError>)
         case dismissTapped
         case shareTapped
         case editTapped
@@ -68,14 +71,30 @@ struct SessionDetailFeature {
             case .onAppear:
                 state.meta = SessionMetaStore.load(sessionId: state.sessionId)
                 state.photos = SessionPhotoStore.load(sessionId: state.sessionId)
-                if let samples = state.session?.samples, !samples.isEmpty { return .none }
-                state.isLoading = true
                 let token = state.accessToken
+                let averagesEffect: Effect<Action> = state.averages == nil
+                    ? .run { send in
+                        await send(.averagesResponse(Result { try await apiClient.fetchInsights(token) }
+                            .mapError { $0 as? APIError ?? .invalidResponse }))
+                    }
+                    : .none
+                if let samples = state.session?.samples, !samples.isEmpty { return averagesEffect }
+                state.isLoading = true
                 let id = state.sessionId
-                return .run { send in
-                    await send(.loadResponse(Result { try await apiClient.getSession(token, id) }
-                        .mapError { $0 as? APIError ?? .invalidResponse }))
-                }
+                return .merge(
+                    averagesEffect,
+                    .run { send in
+                        await send(.loadResponse(Result { try await apiClient.getSession(token, id) }
+                            .mapError { $0 as? APIError ?? .invalidResponse }))
+                    }
+                )
+
+            case let .averagesResponse(.success(insights)):
+                state.averages = insights.averages
+                return .none
+
+            case .averagesResponse(.failure):
+                return .none
 
             case let .loadResponse(.success(session)):
                 state.isLoading = false

@@ -226,7 +226,9 @@ struct ProfileFeature {
                 guard let data, let saved = ProfilePhotoStore.save(userId: userId, pngData: data) else {
                     ProfilePhotoLog.error("photoProcessed: save failed or nil data")
                     state.isPhotoPlacementLocked = false
-                    state.errorMessage = "Could not cut out your photo. Try another image."
+                    state.errorMessage = BackgroundRemover.isSimulator
+                        ? "El recorte de fondo no funciona en el Simulador. Prueba en un iPhone físico."
+                        : "Could not cut out your photo. Try another image."
                     return Self.scheduleErrorDismiss()
                 }
                 ProfilePhotoLog.info("photoProcessed: saved cutout \(saved.count) bytes")

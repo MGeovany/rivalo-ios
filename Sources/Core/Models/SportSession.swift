@@ -70,6 +70,8 @@ struct SportSession: Equatable, Codable, Identifiable {
     let path: [SessionPathPoint]?
     /// Fatigue Drop (1T vs 2T comparison), computed on-read for structured sessions.
     let fatigueDrop: FatigueDrop?
+    /// Personal-best metrics this session broke (present only on the create response).
+    let newRecords: [String]?
 }
 
 extension SportSession {

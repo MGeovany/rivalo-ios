@@ -1,12 +1,13 @@
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import CoreML
 import UIKit
 import Vision
 
 /// Removes the background from a portrait using on-device Vision (iOS 17+).
 enum BackgroundRemover {
     static func removeBackground(from image: UIImage) async -> UIImage? {
-        ProfilePhotoLog.info("BackgroundRemover: starting")
+        ProfilePhotoLog.info("BackgroundRemover: starting (simulator=\(Self.isSimulator))")
         let result = await Task.detached(priority: .userInitiated) {
             performRemoval(on: image)
         }.value
@@ -18,33 +19,86 @@ enum BackgroundRemover {
         return result
     }
 
+    static var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
+    }
+
     private static func performRemoval(on image: UIImage) -> UIImage? {
-        guard let cgImage = image.cgImage else {
-            ProfilePhotoLog.error("BackgroundRemover: missing cgImage")
+        guard let cgImage = uprightCGImage(from: image) else {
+            ProfilePhotoLog.error("BackgroundRemover: upright bitmap failed")
             return nil
         }
-        let orientation = CGImagePropertyOrientation(image.imageOrientation)
-        ProfilePhotoLog.debug(
-            "BackgroundRemover: source \(cgImage.width)x\(cgImage.height) orientation=\(orientation.rawValue)"
-        )
+        ProfilePhotoLog.debug("BackgroundRemover: source \(cgImage.width)x\(cgImage.height)")
 
-        if let cutout = foregroundInstanceMask(cgImage: cgImage, orientation: orientation) {
+        if let cutout = foregroundInstanceMask(cgImage: cgImage) {
             ProfilePhotoLog.info("BackgroundRemover: used foreground instance mask")
             return cutout
         }
 
-        if let cutout = personSegmentation(cgImage: cgImage, orientation: orientation) {
-            ProfilePhotoLog.info("BackgroundRemover: used person segmentation fallback")
-            return cutout
+        for quality in personSegmentationQualities {
+            if let cutout = personSegmentation(cgImage: cgImage, quality: quality) {
+                ProfilePhotoLog.info("BackgroundRemover: used person segmentation (\(quality))")
+                return cutout
+            }
         }
 
         ProfilePhotoLog.error("BackgroundRemover: all strategies failed")
         return nil
     }
 
-    private static func foregroundInstanceMask(cgImage: CGImage, orientation: CGImagePropertyOrientation) -> UIImage? {
+    private static var personSegmentationQualities: [VNGeneratePersonSegmentationRequest.QualityLevel] {
+        if isSimulator {
+            return [.balanced, .fast, .accurate]
+        }
+        return [.accurate, .balanced, .fast]
+    }
+
+    /// Renders the image upright into a bitmap Vision can consume reliably.
+    private static func uprightCGImage(from image: UIImage) -> CGImage? {
+        let size = image.size
+        guard size.width > 0, size.height > 0 else { return nil }
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let bitmap = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        return bitmap.cgImage
+    }
+
+    private static func configureRequest(_ request: VNRequest) {
+        #if targetEnvironment(simulator)
+        ProfilePhotoLog.info("Vision: simulator — forcing CPU compute")
+        if #available(iOS 17.0, *) {
+            do {
+                let stageDevices = try request.supportedComputeStageDevices
+                if let mainDevices = stageDevices[.main] {
+                    ProfilePhotoLog.debug(
+                        "Vision: main stage devices=\(mainDevices.map { String(describing: $0) }.joined(separator: ", "))"
+                    )
+                    if let cpu = mainDevices.first(where: { String(describing: $0).contains("CPU") }) {
+                        request.setComputeDevice(cpu, for: .main)
+                        return
+                    }
+                }
+            } catch {
+                ProfilePhotoLog.error("Vision: supportedComputeStageDevices: \(error.localizedDescription)")
+            }
+        }
+        request.usesCPUOnly = true
+        #endif
+    }
+
+    private static func foregroundInstanceMask(cgImage: CGImage) -> UIImage? {
         let request = VNGenerateForegroundInstanceMaskRequest()
-        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
+        configureRequest(request)
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
         do {
             try handler.perform([request])
             guard let observation = request.results?.first else {
@@ -52,6 +106,10 @@ enum BackgroundRemover {
                 return nil
             }
             ProfilePhotoLog.debug("foregroundInstanceMask: instances=\(observation.allInstances.count)")
+            guard !observation.allInstances.isEmpty else {
+                ProfilePhotoLog.error("foregroundInstanceMask: no salient instances")
+                return nil
+            }
             let pixelBuffer = try observation.generateScaledMaskForImage(
                 forInstances: observation.allInstances,
                 from: handler
@@ -63,20 +121,24 @@ enum BackgroundRemover {
         }
     }
 
-    private static func personSegmentation(cgImage: CGImage, orientation: CGImagePropertyOrientation) -> UIImage? {
+    private static func personSegmentation(
+        cgImage: CGImage,
+        quality: VNGeneratePersonSegmentationRequest.QualityLevel
+    ) -> UIImage? {
         let request = VNGeneratePersonSegmentationRequest()
-        request.qualityLevel = .accurate
+        request.qualityLevel = quality
         request.outputPixelFormat = kCVPixelFormatType_OneComponent8
-        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
+        configureRequest(request)
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
         do {
             try handler.perform([request])
             guard let observation = request.results?.first else {
-                ProfilePhotoLog.error("personSegmentation: no results")
+                ProfilePhotoLog.error("personSegmentation(\(quality)): no results")
                 return nil
             }
             return applyMask(pixelBuffer: observation.pixelBuffer, to: cgImage)
         } catch {
-            ProfilePhotoLog.error("personSegmentation: \(error.localizedDescription)")
+            ProfilePhotoLog.error("personSegmentation(\(quality)): \(error.localizedDescription)")
             return nil
         }
     }
@@ -102,21 +164,5 @@ enum BackgroundRemover {
             return nil
         }
         return UIImage(cgImage: outputCG, scale: 1, orientation: .up)
-    }
-}
-
-private extension CGImagePropertyOrientation {
-    init(_ orientation: UIImage.Orientation) {
-        switch orientation {
-        case .up: self = .up
-        case .down: self = .down
-        case .left: self = .left
-        case .right: self = .right
-        case .upMirrored: self = .upMirrored
-        case .downMirrored: self = .downMirrored
-        case .leftMirrored: self = .leftMirrored
-        case .rightMirrored: self = .rightMirrored
-        @unknown default: self = .up
-        }
     }
 }

@@ -63,6 +63,12 @@ struct InsightsView: View {
                 InsightsCharts.averagesBarCard(averages: insights.averages)
                 InsightsAveragesGrid(averages: insights.averages)
 
+                if let rules = insights.insights, !rules.isEmpty {
+                    InsightsRulesCard(insights: rules)
+                } else if insights.totals.sessionCount < 5 {
+                    InsightsLockedHint(sessionCount: insights.totals.sessionCount)
+                }
+
                 if !insights.byMatchType.isEmpty {
                     InsightsCharts.breakdownCard(
                         title: "Match type",
@@ -97,6 +103,78 @@ struct InsightsView: View {
             .padding(.bottom, Theme.Spacing.xl)
         }
         .refreshable { store.send(.onAppear) }
+    }
+}
+
+// MARK: - Rule-based insights (V2-H)
+
+private struct InsightsRulesCard: View {
+    let insights: [Insight]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            Text("INSIGHTS")
+                .font(Theme.Typography.statLabel(size: 10))
+                .foregroundStyle(Theme.Colors.accentBright.opacity(0.9))
+                .tracking(1.4)
+
+            ForEach(insights) { insight in
+                HStack(alignment: .top, spacing: Theme.Spacing.medium) {
+                    Image(systemName: Self.icon(for: insight.kind))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.accent)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(insight.title)
+                            .font(Theme.Typography.body(size: 15))
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        Text(insight.detail)
+                            .font(Theme.Typography.caption(size: 12))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .padding(Theme.Spacing.large)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
+    private static func icon(for kind: String) -> String {
+        switch kind {
+        case let k where k.hasPrefix("best_"): return "star.fill"
+        case "most_played": return "person.fill"
+        case let k where k.hasPrefix("distance_standout"): return "figure.run"
+        case "recent_trend_up": return "chart.line.uptrend.xyaxis"
+        case "recent_trend_down": return "chart.line.downtrend.xyaxis"
+        default: return "sparkles"
+        }
+    }
+}
+
+private struct InsightsLockedHint: View {
+    let sessionCount: Int
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.medium) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.Colors.textSecondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Insights unlock at 5 sessions")
+                    .font(Theme.Typography.body(size: 15))
+                Text("\(sessionCount)/5 played — keep going.")
+                    .font(Theme.Typography.caption(size: 12))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Theme.Spacing.large)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 }
 
