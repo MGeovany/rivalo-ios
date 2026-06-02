@@ -17,7 +17,7 @@ struct ProfileFeature {
         var preferredPosition = ""
         var heightText = ""
         var weightText = ""
-        var birthYearText = ""
+        var birthDate: Date?
         var heightUnit: HeightUnit = .loadPreferred()
         var weightUnit: WeightUnit = .loadPreferred()
         /// ISO country code stored locally per user (profile UI).
@@ -192,7 +192,7 @@ private extension ProfileFeature.State {
         preferredPosition = profile.preferredPosition ?? ""
         heightText = heightUnit.format(cm: profile.heightCm)
         weightText = weightUnit.format(kg: profile.weightKg)
-        birthYearText = profile.birthYear.map { "\($0)" } ?? ""
+        birthDate = profile.birthYear.map { ProfileBirthDate.date(fromBirthYear: $0) }
         avatarImageData = ProfilePhotoStore.load(userId: profile.id)
         countryCode = ProfileCountryStore.load(userId: profile.id) ?? ProfileCountryStore.defaultCode()
     }
@@ -200,13 +200,12 @@ private extension ProfileFeature.State {
     /// Builds the update payload from the editable fields.
     func makeUpdate() -> ProfileUpdate {
         let position = preferredPosition.trimmingCharacters(in: .whitespaces)
-        let birthYear = Int(birthYearText.trimmingCharacters(in: .whitespaces))
         return ProfileUpdate(
             displayName: displayName.trimmingCharacters(in: .whitespaces),
             preferredPosition: position.isEmpty ? nil : position,
             heightCm: heightUnit.parseToCm(heightText),
             weightKg: weightUnit.parseToKg(weightText),
-            birthYear: birthYear
+            birthYear: ProfileBirthDate.birthYear(from: birthDate)
         )
     }
 
