@@ -2,10 +2,10 @@ import Foundation
 
 /// Time window for Performance dashboard aggregates.
 enum PerformancePeriod: String, CaseIterable, Equatable, Identifiable {
+    case allTime = "All time"
     case thisWeek = "This week"
     case thisMonth = "This month"
     case lastFive = "Last 5 matches"
-    case allTime = "All time"
 
     var id: String { rawValue }
 
