@@ -7,16 +7,18 @@ struct LoginView: View {
     var body: some View {
         AuthScreenLayout(
             title: "Sign in",
-            subtitle: "Welcome back. Pick up where you left off."
+            subtitle: "Welcome back."
         ) {
-            VStack(spacing: Theme.Spacing.medium) {
-                AuthTextField(
-                    label: "Email",
-                    text: $store.email,
-                    keyboard: .emailAddress,
-                    textContentType: .emailAddress
-                )
-                AuthSecureField(label: "Password", text: $store.password)
+            VStack(spacing: Theme.Spacing.large) {
+                VStack(spacing: Theme.Spacing.medium) {
+                    AuthTextField(
+                        placeholder: "Email",
+                        text: $store.email,
+                        keyboard: .emailAddress,
+                        textContentType: .emailAddress
+                    )
+                    AuthSecureField(placeholder: "Password", text: $store.password)
+                }
 
                 HStack {
                     Spacer()
@@ -36,16 +38,9 @@ struct LoginView: View {
                 }
             }
         } footer: {
-            HStack(spacing: 4) {
-                Text("New here?")
-                    .font(Theme.Typography.caption())
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                AuthLinkButton(title: "Create account") {
-                    store.send(.showRegisterTapped)
-                }
+            AuthFooterLink(prefix: "New here?", actionTitle: "Create account") {
+                store.send(.showRegisterTapped)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.top, Theme.Spacing.small)
         }
     }
 

@@ -21,15 +21,31 @@ struct BrandLogo: View {
 
 /// Shown while the app restores the session on cold start.
 struct SplashView: View {
+    var message: String = "Loading your session…"
+
     var body: some View {
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
 
-            VStack(spacing: Theme.Spacing.large) {
-                BrandLogo(style: .isotipo, height: 88)
-                ProgressView()
-                    .tint(Theme.Colors.accent)
+            VStack(spacing: Theme.Spacing.xl) {
+                BrandLogo(style: .isotipo, height: 48)
+
+                VStack(spacing: Theme.Spacing.medium) {
+                    ProgressView()
+                        .tint(Theme.Colors.accent)
+                        .scaleEffect(0.95)
+
+                    Text(message)
+                        .font(Theme.Typography.caption(size: 14))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
             }
+            .padding(.horizontal, Theme.Spacing.xl)
         }
     }
+}
+
+#Preview("Splash") {
+    SplashView()
 }

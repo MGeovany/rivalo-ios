@@ -12,6 +12,18 @@ struct SessionsFeature {
         var errorMessage: String?
         @Presents var entry: SessionEntryFeature.State?
         @Presents var detail: SessionDetailFeature.State?
+
+        /// Average distance (km) across sessions, for the comparative header.
+        var averageDistanceKm: Double? {
+            guard !sessions.isEmpty else { return nil }
+            return sessions.reduce(0) { $0 + $1.distanceM } / Double(sessions.count) / 1000
+        }
+
+        /// Average duration (minutes) across sessions.
+        var averageDurationMin: Int? {
+            guard !sessions.isEmpty else { return nil }
+            return sessions.reduce(0) { $0 + $1.durationS } / sessions.count / 60
+        }
     }
 
     enum Action {
@@ -19,6 +31,7 @@ struct SessionsFeature {
         case listResponse(Result<[SportSession], APIError>)
         case addTapped
         case sessionTapped(SportSession)
+        case showSummary(SportSession)
         case entry(PresentationAction<SessionEntryFeature.Action>)
         case detail(PresentationAction<SessionDetailFeature.Action>)
     }
@@ -52,7 +65,17 @@ struct SessionsFeature {
                 return .none
 
             case let .sessionTapped(session):
+                // Open by id so the detail validates GET /v1/sessions/{id}.
                 state.detail = SessionDetailFeature.State(accessToken: state.accessToken, id: session.id)
+                return .none
+
+            case let .showSummary(session):
+                // Auto-presented after a watch session syncs: we already have it.
+                state.detail = SessionDetailFeature.State(
+                    accessToken: state.accessToken,
+                    id: session.id,
+                    session: session
+                )
                 return .none
 
             case .entry(.presented(.delegate(.created))):

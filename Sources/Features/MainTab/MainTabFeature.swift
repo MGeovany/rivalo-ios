@@ -23,7 +23,8 @@ struct MainTabFeature {
 
     enum Action {
         case task
-        case watchSessionUploaded
+        case watchSessionsChanged
+        case watchSessionUploaded(SportSession)
         case sessions(SessionsFeature.Action)
         case profile(ProfileFeature.Action)
         case serverStatus(ServerStatusFeature.Action)
@@ -63,21 +64,28 @@ struct MainTabFeature {
                     for item in queue.all() {
                         if (try? await api.createSession(token, item.payload)) != nil {
                             queue.remove(item.id)
-                            await send(.watchSessionUploaded)
+                            await send(.watchSessionsChanged)
                         }
                     }
                     for await received in watch.incomingSessions() {
                         let queued = queue.enqueue(received)
-                        if (try? await api.createSession(token, received)) != nil {
+                        if let created = try? await api.createSession(token, received) {
                             queue.remove(queued.id)
-                            await send(.watchSessionUploaded)
+                            await send(.watchSessionUploaded(created))
                         }
                     }
                 }
 
-            case .watchSessionUploaded:
-                // A watch session reached the backend; refresh the list.
+            case .watchSessionsChanged:
+                // Offline-queued sessions flushed; just refresh the list.
                 return .send(.sessions(.onAppear))
+
+            case let .watchSessionUploaded(created):
+                // A live watch session reached the backend: refresh and open its summary.
+                return .merge(
+                    .send(.sessions(.onAppear)),
+                    .send(.sessions(.showSummary(created)))
+                )
 
             case .profile(.delegate(.signOut)):
                 return .send(.delegate(.signOut))

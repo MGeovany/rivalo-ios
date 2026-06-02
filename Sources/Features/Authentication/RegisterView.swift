@@ -7,20 +7,20 @@ struct RegisterView: View {
     var body: some View {
         AuthScreenLayout(
             title: "Create account",
-            subtitle: "Join Rivalo and track your game."
+            subtitle: "Track every match."
         ) {
-            VStack(spacing: Theme.Spacing.medium) {
-                AuthTextField(
-                    label: "Email",
-                    text: $store.email,
-                    keyboard: .emailAddress,
-                    textContentType: .emailAddress
-                )
-                AuthSecureField(label: "Password", text: $store.password)
+            VStack(spacing: Theme.Spacing.large) {
+                VStack(spacing: Theme.Spacing.medium) {
+                    AuthTextField(
+                        placeholder: "Email",
+                        text: $store.email,
+                        keyboard: .emailAddress,
+                        textContentType: .emailAddress
+                    )
+                    AuthSecureField(placeholder: "Password", text: $store.password)
+                }
 
-                Text("At least 6 characters")
-                    .font(Theme.Typography.statLabel())
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                AuthHint(text: "At least 6 characters")
 
                 messages
 
@@ -33,16 +33,9 @@ struct RegisterView: View {
                 }
             }
         } footer: {
-            HStack(spacing: 4) {
-                Text("Already have an account?")
-                    .font(Theme.Typography.caption())
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                AuthLinkButton(title: "Sign in") {
-                    store.send(.showLoginTapped)
-                }
+            AuthFooterLink(prefix: "Already have an account?", actionTitle: "Sign in") {
+                store.send(.showLoginTapped)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.top, Theme.Spacing.small)
         }
     }
 

@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Layout
 
-/// Shared chrome for authentication screens (logo + title + content).
+/// Shared chrome for authentication screens — centered, airy, minimal.
 struct AuthScreenLayout<Content: View, Footer: View>: View {
     let title: String
     let subtitle: String?
@@ -23,17 +23,21 @@ struct AuthScreenLayout<Content: View, Footer: View>: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.large) {
-                AuthLogo()
+            VStack(spacing: Theme.Spacing.xl) {
+                AuthHeader()
 
-                VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                VStack(spacing: Theme.Spacing.small) {
                     Text(title)
-                        .font(Theme.Typography.title(size: 26))
+                        .font(Theme.Typography.title(size: 30))
                         .foregroundStyle(Theme.Colors.textPrimary)
+                        .multilineTextAlignment(.center)
+
                     if let subtitle {
                         Text(subtitle)
-                            .font(Theme.Typography.body())
+                            .font(Theme.Typography.body(size: 15))
                             .foregroundStyle(Theme.Colors.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(2)
                     }
                 }
 
@@ -41,79 +45,73 @@ struct AuthScreenLayout<Content: View, Footer: View>: View {
 
                 footer()
             }
-            .padding(.horizontal, Theme.Spacing.large)
-            .padding(.top, Theme.Spacing.large)
-            .padding(.bottom, Theme.Spacing.medium)
+            .padding(.horizontal, Theme.Spacing.xl)
+            .padding(.top, 48)
+            .padding(.bottom, Theme.Spacing.xl)
+            .frame(maxWidth: 400)
+            .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
     }
 }
 
-struct AuthLogo: View {
+private struct AuthHeader: View {
     var body: some View {
-        BrandLogo(style: .wordmark, height: 36)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        BrandLogo(style: .isotipo, height: 52)
+            .frame(maxWidth: .infinity)
     }
 }
 
 // MARK: - Controls
 
 struct AuthTextField: View {
-    let label: String
+    let placeholder: String
     @Binding var text: String
     var keyboard: UIKeyboardType = .default
     var textContentType: UITextContentType?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(Theme.Typography.caption())
-                .foregroundStyle(Theme.Colors.textSecondary)
+        TextField("", text: $text, prompt: prompt)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .keyboardType(keyboard)
+            .textContentType(textContentType)
+            .font(Theme.Typography.body(size: 17))
+            .foregroundStyle(Theme.Colors.textPrimary)
+            .padding(.vertical, 14)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Theme.Colors.textSecondary.opacity(0.35))
+                    .frame(height: 1)
+            }
+    }
 
-            TextField("", text: $text)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(keyboard)
-                .textContentType(textContentType)
-                .font(Theme.Typography.body())
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .padding(.horizontal, Theme.Spacing.medium)
-                .padding(.vertical, 14)
-                .background(Theme.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.input))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.input)
-                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
-                )
-        }
+    private var prompt: Text {
+        Text(placeholder).foregroundStyle(Theme.Colors.textSecondary.opacity(0.85))
     }
 }
 
 struct AuthSecureField: View {
-    let label: String
+    let placeholder: String
     @Binding var text: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(Theme.Typography.caption())
-                .foregroundStyle(Theme.Colors.textSecondary)
+        SecureField("", text: $text, prompt: prompt)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .textContentType(.password)
+            .font(Theme.Typography.body(size: 17))
+            .foregroundStyle(Theme.Colors.textPrimary)
+            .padding(.vertical, 14)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Theme.Colors.textSecondary.opacity(0.35))
+                    .frame(height: 1)
+            }
+    }
 
-            SecureField("", text: $text)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textContentType(.password)
-                .font(Theme.Typography.body())
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .padding(.horizontal, Theme.Spacing.medium)
-                .padding(.vertical, 14)
-                .background(Theme.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.input))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.input)
-                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
-                )
-        }
+    private var prompt: Text {
+        Text(placeholder).foregroundStyle(Theme.Colors.textSecondary.opacity(0.85))
     }
 }
 
@@ -131,15 +129,16 @@ struct AuthPrimaryButton: View {
                 } else {
                     Text(title)
                         .font(Theme.Typography.button(size: 17))
+                        .foregroundStyle(Color.black.opacity(isEnabled ? 1 : 0.5))
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(isEnabled ? Theme.Colors.accent : Theme.Colors.surface)
-            .foregroundStyle(isEnabled ? Color.black : Theme.Colors.textSecondary)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.input))
+            .frame(height: 52)
+            .background(Theme.Colors.accent.opacity(isEnabled ? 1 : 0.35))
+            .clipShape(Capsule())
         }
         .disabled(!isEnabled || isLoading)
+        .padding(.top, Theme.Spacing.small)
     }
 }
 
@@ -150,7 +149,7 @@ struct AuthLinkButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(Theme.Typography.caption())
+                .font(Theme.Typography.button(size: 15))
                 .foregroundStyle(Theme.Colors.accent)
         }
         .buttonStyle(.plain)
@@ -164,15 +163,43 @@ struct AuthInlineMessage: View {
     let kind: Kind
 
     var body: some View {
+        HStack(spacing: Theme.Spacing.small) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(kind == .error ? Theme.Colors.negative : Theme.Colors.accent)
+                .frame(width: 3)
+
+            Text(text)
+                .font(Theme.Typography.caption())
+                .foregroundStyle(kind == .error ? Theme.Colors.negative : Theme.Colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, Theme.Spacing.small)
+    }
+}
+
+struct AuthHint: View {
+    let text: String
+
+    var body: some View {
         Text(text)
             .font(Theme.Typography.caption())
-            .foregroundStyle(kind == .error ? Theme.Colors.negative : Theme.Colors.accent)
+            .foregroundStyle(Theme.Colors.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(Theme.Spacing.medium)
-            .background(
-                (kind == .error ? Theme.Colors.negative : Theme.Colors.accent)
-                    .opacity(0.12)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.input))
+    }
+}
+
+struct AuthFooterLink: View {
+    let prefix: String
+    let actionTitle: String
+    let action: () -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(prefix)
+                .font(Theme.Typography.caption())
+                .foregroundStyle(Theme.Colors.textSecondary)
+            AuthLinkButton(title: actionTitle, action: action)
+        }
+        .frame(maxWidth: .infinity)
     }
 }

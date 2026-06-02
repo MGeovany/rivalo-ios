@@ -7,11 +7,11 @@ struct ForgotPasswordView: View {
     var body: some View {
         AuthScreenLayout(
             title: "Reset password",
-            subtitle: "Enter your email and we will send you a link to choose a new password."
+            subtitle: "We'll email you a link to set a new password."
         ) {
-            VStack(spacing: Theme.Spacing.medium) {
+            VStack(spacing: Theme.Spacing.large) {
                 AuthTextField(
-                    label: "Email",
+                    placeholder: "Email",
                     text: $store.email,
                     keyboard: .emailAddress,
                     textContentType: .emailAddress
@@ -32,7 +32,6 @@ struct ForgotPasswordView: View {
                 store.send(.showLoginTapped)
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, Theme.Spacing.small)
         }
     }
 

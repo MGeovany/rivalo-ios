@@ -1,3 +1,4 @@
+import Charts
 import ComposableArchitecture
 import SwiftUI
 
@@ -10,7 +11,7 @@ struct SessionsView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .navigationTitle("Sessions")
+            .navigationTitle("History")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { store.send(.addTapped) } label: {
@@ -45,6 +46,10 @@ struct SessionsView: View {
         } else {
             ScrollView {
                 LazyVStack(spacing: Theme.Spacing.medium) {
+                    if store.sessions.count >= 2 {
+                        progressCard
+                    }
+                    averagesCard
                     ForEach(store.sessions) { session in
                         Button { store.send(.sessionTapped(session)) } label: {
                             row(session)
@@ -56,6 +61,67 @@ struct SessionsView: View {
             }
         }
     }
+
+    // MARK: Progress (distance over time)
+
+    private var progressCard: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+            Text("Distance progress")
+                .font(Theme.Typography.caption())
+                .foregroundStyle(Theme.Colors.textSecondary)
+
+            Chart(store.sessions.sorted { $0.startedAt < $1.startedAt }) { session in
+                LineMark(
+                    x: .value("Date", session.startedAt),
+                    y: .value("km", session.distanceM / 1000)
+                )
+                .foregroundStyle(Theme.Colors.accent)
+                .interpolationMethod(.catmullRom)
+
+                PointMark(
+                    x: .value("Date", session.startedAt),
+                    y: .value("km", session.distanceM / 1000)
+                )
+                .foregroundStyle(Theme.Colors.accent)
+            }
+            .chartXAxis { AxisMarks(values: .automatic(desiredCount: 3)) }
+            .frame(height: 160)
+        }
+        .padding(Theme.Spacing.medium)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
+    // MARK: Averages (comparative reference)
+
+    private var averagesCard: some View {
+        HStack {
+            averageItem("Avg distance", store.averageDistanceKm.map { String(format: "%.2f km", $0) } ?? "--")
+            Divider().overlay(Theme.Colors.textSecondary)
+            averageItem("Avg duration", store.averageDurationMin.map { "\($0) min" } ?? "--")
+            Divider().overlay(Theme.Colors.textSecondary)
+            averageItem("Sessions", "\(store.sessions.count)")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(Theme.Spacing.medium)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
+    private func averageItem(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(Theme.Typography.metric(size: 18))
+                .foregroundStyle(Theme.Colors.accent)
+                .monospacedDigit()
+            Text(label)
+                .font(Theme.Typography.statLabel(size: 11))
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: Row
 
     private func row(_ session: SportSession) -> some View {
         HStack {
