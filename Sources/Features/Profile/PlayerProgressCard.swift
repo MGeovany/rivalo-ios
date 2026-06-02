@@ -222,6 +222,8 @@ struct PlayerProgressCardCanvas: View {
             statColumn(
                 left: false,
                 area: PlayerCardLayout.rightStats,
+                verticalAnchor: 0.30,
+                dividerPadding: height * 0.006,
                 entries: [
                     ("SPR", content.sprintsText),
                     ("KM", content.distanceText),
@@ -234,15 +236,19 @@ struct PlayerProgressCardCanvas: View {
     private func statColumn(
         left: Bool,
         area: PlayerCardLayout.SafeArea,
+        verticalAnchor: CGFloat = 0.5,
+        dividerPadding: CGFloat? = nil,
         entries: [(String, String)]
     ) -> some View {
-        VStack(alignment: left ? .leading : .trailing, spacing: 0) {
+        let rowGap = dividerPadding ?? height * 0.010
+
+        return VStack(alignment: left ? .leading : .trailing, spacing: 0) {
             ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
                 if index > 0 {
                     Rectangle()
                         .fill(style.accent.opacity(0.45))
                         .frame(width: width * area.width * 0.9, height: max(1, width * 0.001))
-                        .padding(.vertical, height * 0.010)
+                        .padding(.vertical, rowGap)
                 }
                 statBlock(abbrev: entry.0, value: entry.1, left: left, columnWidth: width * area.width)
             }
@@ -250,7 +256,7 @@ struct PlayerProgressCardCanvas: View {
         .frame(width: width * area.width, alignment: left ? .leading : .trailing)
         .position(
             x: width * (area.x + area.width / 2),
-            y: height * (area.y + area.height / 2)
+            y: height * (area.y + area.height * verticalAnchor)
         )
     }
 
