@@ -86,25 +86,50 @@ struct CourtEditView: View {
 
     @ViewBuilder
     private var statsSection: some View {
-        Section("Stats here") {
-            if let stats = store.stats, stats.matchCount > 0 {
-                LabeledContent("Matches played", value: "\(stats.matchCount)")
-                if let rating = stats.avgRating {
-                    LabeledContent("Avg rating", value: String(format: "%.0f", rating))
+        if let stats = store.stats {
+            Section("Stats") {
+                if stats.matchCount > 0 {
+                    LabeledContent("Matches played", value: "\(stats.matchCount)")
+                    if let rating = stats.avgRating {
+                        LabeledContent("Avg rating", value: String(format: "%.0f", rating))
+                    }
+                    if let dist = stats.avgDistanceM {
+                        LabeledContent("Avg distance", value: String(format: "%.2f km", dist / 1000))
+                    }
+                    if let sprints = stats.avgSprints {
+                        LabeledContent("Avg sprints", value: String(format: "%.0f", sprints))
+                    }
+                    if let last = stats.lastPlayedAt {
+                        LabeledContent("Last played", value: last.formatted(date: .abbreviated, time: .omitted))
+                    }
+                } else {
+                    Text("No sessions logged at this court yet.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-                if let dist = stats.avgDistanceM {
-                    LabeledContent("Avg distance", value: String(format: "%.2f km", dist / 1000))
+            }
+
+            if !stats.records.isEmpty {
+                Section("Court Records") {
+                    ForEach(stats.records) { record in
+                        HStack {
+                            Image(systemName: record.icon)
+                                .foregroundStyle(record.accentColor)
+                                .font(.system(size: 16))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(record.label)
+                                    .font(Theme.Typography.body(size: 15))
+                                Text(record.formattedValue)
+                                    .font(Theme.Typography.statValue(size: 14))
+                                    .foregroundStyle(record.accentColor)
+                            }
+                            Spacer()
+                            Text(record.startedAt.formatted(date: .abbreviated, time: .omitted))
+                                .font(Theme.Typography.caption(size: 10))
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                    }
                 }
-                if let sprints = stats.avgSprints {
-                    LabeledContent("Avg sprints", value: String(format: "%.0f", sprints))
-                }
-                if let last = stats.lastPlayedAt {
-                    LabeledContent("Last played", value: last.formatted(date: .abbreviated, time: .omitted))
-                }
-            } else {
-                Text("No sessions logged at this court yet.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
             }
         }
     }

@@ -46,6 +46,7 @@ struct PitchStats: Equatable, Codable, Sendable {
     var avgDistanceM: Double?
     var avgSprints: Double?
     var lastPlayedAt: Date?
+    var records: [RecordEntry] = []
 }
 
 /// Body for `PUT /v1/pitches/{id}` (all optional; nil leaves the field unchanged).
