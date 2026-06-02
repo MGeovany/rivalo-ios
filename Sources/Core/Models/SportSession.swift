@@ -80,6 +80,8 @@ struct SportSession: Equatable, Codable, Identifiable {
     let fatigueDrop: FatigueDrop?
     /// Personal-best metrics this session broke (present only on the create response).
     let newRecords: [String]?
+    /// 1-3 short observations comparing this session to history (present only on the create response).
+    let matchInsights: [MatchInsight]?
 }
 
 extension SportSession {

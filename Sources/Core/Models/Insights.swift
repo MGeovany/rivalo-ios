@@ -10,6 +10,15 @@ struct SessionInsights: Equatable, Codable, Sendable {
     var insights: [Insight]?
 }
 
+/// One explainable, rule-based post-match insight comparing a session to history.
+struct MatchInsight: Equatable, Codable, Sendable, Identifiable {
+    var kind: String
+    var title: String
+    var message: String
+
+    var id: String { kind }
+}
+
 /// One explainable, rule-based observation, computed server-side.
 struct Insight: Equatable, Codable, Sendable, Identifiable {
     var kind: String

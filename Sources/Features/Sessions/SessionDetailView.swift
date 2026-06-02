@@ -206,6 +206,10 @@ struct SessionDetailView: View {
                 detailStat(session.intensity.map { String(format: "%.0f", $0) } ?? "—", "Intensity", "flame.fill")
             }
 
+            if let insights = session.matchInsights, !insights.isEmpty {
+                matchInsightsSection(insights)
+            }
+
             if let rating = session.matchRating {
                 matchRatingCard(rating)
             }
@@ -599,4 +603,47 @@ struct SessionDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 
+    @ViewBuilder
+    private func matchInsightsSection(_ insights: [MatchInsight]) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+            Text("MATCH INSIGHTS")
+                .font(Theme.Typography.statLabel(size: 11))
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .tracking(1)
+
+            ForEach(insights) { insight in
+                HStack(spacing: Theme.Spacing.small) {
+                    Image(systemName: insightIcon(insight.kind))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.accent)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(insight.title)
+                            .font(Theme.Typography.body(size: 14))
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        Text(insight.message)
+                            .font(Theme.Typography.caption(size: 12))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, Theme.Spacing.medium)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            }
+        }
+    }
+
+    private func insightIcon(_ kind: String) -> String {
+        switch kind {
+        case "distance_burst": "figure.run"
+        case "sprint_peak": "hare.fill"
+        case "duration_record": "clock.fill"
+        case "rating_boost": "star.fill"
+        case "intensity_peak": "flame.fill"
+        default: "sparkles"
+        }
+    }
 }
