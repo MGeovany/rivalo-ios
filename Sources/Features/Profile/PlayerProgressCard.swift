@@ -7,6 +7,7 @@ struct PlayerProgressCardCanvas: View {
     let canvasSize: CGSize
     let images: [PlayerCardLayer: UIImage]
     var avatarImageData: Data?
+    var isPendingPhotoPlacement = false
     var photoPlacement: PlayerCardPhotoPlacement = .default
     var isPhotoAdjustable = false
     var onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)?
@@ -80,8 +81,39 @@ struct PlayerProgressCardCanvas: View {
                     .position(x: anchor.x, y: anchor.y)
             }
             .frame(width: width, height: height)
-            .mask(softPhotoMask)
-            .highPriorityGesture(photoAdjustGesture)
+            .modifier(PhotoMaskModifier(isPending: isPendingPhotoPlacement, mask: softPhotoMask))
+            .modifier(ConditionalGestureModifier(isEnabled: isPhotoAdjustable, gesture: photoAdjustGesture))
+        }
+    }
+
+    private struct PhotoMaskModifier: ViewModifier {
+        let isPending: Bool
+        let mask: AnyView
+
+        init(isPending: Bool, mask: some View) {
+            self.isPending = isPending
+            self.mask = AnyView(mask)
+        }
+
+        func body(content: Content) -> some View {
+            if isPending {
+                content
+            } else {
+                content.mask(mask)
+            }
+        }
+    }
+
+    private struct ConditionalGestureModifier<G: Gesture>: ViewModifier {
+        let isEnabled: Bool
+        let gesture: G
+
+        func body(content: Content) -> some View {
+            if isEnabled {
+                content.highPriorityGesture(gesture)
+            } else {
+                content
+            }
         }
     }
 
@@ -119,7 +151,7 @@ struct PlayerProgressCardCanvas: View {
                 .frame(width: portrait.width, height: portrait.height)
                 .position(x: portrait.midX, y: portrait.midY)
 
-            Text("Drag · Pinch to adjust")
+            Text(isPendingPhotoPlacement ? "Drag · Pinch to position" : "Drag · Pinch to adjust")
                 .font(PlayerCardTypography.statLabel(size: width))
                 .foregroundStyle(style.accentBright.opacity(0.8))
                 .position(x: width * 0.5, y: portrait.maxY + height * 0.02)
@@ -299,6 +331,7 @@ struct PlayerProgressCardCanvas: View {
 struct PlayerProgressCard: View {
     let content: PlayerCardContent
     var avatarImageData: Data?
+    var isPendingPhotoPlacement = false
     var photoPlacement: PlayerCardPhotoPlacement = .default
     var isPhotoAdjustable = false
     var onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)?
@@ -308,12 +341,14 @@ struct PlayerProgressCard: View {
     init(
         content: PlayerCardContent,
         avatarImageData: Data? = nil,
+        isPendingPhotoPlacement: Bool = false,
         photoPlacement: PlayerCardPhotoPlacement = .default,
         isPhotoAdjustable: Bool = false,
         onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)? = nil
     ) {
         self.content = content
         self.avatarImageData = avatarImageData
+        self.isPendingPhotoPlacement = isPendingPhotoPlacement
         self.photoPlacement = photoPlacement
         self.isPhotoAdjustable = isPhotoAdjustable
         self.onPhotoPlacementChange = onPhotoPlacementChange
@@ -327,6 +362,7 @@ struct PlayerProgressCard: View {
         self.init(
             content: model.content,
             avatarImageData: model.avatarImageData,
+            isPendingPhotoPlacement: model.isPendingPhotoPlacement,
             photoPlacement: model.photoPlacement,
             isPhotoAdjustable: isPhotoAdjustable,
             onPhotoPlacementChange: onPhotoPlacementChange
@@ -340,6 +376,7 @@ struct PlayerProgressCard: View {
                 canvasSize: geo.size,
                 images: assetLoader.images,
                 avatarImageData: avatarImageData,
+                isPendingPhotoPlacement: isPendingPhotoPlacement,
                 photoPlacement: photoPlacement,
                 isPhotoAdjustable: isPhotoAdjustable,
                 onPhotoPlacementChange: onPhotoPlacementChange

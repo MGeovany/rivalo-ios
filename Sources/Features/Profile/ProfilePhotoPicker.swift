@@ -5,9 +5,11 @@ import SwiftUI
 struct ProfileCardPhotoControls: View {
     let hasPhoto: Bool
     let isProcessing: Bool
+    let isAwaitingFix: Bool
     let isPlacementLocked: Bool
     let onPhotoData: (Data) -> Void
     let onRemove: () -> Void
+    let onFixPhoto: () -> Void
     let onAdjust: () -> Void
     let onAdjustDone: () -> Void
 
@@ -18,8 +20,8 @@ struct ProfileCardPhotoControls: View {
             HStack(spacing: Theme.Spacing.medium) {
                 PhotosPicker(selection: $pickerItem, matching: .images) {
                     Label(
-                        isProcessing ? "Cutting out…" : (hasPhoto ? "Change photo" : "Add photo"),
-                        systemImage: isProcessing ? "person.crop.rectangle" : "photo.on.rectangle.angled"
+                        pickerLabel,
+                        systemImage: pickerIcon
                     )
                     .font(Theme.Typography.button(size: 15))
                     .foregroundStyle(isProcessing ? Theme.Colors.textSecondary : Theme.Colors.accent)
@@ -28,7 +30,7 @@ struct ProfileCardPhotoControls: View {
                     .background(Theme.Colors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
                 }
-                .disabled(isProcessing)
+                .disabled(isProcessing || isAwaitingFix)
 
                 if hasPhoto {
                     Button(action: onRemove) {
@@ -40,10 +42,37 @@ struct ProfileCardPhotoControls: View {
                             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
                     }
                     .buttonStyle(.plain)
+                    .disabled(isProcessing)
                 }
             }
 
-            if hasPhoto, !isProcessing {
+            if isAwaitingFix {
+                Button(action: onFixPhoto) {
+                    Label("Fijar imagen", systemImage: "pin.fill")
+                        .font(Theme.Typography.button(size: 16))
+                        .foregroundStyle(Color.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.Spacing.medium)
+                        .background(Theme.Colors.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                }
+                .buttonStyle(.plain)
+
+                Text("Posiciona la foto y fíjala para recortar el fondo.")
+                    .font(Theme.Typography.caption(size: 12))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+            } else if isProcessing {
+                HStack(spacing: Theme.Spacing.small) {
+                    ProgressView()
+                        .tint(Theme.Colors.accent)
+                    Text("Recortando silueta…")
+                        .font(Theme.Typography.caption(size: 13))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Theme.Spacing.small)
+            } else if hasPhoto {
                 if isPlacementLocked {
                     Button(action: onAdjust) {
                         Label("Adjust position", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
@@ -76,5 +105,17 @@ struct ProfileCardPhotoControls: View {
                 await MainActor.run { pickerItem = nil }
             }
         }
+    }
+
+    private var pickerLabel: String {
+        if isProcessing { return "Recortando silueta…" }
+        if isAwaitingFix { return "Posicionando foto…" }
+        return hasPhoto ? "Change photo" : "Add photo"
+    }
+
+    private var pickerIcon: String {
+        if isProcessing { return "person.crop.rectangle" }
+        if isAwaitingFix { return "hand.draw" }
+        return "photo.on.rectangle.angled"
     }
 }

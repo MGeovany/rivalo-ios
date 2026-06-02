@@ -25,6 +25,8 @@ struct ProfileFeature {
         var sessions: [SportSession] = []
         /// PNG bytes for the player card cutout (device-local until backend avatar exists).
         var avatarImageData: Data?
+        /// Raw photo chosen from the library, awaiting placement + background removal.
+        var pendingPhotoData: Data?
         var photoPlacement: PlayerCardPhotoPlacement = .default
         /// When true, the card photo cannot be dragged or pinched (after save).
         var isPhotoPlacementLocked = false
@@ -32,6 +34,20 @@ struct ProfileFeature {
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
+        }
+
+        /// Photo bytes shown on the card (pending preview or saved cutout).
+        var cardPhotoData: Data? {
+            pendingPhotoData ?? avatarImageData
+        }
+
+        var hasCardPhoto: Bool {
+            cardPhotoData != nil
+        }
+
+        /// User picked a photo and must position it before cutout processing runs.
+        var isAwaitingPhotoFix: Bool {
+            pendingPhotoData != nil && !isProcessingPhoto
         }
 
         var canAdjustCardPhoto: Bool {
@@ -56,13 +72,10 @@ struct ProfileFeature {
                 displayStats: metrics.displayStats,
                 countryCode: countryCode,
                 initials: ProfileFormatting.initials(from: name),
-                avatarImageData: avatarImageData,
+                avatarImageData: cardPhotoData,
+                isPendingPhotoPlacement: pendingPhotoData != nil,
                 photoPlacement: photoPlacement
             )
-        }
-
-        var hasCardPhoto: Bool {
-            avatarImageData != nil
         }
 
     }
@@ -78,6 +91,7 @@ struct ProfileFeature {
         case heightUnitChanged(HeightUnit)
         case weightUnitChanged(WeightUnit)
         case photoSelected(Data)
+        case photoFixTapped
         case photoProcessed(Data?)
         case photoPlacementChanged(PlayerCardPhotoPlacement)
         case photoAdjustTapped
@@ -173,30 +187,43 @@ struct ProfileFeature {
 
             case let .photoSelected(data):
                 guard state.profile?.id != nil else { return .none }
+                state.pendingPhotoData = data
+                state.photoPlacement = .default
+                state.isPhotoPlacementLocked = false
+                state.isProcessingPhoto = false
+                state.errorMessage = nil
+                return .none
+
+            case .photoFixTapped:
+                guard let pending = state.pendingPhotoData, state.profile?.id != nil else { return .none }
                 state.isProcessingPhoto = true
+                state.isPhotoPlacementLocked = true
+                state.errorMessage = nil
                 return .run { send in
-                    let prepared = await ProfilePhotoProcessor.prepareForCard(data)
+                    let prepared = await ProfilePhotoProcessor.prepareForCard(pending)
                     await send(.photoProcessed(prepared))
                 }
 
             case let .photoProcessed(data):
                 state.isProcessingPhoto = false
                 guard let userId = state.profile?.id else { return .none }
-                if let data, let saved = ProfilePhotoStore.save(userId: userId, pngData: data) {
-                    state.avatarImageData = saved
-                    state.photoPlacement = .default
-                    ProfilePhotoPlacementStore.save(userId: userId, placement: .default)
-                    state.isPhotoPlacementLocked = true
-                    ProfilePhotoPlacementLockStore.save(userId: userId, locked: true)
+                guard let data, let saved = ProfilePhotoStore.save(userId: userId, pngData: data) else {
+                    state.isPhotoPlacementLocked = false
+                    state.errorMessage = "Could not cut out your photo. Try another image."
+                    return .none
                 }
+                state.avatarImageData = saved
+                state.pendingPhotoData = nil
+                ProfilePhotoPlacementStore.save(userId: userId, placement: state.photoPlacement)
+                state.isPhotoPlacementLocked = true
+                ProfilePhotoPlacementLockStore.save(userId: userId, locked: true)
                 return .none
 
             case let .photoPlacementChanged(placement):
                 guard !state.isPhotoPlacementLocked else { return .none }
-                let clamped = placement.clamped()
-                state.photoPlacement = clamped
-                if let userId = state.profile?.id {
-                    ProfilePhotoPlacementStore.save(userId: userId, placement: clamped)
+                state.photoPlacement = placement.clamped()
+                if state.pendingPhotoData == nil, let userId = state.profile?.id {
+                    ProfilePhotoPlacementStore.save(userId: userId, placement: state.photoPlacement)
                 }
                 return .none
 
@@ -218,8 +245,10 @@ struct ProfileFeature {
                 ProfilePhotoPlacementStore.delete(userId: userId)
                 ProfilePhotoPlacementLockStore.delete(userId: userId)
                 state.avatarImageData = nil
+                state.pendingPhotoData = nil
                 state.photoPlacement = .default
                 state.isPhotoPlacementLocked = false
+                state.isProcessingPhoto = false
                 return .none
 
             case let .countryCodeChanged(code):
@@ -282,5 +311,7 @@ struct PlayerCardModel: Equatable {
     let countryCode: String
     let initials: String
     let avatarImageData: Data?
+    /// True while the user is positioning a raw photo before cutout processing.
+    let isPendingPhotoPlacement: Bool
     let photoPlacement: PlayerCardPhotoPlacement
 }
