@@ -22,7 +22,7 @@ struct SessionDetailView: View {
     @ViewBuilder
     private var content: some View {
         if store.isLoading {
-            ProgressView().tint(Theme.Colors.accent)
+            LoadingView()
         } else if let session = store.session {
             ScrollView {
                 VStack(spacing: Theme.Spacing.large) {

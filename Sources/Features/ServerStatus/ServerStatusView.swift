@@ -41,11 +41,7 @@ struct ServerStatusView: View {
 
             switch store.connection {
             case .idle, .checking:
-                ProgressView()
-                    .tint(Theme.Colors.accent)
-                Text("Checking…")
-                    .font(Theme.Typography.body())
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                LoadingView(style: .compact)
 
             case let .online(database):
                 Text("Online")

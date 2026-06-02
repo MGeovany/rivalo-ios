@@ -122,22 +122,28 @@ struct AuthPrimaryButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            ZStack {
-                if isLoading {
-                    ProgressView().tint(.black)
-                } else {
-                    Text(title)
-                        .font(Theme.Typography.button(size: 17))
-                        .foregroundStyle(Color.black.opacity(isEnabled ? 1 : 0.5))
+        VStack(spacing: Theme.Spacing.medium) {
+            Button(action: action) {
+                ZStack {
+                    if isLoading {
+                        ProgressView().tint(.black)
+                    } else {
+                        Text(title)
+                            .font(Theme.Typography.button(size: 17))
+                            .foregroundStyle(Color.black.opacity(isEnabled ? 1 : 0.5))
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(Theme.Colors.accent.opacity(isEnabled ? 1 : 0.35))
+                .clipShape(Capsule())
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(Theme.Colors.accent.opacity(isEnabled ? 1 : 0.35))
-            .clipShape(Capsule())
+            .disabled(!isEnabled || isLoading)
+
+            if isLoading {
+                CyclingLoadingMessage()
+            }
         }
-        .disabled(!isEnabled || isLoading)
         .padding(.top, Theme.Spacing.small)
     }
 }

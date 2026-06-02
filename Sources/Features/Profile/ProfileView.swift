@@ -9,7 +9,7 @@ struct ProfileView: View {
             Theme.Colors.background.ignoresSafeArea()
 
             if store.isLoading && store.profile == nil {
-                ProgressView().tint(Theme.Colors.accent)
+                LoadingView()
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Spacing.large) {
@@ -73,23 +73,29 @@ struct ProfileView: View {
     }
 
     private var saveButton: some View {
-        Button {
-            store.send(.saveTapped)
-        } label: {
-            ZStack {
-                if store.isSaving {
-                    ProgressView().tint(.black)
-                } else {
-                    Text("Save").font(Theme.Typography.button())
+        VStack(spacing: Theme.Spacing.medium) {
+            Button {
+                store.send(.saveTapped)
+            } label: {
+                ZStack {
+                    if store.isSaving {
+                        ProgressView().tint(.black)
+                    } else {
+                        Text("Save").font(Theme.Typography.button())
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(store.canSave ? Theme.Colors.accent : Theme.Colors.surface)
+                .foregroundStyle(store.canSave ? Color.black : Theme.Colors.textSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(store.canSave ? Theme.Colors.accent : Theme.Colors.surface)
-            .foregroundStyle(store.canSave ? Color.black : Theme.Colors.textSecondary)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .disabled(!store.canSave || store.isSaving)
+
+            if store.isSaving {
+                CyclingLoadingMessage()
+            }
         }
-        .disabled(!store.canSave)
     }
 
     private var signOutButton: some View {

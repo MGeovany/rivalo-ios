@@ -34,7 +34,7 @@ struct SessionsView: View {
     @ViewBuilder
     private var content: some View {
         if store.isLoading && store.sessions.isEmpty {
-            ProgressView().tint(Theme.Colors.accent)
+            LoadingView()
         } else if store.sessions.isEmpty {
             VStack(spacing: Theme.Spacing.small) {
                 Text("No sessions yet")

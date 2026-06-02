@@ -54,20 +54,26 @@ struct SessionEntryView: View {
     }
 
     private var submitButton: some View {
-        Button { store.send(.submitTapped) } label: {
-            ZStack {
-                if store.isSubmitting {
-                    ProgressView().tint(.black)
-                } else {
-                    Text("Save session").font(Theme.Typography.button())
+        VStack(spacing: Theme.Spacing.medium) {
+            Button { store.send(.submitTapped) } label: {
+                ZStack {
+                    if store.isSubmitting {
+                        ProgressView().tint(.black)
+                    } else {
+                        Text("Save session").font(Theme.Typography.button())
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(store.canSubmit ? Theme.Colors.accent : Theme.Colors.surface)
+                .foregroundStyle(store.canSubmit ? Color.black : Theme.Colors.textSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(store.canSubmit ? Theme.Colors.accent : Theme.Colors.surface)
-            .foregroundStyle(store.canSubmit ? Color.black : Theme.Colors.textSecondary)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .disabled(!store.canSubmit || store.isSubmitting)
+
+            if store.isSubmitting {
+                CyclingLoadingMessage()
+            }
         }
-        .disabled(!store.canSubmit)
     }
 }
