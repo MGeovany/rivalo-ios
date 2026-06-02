@@ -28,8 +28,7 @@ struct SessionEntryView: View {
                     .padding(Theme.Spacing.large)
                 }
             }
-            .navigationTitle("New session")
-            .navigationBarTitleDisplayMode(.inline)
+            .rivalNavigationChrome(title: "New session")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { store.send(.cancelTapped) }

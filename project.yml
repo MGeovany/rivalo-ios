@@ -48,6 +48,7 @@ targets:
         SupabaseURL: $(RIVALO_SUPABASE_URL)
         SupabaseAnonKey: $(RIVALO_SUPABASE_ANON_KEY)
         # Allow plain-HTTP requests to the local backend during development.
+        NSPhotoLibraryUsageDescription: Rivalo uses your photo library to set your player card picture.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         UIAppFonts:

@@ -95,19 +95,40 @@ struct AuthSecureField: View {
     let placeholder: String
     @Binding var text: String
 
+    @State private var isRevealed = false
+
     var body: some View {
-        SecureField("", text: $text, prompt: prompt)
+        HStack(spacing: Theme.Spacing.small) {
+            Group {
+                if isRevealed {
+                    TextField("", text: $text, prompt: prompt)
+                } else {
+                    SecureField("", text: $text, prompt: prompt)
+                }
+            }
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .textContentType(.password)
             .font(Theme.Typography.body(size: 17))
             .foregroundStyle(Theme.Colors.textPrimary)
-            .padding(.vertical, 14)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Theme.Colors.textSecondary.opacity(0.35))
-                    .frame(height: 1)
+
+            Button {
+                isRevealed.toggle()
+            } label: {
+                Image(systemName: isRevealed ? "eye.slash" : "eye")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .frame(width: 32, height: 32)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isRevealed ? "Hide password" : "Show password")
+        }
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Theme.Colors.textSecondary.opacity(0.35))
+                .frame(height: 1)
+        }
     }
 
     private var prompt: Text {

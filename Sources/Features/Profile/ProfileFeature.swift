@@ -17,9 +17,44 @@ struct ProfileFeature {
         var preferredPosition = ""
         var heightText = ""
         var weightText = ""
+        var heightUnit: HeightUnit = .loadPreferred()
+        var weightUnit: WeightUnit = .loadPreferred()
+        var sessions: [SportSession] = []
+        /// JPEG bytes for the FIFA card photo (device-local until backend avatar exists).
+        var avatarImageData: Data?
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
+        }
+
+        /// Snapshot for the FIFA-style card (last saved profile + session-derived rating).
+        var playerCard: PlayerCardModel? {
+            guard let profile else { return nil }
+            let name = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return nil }
+
+            return PlayerCardModel(
+                displayName: name,
+                position: profile.preferredPosition,
+                positionAbbrev: ProfileFormatting.positionAbbreviation(profile.preferredPosition),
+                heightLabel: physicalLabel(cm: profile.heightCm, unit: heightUnit),
+                weightLabel: physicalLabel(kg: profile.weightKg, unit: weightUnit),
+                rating: playerRating,
+                initials: ProfileFormatting.initials(from: name),
+                avatarImageData: avatarImageData
+            )
+        }
+
+        var hasCardPhoto: Bool {
+            avatarImageData != nil
+        }
+
+        /// Average match intensity (0–100) used as overall rating until match_rating exists.
+        var playerRating: Int? {
+            let values = sessions.compactMap(\.intensity)
+            guard !values.isEmpty else { return nil }
+            let avg = values.reduce(0, +) / Double(values.count)
+            return Int(avg.rounded())
         }
     }
 
@@ -27,9 +62,14 @@ struct ProfileFeature {
         case onAppear
         case binding(BindingAction<State>)
         case loadResponse(Result<Profile, APIError>)
+        case sessionsForCardResponse(Result<[SportSession], APIError>)
         case saveTapped
         case saveResponse(Result<Profile, APIError>)
         case signOutTapped
+        case heightUnitChanged(HeightUnit)
+        case weightUnitChanged(WeightUnit)
+        case photoSelected(Data)
+        case photoRemoved
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -45,13 +85,16 @@ struct ProfileFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                guard state.profile == nil else { return .none }
-                state.isLoading = true
+                state.isLoading = state.profile == nil
                 state.errorMessage = nil
                 let token = state.accessToken
                 return .run { send in
-                    await send(.loadResponse(Result { try await apiClient.me(token) }
-                        .mapError { $0 as? APIError ?? .invalidResponse }))
+                    async let profile = Result { try await apiClient.me(token) }
+                        .mapError { $0 as? APIError ?? .invalidResponse }
+                    async let sessions = Result { try await apiClient.listSessions(token) }
+                        .mapError { $0 as? APIError ?? .invalidResponse }
+                    await send(.loadResponse(await profile))
+                    await send(.sessionsForCardResponse(await sessions))
                 }
 
             case let .loadResponse(.success(profile)):
@@ -62,6 +105,13 @@ struct ProfileFeature {
             case .loadResponse(.failure):
                 state.isLoading = false
                 state.errorMessage = "Could not load your profile."
+                return .none
+
+            case let .sessionsForCardResponse(.success(sessions)):
+                state.sessions = sessions
+                return .none
+
+            case .sessionsForCardResponse(.failure):
                 return .none
 
             case .saveTapped:
@@ -78,7 +128,12 @@ struct ProfileFeature {
             case let .saveResponse(.success(profile)):
                 state.isSaving = false
                 state.apply(profile)
-                return .none
+                let token = state.accessToken
+                return .run { send in
+                    await send(.sessionsForCardResponse(Result {
+                        try await apiClient.listSessions(token)
+                    }.mapError { $0 as? APIError ?? .invalidResponse }))
+                }
 
             case .saveResponse(.failure):
                 state.isSaving = false
@@ -87,6 +142,31 @@ struct ProfileFeature {
 
             case .signOutTapped:
                 return .send(.delegate(.signOut))
+
+            case let .heightUnitChanged(unit):
+                let cm = state.heightUnit.parseToCm(state.heightText)
+                state.heightUnit = unit
+                unit.savePreferred()
+                state.heightText = unit.format(cm: cm)
+                return .none
+
+            case let .weightUnitChanged(unit):
+                let kg = state.weightUnit.parseToKg(state.weightText)
+                state.weightUnit = unit
+                unit.savePreferred()
+                state.weightText = unit.format(kg: kg)
+                return .none
+
+            case let .photoSelected(data):
+                guard let userId = state.profile?.id else { return .none }
+                state.avatarImageData = ProfilePhotoStore.save(userId: userId, rawImageData: data)
+                return .none
+
+            case .photoRemoved:
+                guard let userId = state.profile?.id else { return .none }
+                ProfilePhotoStore.delete(userId: userId)
+                state.avatarImageData = nil
+                return .none
 
             case .binding, .delegate:
                 return .none
@@ -101,8 +181,9 @@ private extension ProfileFeature.State {
         self.profile = profile
         displayName = profile.displayName
         preferredPosition = profile.preferredPosition ?? ""
-        heightText = profile.heightCm.map(String.init) ?? ""
-        weightText = profile.weightKg.map { String(format: "%g", $0) } ?? ""
+        heightText = heightUnit.format(cm: profile.heightCm)
+        weightText = weightUnit.format(kg: profile.weightKg)
+        avatarImageData = ProfilePhotoStore.load(userId: profile.id)
     }
 
     /// Builds the update payload from the editable fields.
@@ -111,8 +192,33 @@ private extension ProfileFeature.State {
         return ProfileUpdate(
             displayName: displayName.trimmingCharacters(in: .whitespaces),
             preferredPosition: position.isEmpty ? nil : position,
-            heightCm: Int(heightText.trimmingCharacters(in: .whitespaces)),
-            weightKg: Double(weightText.trimmingCharacters(in: .whitespaces))
+            heightCm: heightUnit.parseToCm(heightText),
+            weightKg: weightUnit.parseToKg(weightText)
         )
     }
+
+}
+
+private func physicalLabel(cm: Int?, unit: HeightUnit) -> String {
+    let text = unit.format(cm: cm)
+    guard !text.isEmpty else { return "—" }
+    return "\(text) \(unit.menuLabel)"
+}
+
+private func physicalLabel(kg: Double?, unit: WeightUnit) -> String {
+    let text = unit.format(kg: kg)
+    guard !text.isEmpty else { return "—" }
+    return "\(text) \(unit.menuLabel)"
+}
+
+/// Read-only data for the FIFA-style player card.
+struct PlayerCardModel: Equatable {
+    let displayName: String
+    let position: String?
+    let positionAbbrev: String
+    let heightLabel: String
+    let weightLabel: String
+    let rating: Int?
+    let initials: String
+    let avatarImageData: Data?
 }

@@ -2,12 +2,24 @@ import ComposableArchitecture
 import Foundation
 import WatchConnectivity
 
-/// Receives finished sessions transferred from the Apple Watch.
+enum WatchCommand {
+    static let actionKey = "action"
+    static let startMatch = "startMatch"
+}
+
+enum StartMatchResult: Equatable {
+    case started
+    case queued
+    case unavailable(String)
+}
+
+/// Receives finished sessions from the watch and can request a match start on the watch.
 @DependencyClient
 struct WatchSyncClient {
     /// A stream of sessions received from the watch over WatchConnectivity.
-    /// Activating the session happens on first use.
     var incomingSessions: @Sendable () -> AsyncStream<NewSportSession> = { .finished }
+    /// Asks the paired watch to begin a HealthKit match capture.
+    var startMatch: @Sendable () async -> StartMatchResult = { .unavailable("Watch Connectivity is not available.") }
 }
 
 extension DependencyValues {
@@ -22,12 +34,19 @@ extension WatchSyncClient: DependencyKey {
         incomingSessions: {
             WatchReceiver.shared.activate()
             return WatchReceiver.shared.stream()
+        },
+        startMatch: {
+            await WatchReceiver.shared.startMatch()
         }
+    )
+
+    static let testValue = WatchSyncClient(
+        incomingSessions: { .finished },
+        startMatch: { .started }
     )
 }
 
-/// Bridges the delegate-based WatchConnectivity API to an AsyncStream. Marked
-/// `@unchecked Sendable` because access to its mutable state is guarded by a lock.
+/// Bridges WatchConnectivity to AsyncStream and outbound commands.
 private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Sendable {
     static let shared = WatchReceiver()
 
@@ -50,6 +69,42 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
             continuation.onTermination = { [weak self] _ in
                 self?.lock.withLock { _ = self?.continuations.removeValue(forKey: id) }
             }
+        }
+    }
+
+    func startMatch() async -> StartMatchResult {
+        guard WCSession.isSupported() else {
+            return .unavailable("Watch Connectivity is not available on this device.")
+        }
+        activate()
+        let session = WCSession.default
+
+        guard session.isPaired else {
+            return .unavailable("Pair an Apple Watch with this iPhone to record a match.")
+        }
+        guard session.isWatchAppInstalled else {
+            return .unavailable("Install Rivalo on your Apple Watch, then try again.")
+        }
+
+        let payload = [WatchCommand.actionKey: WatchCommand.startMatch]
+
+        if session.isReachable {
+            return await withCheckedContinuation { continuation in
+                session.sendMessage(
+                    payload,
+                    replyHandler: { _ in continuation.resume(returning: .started) },
+                    errorHandler: { error in
+                        continuation.resume(returning: .unavailable(error.localizedDescription))
+                    }
+                )
+            }
+        }
+
+        do {
+            try session.updateApplicationContext(payload)
+            return .queued
+        } catch {
+            return .unavailable("Open Rivalo on your Apple Watch and tap Start match.")
         }
     }
 

@@ -5,115 +5,140 @@ struct ProfileView: View {
     @Bindable var store: StoreOf<ProfileFeature>
 
     var body: some View {
-        ZStack {
-            Theme.Colors.background.ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                Theme.Colors.background.ignoresSafeArea()
 
-            if store.isLoading && store.profile == nil {
-                LoadingView()
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.large) {
-                        header
+                if store.isLoading && store.profile == nil {
+                    LoadingView()
+                } else {
+                    ScrollView {
+                        VStack(spacing: Theme.Spacing.xl) {
+                            if let card = store.playerCard {
+                                FIFAPlayerCard(model: card)
 
-                        VStack(spacing: Theme.Spacing.medium) {
-                            labeledField("Display name", text: $store.displayName)
-                            labeledField("Preferred position", text: $store.preferredPosition, placeholder: "e.g. midfielder")
-                            labeledField("Height (cm)", text: $store.heightText, keyboard: .numberPad)
-                            labeledField("Weight (kg)", text: $store.weightText, keyboard: .decimalPad)
+                                if store.profile != nil {
+                                    ProfileCardPhotoControls(
+                                        hasPhoto: store.hasCardPhoto,
+                                        onPhotoData: { store.send(.photoSelected($0)) },
+                                        onRemove: { store.send(.photoRemoved) }
+                                    )
+                                }
+                            } else {
+                                profileSetupHint
+                            }
+
+                            aboutCard
+                            physicalCard
+
+                            if let message = store.errorMessage {
+                                AuthInlineMessage(text: message, kind: .error)
+                            }
+
+                            ProfilePrimaryButton(
+                                title: "Save changes",
+                                isEnabled: store.canSave,
+                                isLoading: store.isSaving
+                            ) {
+                                store.send(.saveTapped)
+                            }
+
+                            ProfileSignOutButton {
+                                store.send(.signOutTapped)
+                            }
                         }
-
-                        if let message = store.errorMessage {
-                            Text(message)
-                                .font(Theme.Typography.caption())
-                                .foregroundStyle(Theme.Colors.negative)
-                        }
-
-                        saveButton
-                        signOutButton
+                        .padding(.horizontal, Theme.Spacing.large)
+                        .padding(.top, Theme.Spacing.medium)
+                        .padding(.bottom, Theme.Spacing.xl)
                     }
-                    .padding(Theme.Spacing.large)
+                    .scrollDismissesKeyboard(.interactively)
                 }
             }
+            .rivalNavigationChrome(title: "You")
         }
+        .tint(Theme.Colors.accent)
         .foregroundStyle(Theme.Colors.textPrimary)
         .onAppear { store.send(.onAppear) }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Profile")
-                .font(Theme.Typography.title())
-            if let id = store.profile?.id {
-                Text(id)
-                    .font(Theme.Typography.statLabel())
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-        }
-    }
+    // MARK: - Sections
 
-    private func labeledField(
-        _ label: String,
-        text: Binding<String>,
-        placeholder: String = "",
-        keyboard: UIKeyboardType = .default
-    ) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text(label)
+    private var profileSetupHint: some View {
+        VStack(spacing: Theme.Spacing.small) {
+            ProfileAvatarView(initials: ProfileFormatting.initials(from: store.displayName))
+            Text("Save your profile to unlock your player card")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
-            TextField("", text: text, prompt: Text(placeholder).foregroundStyle(Theme.Colors.textSecondary))
-                .keyboardType(keyboard)
-                .autocorrectionDisabled()
-                .padding()
-                .background(Theme.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Theme.Spacing.medium)
     }
 
-    private var saveButton: some View {
-        VStack(spacing: Theme.Spacing.medium) {
-            Button {
-                store.send(.saveTapped)
-            } label: {
-                ZStack {
-                    if store.isSaving {
-                        ProgressView().tint(.black)
-                    } else {
-                        Text("Save").font(Theme.Typography.button())
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(store.canSave ? Theme.Colors.accent : Theme.Colors.surface)
-                .foregroundStyle(store.canSave ? Color.black : Theme.Colors.textSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-            }
-            .disabled(!store.canSave || store.isSaving)
+    private var aboutCard: some View {
+        ProfileSectionCard(title: "About you") {
+            VStack(spacing: Theme.Spacing.large) {
+                ProfileFieldRow(
+                    icon: "person.fill",
+                    label: "Display name",
+                    text: $store.displayName,
+                    placeholder: "How teammates see you",
+                    textContentType: .name
+                )
 
-            if store.isSaving {
-                CyclingLoadingMessage()
+                ProfilePositionSelect(selection: $store.preferredPosition)
             }
         }
     }
 
-    private var signOutButton: some View {
-        Button(role: .destructive) {
-            store.send(.signOutTapped)
-        } label: {
-            Text("Sign out")
-                .font(Theme.Typography.button())
-                .frame(maxWidth: .infinity)
-                .padding()
-                .foregroundStyle(Theme.Colors.negative)
+    private var physicalCard: some View {
+        ProfileSectionCard(title: "Physical") {
+            VStack(spacing: Theme.Spacing.large) {
+                ProfileMetricField(
+                    label: "Height",
+                    text: $store.heightText,
+                    unit: store.heightUnit,
+                    unitLabel: { $0.menuLabel },
+                    onUnitChange: { store.send(.heightUnitChanged($0)) },
+                    keyboard: heightKeyboard
+                )
+
+                ProfileMetricField(
+                    label: "Weight",
+                    text: $store.weightText,
+                    unit: store.weightUnit,
+                    unitLabel: { $0.menuLabel },
+                    onUnitChange: { store.send(.weightUnitChanged($0)) },
+                    keyboard: .decimalPad
+                )
+            }
         }
     }
+
+    private var heightKeyboard: UIKeyboardType {
+        store.heightUnit == .centimeters ? .numberPad : .decimalPad
+    }
+
 }
 
 #Preview {
     ProfileView(
-        store: Store(initialState: ProfileFeature.State(accessToken: "preview")) {
+        store: Store(
+            initialState: ProfileFeature.State(
+                accessToken: "preview",
+                profile: Profile(
+                    id: "preview-id",
+                    displayName: "Alex Rivera",
+                    preferredPosition: "Midfielder",
+                    heightCm: 178,
+                    weightKg: 72
+                ),
+                displayName: "Alex Rivera",
+                preferredPosition: "Midfielder",
+                heightText: "178",
+                weightText: "72"
+            )
+        ) {
             ProfileFeature()
         }
     )

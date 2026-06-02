@@ -13,8 +13,7 @@ struct SessionDetailView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .navigationTitle("Match summary")
-            .navigationBarTitleDisplayMode(.inline)
+            .rivalNavigationChrome(title: "Match summary")
         }
         .foregroundStyle(Theme.Colors.textPrimary)
         .onAppear { store.send(.onAppear) }

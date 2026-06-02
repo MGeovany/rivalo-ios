@@ -4,12 +4,14 @@ import UIKit
 
 extension Theme {
     /// Registers bundled .ttf files so `Font.custom` resolves (call once at launch).
+    @MainActor
     static func registerFonts() {
         for file in fontFiles {
             guard let url = Bundle.main.url(forResource: file, withExtension: "ttf") else { continue }
             var error: Unmanaged<CFError>?
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
         }
+        configureNavigationBar()
     }
 
     private static let fontFiles = [

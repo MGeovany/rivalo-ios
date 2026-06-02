@@ -24,6 +24,42 @@ struct SessionsFeature {
             guard !sessions.isEmpty else { return nil }
             return sessions.reduce(0) { $0 + $1.durationS } / sessions.count / 60
         }
+
+        var sortedSessions: [SportSession] {
+            sessions.sorted { $0.startedAt < $1.startedAt }
+        }
+
+        var totalDistanceKm: Double {
+            sessions.reduce(0) { $0 + $1.distanceM } / 1000
+        }
+
+        var averageHr: Int? {
+            let values = sessions.compactMap(\.hrAvg)
+            guard !values.isEmpty else { return nil }
+            return values.reduce(0, +) / values.count
+        }
+
+        var averageIntensity: Double? {
+            let values = sessions.compactMap(\.intensity)
+            guard !values.isEmpty else { return nil }
+            return values.reduce(0, +) / Double(values.count)
+        }
+
+        var totalSprints: Int {
+            sessions.reduce(0) { $0 + $1.sprints }
+        }
+
+        var sessionsWithHr: [SportSession] {
+            sessions.filter { $0.hrAvg != nil }
+        }
+
+        var sessionsWithIntensity: [SportSession] {
+            sessions.filter { $0.intensity != nil }
+        }
+
+        var recentSessions: [SportSession] {
+            sessions.sorted { $0.startedAt > $1.startedAt }.prefix(5).map(\.self)
+        }
     }
 
     enum Action {

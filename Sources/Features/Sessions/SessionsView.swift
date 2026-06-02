@@ -1,7 +1,7 @@
-import Charts
 import ComposableArchitecture
 import SwiftUI
 
+/// Home dashboard: performance charts and a compact recent-matches list.
 struct SessionsView: View {
     @Bindable var store: StoreOf<SessionsFeature>
 
@@ -11,7 +11,7 @@ struct SessionsView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .navigationTitle("History")
+            .rivalNavigationChrome()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { store.send(.addTapped) } label: {
@@ -35,111 +35,150 @@ struct SessionsView: View {
     private var content: some View {
         if store.isLoading && store.sessions.isEmpty {
             LoadingView()
-        } else if store.sessions.isEmpty {
-            VStack(spacing: Theme.Spacing.small) {
-                Text("No sessions yet")
-                    .font(Theme.Typography.title())
-                Text("Tap + to add a manual session")
-                    .font(Theme.Typography.caption())
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
         } else {
             ScrollView {
-                LazyVStack(spacing: Theme.Spacing.medium) {
-                    if store.sessions.count >= 2 {
-                        progressCard
+                VStack(alignment: .leading, spacing: Theme.Spacing.large) {
+                    dashboardHeader
+
+                    if let message = store.errorMessage {
+                        AuthInlineMessage(text: message, kind: .error)
                     }
-                    averagesCard
-                    ForEach(store.sessions) { session in
-                        Button { store.send(.sessionTapped(session)) } label: {
-                            row(session)
-                        }
-                        .buttonStyle(.plain)
+
+                    if store.sessions.isEmpty {
+                        emptyDashboardHint
+                    }
+
+                    chartsSection
+
+                    if !store.recentSessions.isEmpty {
+                        recentSection
                     }
                 }
-                .padding(Theme.Spacing.large)
+                .padding(.horizontal, Theme.Spacing.large)
+                .padding(.top, Theme.Spacing.small)
+                .padding(.bottom, Theme.Spacing.xl)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 
-    // MARK: Progress (distance over time)
+    // MARK: - Dashboard
 
-    private var progressCard: some View {
+    private var dashboardHeader: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            Text("Performance")
+                .font(Theme.Typography.title(size: 32))
+                .foregroundStyle(Theme.Colors.textPrimary)
+
+            Text("Your match trends at a glance")
+                .font(Theme.Typography.body(size: 15))
+                .foregroundStyle(Theme.Colors.textSecondary)
+
+            DashboardSummaryStrip(
+                sessions: store.sessions.count,
+                totalKm: store.totalDistanceKm,
+                avgMinutes: store.averageDurationMin,
+                avgHr: store.averageHr
+            )
+        }
+    }
+
+    private var emptyDashboardHint: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text("Distance progress")
+            Text("No data yet")
+                .font(Theme.Typography.button(size: 16))
+                .foregroundStyle(Theme.Colors.textPrimary)
+            Text("Record a match on your Watch or tap + to add one manually.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
-
-            Chart(store.sessions.sorted { $0.startedAt < $1.startedAt }) { session in
-                LineMark(
-                    x: .value("Date", session.startedAt),
-                    y: .value("km", session.distanceM / 1000)
-                )
-                .foregroundStyle(Theme.Colors.accent)
-                .interpolationMethod(.catmullRom)
-
-                PointMark(
-                    x: .value("Date", session.startedAt),
-                    y: .value("km", session.distanceM / 1000)
-                )
-                .foregroundStyle(Theme.Colors.accent)
-            }
-            .chartXAxis { AxisMarks(values: .automatic(desiredCount: 3)) }
-            .frame(height: 160)
         }
         .padding(Theme.Spacing.medium)
-        .background(Theme.Colors.surface)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.surface.opacity(0.6))
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 
-    // MARK: Averages (comparative reference)
+    private var chartsSection: some View {
+        let sorted = store.sortedSessions
 
-    private var averagesCard: some View {
-        HStack {
-            averageItem("Avg distance", store.averageDistanceKm.map { String(format: "%.2f km", $0) } ?? "--")
-            Divider().overlay(Theme.Colors.textSecondary)
-            averageItem("Avg duration", store.averageDurationMin.map { "\($0) min" } ?? "--")
-            Divider().overlay(Theme.Colors.textSecondary)
-            averageItem("Sessions", "\(store.sessions.count)")
-        }
-        .frame(maxWidth: .infinity)
-        .padding(Theme.Spacing.medium)
-        .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-    }
-
-    private func averageItem(_ label: String, _ value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(Theme.Typography.metric(size: 18))
-                .foregroundStyle(Theme.Colors.accent)
-                .monospacedDigit()
-            Text(label)
+        return VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            Text("Charts")
                 .font(Theme.Typography.statLabel(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
+                .tracking(1.2)
+
+            DashboardChartCard(
+                title: "Distance",
+                subtitle: "Kilometers per match over time"
+            ) {
+                HomeDashboardCharts.distanceLine(sessions: sorted)
+            }
+
+            DashboardChartCard(
+                title: "Duration",
+                subtitle: "Minutes played each match"
+            ) {
+                HomeDashboardCharts.durationBars(sessions: sorted)
+            }
+
+            DashboardChartCard(
+                title: "Heart rate",
+                subtitle: "Average BPM per match"
+            ) {
+                HomeDashboardCharts.heartRateLine(sessions: sorted)
+            }
+
+            DashboardChartCard(
+                title: "Intensity",
+                subtitle: "Effort score (0–100)"
+            ) {
+                HomeDashboardCharts.intensityBars(sessions: sorted)
+            }
+
+            DashboardChartCard(
+                title: "Sprints",
+                subtitle: "High-speed efforts per match"
+            ) {
+                HomeDashboardCharts.sprintsBars(sessions: sorted)
+            }
         }
-        .frame(maxWidth: .infinity)
     }
 
-    // MARK: Row
+    private var recentSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            Text("Recent matches")
+                .font(Theme.Typography.statLabel(size: 11))
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .tracking(1.2)
 
-    private func row(_ session: SportSession) -> some View {
+            ForEach(store.recentSessions) { session in
+                Button { store.send(.sessionTapped(session)) } label: {
+                    recentRow(session)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func recentRow(_ session: SportSession) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(Theme.Typography.body())
+                    .font(Theme.Typography.body(size: 15))
                 Text(session.source.capitalized)
-                    .font(Theme.Typography.statLabel())
+                    .font(Theme.Typography.statLabel(size: 11))
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
-                Text(session.durationText)
-                    .font(Theme.Typography.body())
-                    .foregroundStyle(Theme.Colors.accent)
                 Text(session.distanceKmText)
-                    .font(Theme.Typography.statLabel())
+                    .font(Theme.Typography.metric(size: 28))
+                    .foregroundStyle(Theme.Colors.accent)
+                    .monospacedDigit()
+                Text(session.durationText)
+                    .font(Theme.Typography.metric(size: 16))
                     .foregroundStyle(Theme.Colors.textSecondary)
+                    .monospacedDigit()
             }
         }
         .padding(Theme.Spacing.medium)

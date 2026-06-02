@@ -1,18 +1,23 @@
 import ComposableArchitecture
 
-/// The signed-in experience: a tab bar hosting the profile and a backend status
-/// tab. New tabs (history, activity) compose in here in later phases.
+/// Signed-in tab bar: Home, Record, You, Activities, and Plan.
 @Reducer
 struct MainTabFeature {
     @ObservableState
     struct State: Equatable {
         let accessToken: String
         var sessions: SessionsFeature.State
+        var record = RecordFeature.State()
         var profile: ProfileFeature.State
-        var serverStatus = ServerStatusFeature.State()
-        var selectedTab: Tab = .sessions
+        var selectedTab: Tab = .home
 
-        enum Tab: Equatable { case sessions, profile, status }
+        enum Tab: Equatable {
+            case home
+            case record
+            case you
+            case activities
+            case plan
+        }
 
         init(accessToken: String) {
             self.accessToken = accessToken
@@ -26,8 +31,8 @@ struct MainTabFeature {
         case watchSessionsChanged
         case watchSessionUploaded(SportSession)
         case sessions(SessionsFeature.Action)
+        case record(RecordFeature.Action)
         case profile(ProfileFeature.Action)
-        case serverStatus(ServerStatusFeature.Action)
         case selectedTabChanged(State.Tab)
         case delegate(Delegate)
 
@@ -44,18 +49,16 @@ struct MainTabFeature {
         Scope(state: \.sessions, action: \.sessions) {
             SessionsFeature()
         }
+        Scope(state: \.record, action: \.record) {
+            RecordFeature()
+        }
         Scope(state: \.profile, action: \.profile) {
             ProfileFeature()
-        }
-        Scope(state: \.serverStatus, action: \.serverStatus) {
-            ServerStatusFeature()
         }
 
         Reduce { state, action in
             switch action {
             case .task:
-                // Flush any sessions queued while offline, then keep uploading
-                // sessions as they arrive from the watch.
                 let token = state.accessToken
                 let api = apiClient
                 let queue = pendingSessions
@@ -77,11 +80,10 @@ struct MainTabFeature {
                 }
 
             case .watchSessionsChanged:
-                // Offline-queued sessions flushed; just refresh the list.
                 return .send(.sessions(.onAppear))
 
             case let .watchSessionUploaded(created):
-                // A live watch session reached the backend: refresh and open its summary.
+                state.selectedTab = .home
                 return .merge(
                     .send(.sessions(.onAppear)),
                     .send(.sessions(.showSummary(created)))
@@ -94,7 +96,7 @@ struct MainTabFeature {
                 state.selectedTab = tab
                 return .none
 
-            case .sessions, .profile, .serverStatus, .delegate:
+            case .sessions, .record, .profile, .delegate:
                 return .none
             }
         }
