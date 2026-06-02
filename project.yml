@@ -9,7 +9,7 @@ options:
 packages:
   ComposableArchitecture:
     url: https://github.com/pointfreeco/swift-composable-architecture
-    version: "1.17.1"
+    from: "1.17.1"
 
 settings:
   base:
