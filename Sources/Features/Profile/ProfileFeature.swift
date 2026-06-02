@@ -35,6 +35,7 @@ struct ProfileFeature {
         var photoNeedsBackgroundRemoval = false
         @Presents var courts: CourtsFeature.State?
         @Presents var badges: BadgesFeature.State?
+        @Presents var rivalries: RivalriesFeature.State?
 
         var canSave: Bool {
             !displayName.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
@@ -112,6 +113,8 @@ struct ProfileFeature {
         case courts(PresentationAction<CourtsFeature.Action>)
         case badgesTapped
         case badges(PresentationAction<BadgesFeature.Action>)
+        case rivalriesTapped
+        case rivalries(PresentationAction<RivalriesFeature.Action>)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -334,6 +337,17 @@ struct ProfileFeature {
             case .badges:
                 return .none
 
+            case .rivalriesTapped:
+                state.rivalries = RivalriesFeature.State(accessToken: state.accessToken)
+                return .none
+
+            case .rivalries(.presented(.delegate(.dismissed))):
+                state.rivalries = nil
+                return .none
+
+            case .rivalries:
+                return .none
+
             case .binding, .delegate:
                 return .none
             }
@@ -343,6 +357,9 @@ struct ProfileFeature {
         }
         .ifLet(\.$badges, action: \.badges) {
             BadgesFeature()
+        }
+        .ifLet(\.$rivalries, action: \.rivalries) {
+            RivalriesFeature()
         }
     }
 }

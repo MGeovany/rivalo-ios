@@ -55,6 +55,9 @@ struct ProfileView: View {
                             profileRow(title: "Badges", icon: "rosette") {
                                 store.send(.badgesTapped)
                             }
+                            profileRow(title: "Rivalries", icon: "person.2.fill") {
+                                store.send(.rivalriesTapped)
+                            }
 
                             ProfileSignOutButton {
                                 store.send(.signOutTapped)
@@ -81,6 +84,9 @@ struct ProfileView: View {
         }
         .sheet(item: $store.scope(state: \.badges, action: \.badges)) { badgesStore in
             BadgesView(store: badgesStore)
+        }
+        .sheet(item: $store.scope(state: \.rivalries, action: \.rivalries)) { rivalriesStore in
+            RivalriesView(store: rivalriesStore)
         }
     }
 

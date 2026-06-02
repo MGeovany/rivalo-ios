@@ -57,6 +57,8 @@ struct APIClient {
     var fetchWeeklyRecap: @Sendable (_ accessToken: String) async throws -> WeeklyRecap
     /// Fetches achievement badges via `GET /v1/badges`.
     var fetchBadges: @Sendable (_ accessToken: String) async throws -> [Badge]
+    /// Fetches rivalry histories via `GET /v1/rivalries`.
+    var fetchRivalries: @Sendable (_ accessToken: String) async throws -> [Rivalry]
 }
 
 extension APIClient: DependencyKey {
@@ -221,6 +223,13 @@ extension APIClient: DependencyKey {
             @Dependency(\.tokenStore) var tokenStore
             return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/badges", method: "GET", token: newToken), as: BadgesEnvelope.self).badges
+            }
+        },
+        fetchRivalries: { token in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSend(authorizedRequest("v1/rivalries", method: "GET", token: newToken), as: [Rivalry].self)
             }
         }
     )
