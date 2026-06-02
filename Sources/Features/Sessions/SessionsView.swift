@@ -32,6 +32,9 @@ struct SessionsView: View {
         .sheet(item: $store.scope(state: \.records, action: \.records)) { recordsStore in
             RecordsView(store: recordsStore)
         }
+        .sheet(item: $store.scope(state: \.insights, action: \.insights)) { insightsStore in
+            InsightsView(store: insightsStore)
+        }
     }
 
     @ViewBuilder
@@ -69,6 +72,7 @@ struct SessionsView: View {
                     }
 
                     recordsLink
+                    insightsLink
                     analyticsLink
                 }
                 .padding(.horizontal, Theme.Spacing.large)
@@ -134,6 +138,28 @@ struct SessionsView: View {
                     Text("Personal Records")
                         .font(Theme.Typography.button(size: 16))
                     Text("Your best marks per category")
+                        .font(Theme.Typography.caption(size: 12))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            .padding(Theme.Spacing.medium)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .foregroundStyle(Theme.Colors.textPrimary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var insightsLink: some View {
+        Button { store.send(.insightsTapped) } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Insights")
+                        .font(Theme.Typography.button(size: 16))
+                    Text("Your stats by match type, surface, position")
                         .font(Theme.Typography.caption(size: 12))
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }

@@ -12,6 +12,7 @@ struct PlayerProgressCard: View {
     @State private var placement: PlayerCardPhotoPlacement = .default
     @State private var dragTranslation: CGSize = .zero
     @State private var livePinchScale: CGFloat = 1
+    @State private var assetLoader = PlayerCardAssetLoader()
 
     private var style: PlayerCardRankStyle { content.tier.style }
 
@@ -72,6 +73,9 @@ struct PlayerProgressCard: View {
         .frame(maxWidth: 340)
         .frame(maxWidth: .infinity)
         .onAppear { placement = photoPlacement }
+        .task(id: content.tier) {
+            await assetLoader.load(tier: content.tier)
+        }
         .onChange(of: photoPlacement) { _, newValue in
             placement = newValue
             dragTranslation = .zero
@@ -82,12 +86,30 @@ struct PlayerProgressCard: View {
     // MARK: - Layers
 
     private func layerImage(_ layer: PlayerCardLayer, size: CGSize) -> some View {
-        PlayerCardTierAssets.image(for: content.tier, layer: layer)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
+        Group {
+            if let uiImage = assetLoader.image(for: layer) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+            } else {
+                cardPlaceholder(in: size)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func cardPlaceholder(in size: CGSize) -> some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(style.innerTint)
+            .overlay {
+                if assetLoader.isLoading {
+                    ProgressView()
+                        .tint(style.accentBright)
+                }
+            }
             .frame(width: size.width, height: size.height)
-            .clipped()
-            .allowsHitTesting(false)
     }
 
     // MARK: - Player photo
@@ -116,17 +138,27 @@ struct PlayerProgressCard: View {
 
     private func portraitCenter(in size: CGSize) -> CGPoint {
         let portrait = PlayerCardLayout.portrait
-        CGPoint(
+        return CGPoint(
             x: size.width * (portrait.x + portrait.width / 2 + placement.offsetX) + dragTranslation.width,
             y: size.height * (portrait.y + portrait.height / 2 + placement.offsetY) + dragTranslation.height
         )
     }
 
     private func softPhotoMask(in size: CGSize) -> some View {
-        PlayerCardTierAssets.image(for: content.tier, layer: .photoMask)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .frame(width: size.width, height: size.height)
+        Group {
+            if let uiImage = assetLoader.image(for: .photoMask) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: size.width, height: size.height)
+            } else {
+                LinearGradient(
+                    colors: [.white, .white.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        }
     }
 
     private func photoAdjustHint(in size: CGSize) -> some View {

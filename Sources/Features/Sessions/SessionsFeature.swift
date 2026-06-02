@@ -17,6 +17,7 @@ struct SessionsFeature {
         @Presents var entry: SessionEntryFeature.State?
         @Presents var detail: SessionDetailFeature.State?
         @Presents var records: RecordsFeature.State?
+        @Presents var insights: InsightsFeature.State?
 
         var sortedByRecent: [SportSession] {
             sessions.sorted { $0.startedAt > $1.startedAt }
@@ -43,6 +44,8 @@ struct SessionsFeature {
         case detail(PresentationAction<SessionDetailFeature.Action>)
         case recordsTapped
         case records(PresentationAction<RecordsFeature.Action>)
+        case insightsTapped
+        case insights(PresentationAction<InsightsFeature.Action>)
     }
 
     @Dependency(\.apiClient) var apiClient
@@ -74,6 +77,7 @@ struct SessionsFeature {
                     return .run { _ in
                         await PitchesSync.refresh(accessToken: token, apiClient: apiClient)
                         WatchCourtSync.pushCourts(for: sessions)
+                        WatchHalftimeAveragesSync.push(from: sessions)
                     }
                 }
                 state.isLoadingLatest = true
@@ -81,6 +85,7 @@ struct SessionsFeature {
                     .run { _ in
                         await PitchesSync.refresh(accessToken: token, apiClient: apiClient)
                         WatchCourtSync.pushCourts(for: sessions)
+                        WatchHalftimeAveragesSync.push(from: sessions)
                     },
                     .run { send in
                         await send(.latestDetailResponse(Result {
@@ -124,6 +129,10 @@ struct SessionsFeature {
                 state.records = RecordsFeature.State(accessToken: state.accessToken)
                 return .none
 
+            case .insightsTapped:
+                state.insights = InsightsFeature.State(accessToken: state.accessToken)
+                return .none
+
             case .entry(.presented(.delegate(.created))):
                 state.entry = nil
                 return .send(.onAppear)
@@ -153,7 +162,7 @@ struct SessionsFeature {
                 state.detail = nil
                 return .send(.onAppear)
 
-            case .entry, .detail, .records:
+            case .entry, .detail, .records, .insights:
                 return .none
             }
         }
@@ -165,6 +174,9 @@ struct SessionsFeature {
         }
         .ifLet(\.$records, action: \.records) {
             RecordsFeature()
+        }
+        .ifLet(\.$insights, action: \.insights) {
+            InsightsFeature()
         }
     }
 }

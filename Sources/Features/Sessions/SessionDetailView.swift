@@ -6,6 +6,7 @@ import UIKit
 struct SessionDetailView: View {
     @Bindable var store: StoreOf<SessionDetailFeature>
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var shareImage: UIImage?
 
     var body: some View {
         NavigationStack {
@@ -33,6 +34,25 @@ struct SessionDetailView: View {
             Button("Delete activity", role: .destructive) { store.send(.confirmDeleteTapped) }
             Button("Cancel", role: .cancel) { store.send(.cancelDeleteTapped) }
         }
+        .sheet(isPresented: shareSheetBinding) {
+            if let image = shareImage {
+                ActivitySheet(items: [image])
+            }
+        }
+    }
+
+    private var shareSheetBinding: Binding<Bool> {
+        Binding(
+            get: { shareImage != nil },
+            set: { if !$0 { shareImage = nil } }
+        )
+    }
+
+    private func renderCard(session: SportSession, meta: SessionMeta) -> UIImage? {
+        let card = ShareCardView(session: session, meta: meta)
+        let renderer = ImageRenderer(content: card)
+        renderer.scale = UIScreen.main.scale
+        return renderer.uiImage
     }
 
     private var venuePromptBinding: Binding<Bool> {
@@ -78,10 +98,10 @@ struct SessionDetailView: View {
                     } label: {
                         Label("Save court", systemImage: "sportscourt")
                     }
-                    if let text = shareText(session: session) {
-                        ShareLink(item: text) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
+                    Button {
+                        shareImage = renderCard(session: session, meta: store.meta)
+                    } label: {
+                        Label("Share card", systemImage: "square.and.arrow.up")
                     }
                     Divider()
                     Button(role: .destructive) {
@@ -360,7 +380,4 @@ struct SessionDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 
-    private func shareText(session: SportSession) -> String? {
-        SessionActivityGeometry.shareText(session: session, meta: store.meta)
-    }
 }

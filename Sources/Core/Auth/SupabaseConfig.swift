@@ -12,4 +12,14 @@ enum SupabaseConfig {
     static var anonKey: String {
         Bundle.main.object(forInfoDictionaryKey: "SupabaseAnonKey") as? String ?? ""
     }
+
+    /// Public object URL for Supabase Storage (`/storage/v1/object/public/...`).
+    static func publicStorageURL(bucket: String, path: String) -> URL? {
+        let trimmed = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard !trimmed.isEmpty else { return nil }
+        return url
+            .appendingPathComponent("storage/v1/object/public")
+            .appendingPathComponent(bucket)
+            .appendingPathComponent(trimmed)
+    }
 }

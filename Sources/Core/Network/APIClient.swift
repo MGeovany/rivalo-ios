@@ -41,6 +41,8 @@ struct APIClient {
     var createPitch: @Sendable (_ accessToken: String, _ new: NewPitch) async throws -> Pitch
     /// Fetches personal bests via `GET /v1/sessions/records`.
     var fetchRecords: @Sendable (_ accessToken: String) async throws -> PersonalRecords
+    /// Fetches session insights via `GET /v1/sessions/insights`.
+    var fetchInsights: @Sendable (_ accessToken: String) async throws -> SessionInsights
 }
 
 extension APIClient: DependencyKey {
@@ -146,6 +148,13 @@ extension APIClient: DependencyKey {
             @Dependency(\.tokenStore) var tokenStore
             return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSend(authorizedRequest("v1/sessions/records", method: "GET", token: newToken), as: PersonalRecords.self)
+            }
+        },
+        fetchInsights: { token in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSend(authorizedRequest("v1/sessions/insights", method: "GET", token: newToken), as: SessionInsights.self)
             }
         }
     )

@@ -1,8 +1,7 @@
 import CoreGraphics
 import SwiftUI
-import UIKit
 
-/// Layered player card assets stored under `PlayerCardAssets/<tier>/` in the app bundle.
+/// Layer identifiers for player card PNGs hosted in Supabase Storage.
 enum PlayerCardLayer: String, CaseIterable {
     case background
     case frame
@@ -13,8 +12,6 @@ enum PlayerCardLayer: String, CaseIterable {
 }
 
 enum PlayerCardTierAssets {
-    static let bundleSubdirectory = "PlayerCardAssets"
-
     static func tierFolder(for rank: PlayerCardRank) -> String {
         switch rank {
         case .unranked, .bronze: "bronze"
@@ -26,29 +23,9 @@ enum PlayerCardTierAssets {
         case .holographic: "holographic"
         }
     }
-
-    static func image(for rank: PlayerCardRank, layer: PlayerCardLayer) -> Image {
-        if let uiImage = uiImage(for: rank, layer: layer) {
-            return Image(uiImage: uiImage)
-        }
-        return Image(systemName: "photo")
-    }
-
-    static func uiImage(for rank: PlayerCardRank, layer: PlayerCardLayer) -> UIImage? {
-        let tier = tierFolder(for: rank)
-        let resource = layer.rawValue
-        let subdirectory = "\(bundleSubdirectory)/\(tier)"
-
-        guard let url = Bundle.main.url(forResource: resource, withExtension: "png", subdirectory: subdirectory),
-              let image = UIImage(contentsOfFile: url.path)
-        else {
-            return nil
-        }
-        return image
-    }
 }
 
-/// Normalized layout from `PlayerCardAssets/layout-guide.json`.
+/// Normalized layout from `layout-guide.json` (also stored in Supabase for designers).
 enum PlayerCardLayout {
     static let canvasWidth: CGFloat = 1024
     static let canvasHeight: CGFloat = 1536
