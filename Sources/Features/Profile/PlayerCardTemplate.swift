@@ -59,7 +59,8 @@ enum PlayerCardLayout {
     static let country = SafeArea(x: 0.77, y: 0.08, width: 0.14, height: 0.11)
     static let portrait = SafeArea(x: 0.15, y: 0.13, width: 0.70, height: 0.62)
     static let leftStats = SafeArea(x: 0.15, y: 0.56, width: 0.18, height: 0.18)
-    static let rightStats = SafeArea(x: 0.72, y: 0.55, width: 0.17, height: 0.23)
+    /// Mirrored inset from the right frame edge (same 15% margin as left column).
+    static let rightStats = SafeArea(x: 0.67, y: 0.55, width: 0.18, height: 0.23)
     static let playerName = SafeArea(x: 0.20, y: 0.79, width: 0.60, height: 0.09)
     static let tierLabel = SafeArea(x: 0.34, y: 0.90, width: 0.32, height: 0.05)
 }

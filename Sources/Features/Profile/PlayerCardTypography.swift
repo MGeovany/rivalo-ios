@@ -11,7 +11,7 @@ enum PlayerCardTypography {
     }
 
     static func statValue(size: CGFloat) -> Font {
-        ThemeFont.font(name: "Rajdhani-Bold", size: size * 0.070)
+        ThemeFont.font(name: "Rajdhani-Bold", size: size * 0.086)
     }
 
     static func statLabel(size: CGFloat) -> Font {

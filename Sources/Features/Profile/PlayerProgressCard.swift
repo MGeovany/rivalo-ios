@@ -244,24 +244,31 @@ struct PlayerProgressCardCanvas: View {
                         .frame(width: width * area.width * 0.9, height: max(1, width * 0.001))
                         .padding(.vertical, height * 0.010)
                 }
-                statBlock(abbrev: entry.0, value: entry.1, left: left)
+                statBlock(abbrev: entry.0, value: entry.1, left: left, columnWidth: width * area.width)
             }
         }
-        .frame(width: width * area.width)
+        .frame(width: width * area.width, alignment: left ? .leading : .trailing)
         .position(
             x: width * (area.x + area.width / 2),
             y: height * (area.y + area.height / 2)
         )
     }
 
-    private func statBlock(abbrev: String, value: String, left: Bool) -> some View {
-        VStack(alignment: left ? .leading : .trailing, spacing: height * 0.002) {
+    private func statBlock(abbrev: String, value: String, left: Bool, columnWidth: CGFloat) -> some View {
+        let alignment: Alignment = left ? .leading : .trailing
+
+        return VStack(alignment: left ? .leading : .trailing, spacing: height * 0.002) {
             Text(abbrev)
                 .font(PlayerCardTypography.statLabel(size: width))
                 .foregroundStyle(style.accent.opacity(0.95))
+                .lineLimit(1)
+                .frame(maxWidth: columnWidth, alignment: alignment)
             Text(value)
                 .font(PlayerCardTypography.statValue(size: width))
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .frame(maxWidth: columnWidth, alignment: alignment)
         }
     }
 
