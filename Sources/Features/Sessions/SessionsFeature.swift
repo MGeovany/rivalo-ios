@@ -19,6 +19,8 @@ struct SessionsFeature {
         @Presents var records: RecordsFeature.State?
         /// Top records for the Home promo card.
         var recordHighlights: [RecordEntry] = []
+        var activitySearchText: String = ""
+        var activityFilter: ActivityListFilter = .all
 
         var sortedByRecent: [SportSession] {
             sessions.sorted { $0.startedAt > $1.startedAt }
@@ -26,6 +28,18 @@ struct SessionsFeature {
 
         var recentActivities: [SportSession] {
             Array(sortedByRecent.prefix(20))
+        }
+
+        var filteredActivities: [SportSession] {
+            let filtered = activityFilter.apply(sortedByRecent)
+            let query = activitySearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !query.isEmpty else { return filtered }
+            return filtered.filter { session in
+                session.matchesActivitySearch(
+                    query,
+                    venueName: SessionMetaStore.load(sessionId: session.id).venueName
+                )
+            }
         }
 
         var performanceSnapshot: PerformanceSnapshot {
@@ -173,6 +187,10 @@ struct SessionsFeature {
             case .detail(.presented(.delegate(.updated))):
                 state.detail = nil
                 return .send(.onAppear)
+
+            case .records(.presented(.delegate(.dismissed))):
+                state.records = nil
+                return .none
 
             case .entry, .detail, .records:
                 return .none

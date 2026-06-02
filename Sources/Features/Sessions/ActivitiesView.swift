@@ -34,15 +34,27 @@ struct ActivitiesView: View {
             emptyState
         } else {
             ScrollView {
-                LazyVStack(spacing: Theme.Spacing.medium) {
-                    ForEach(store.recentActivities) { session in
-                        Button { store.send(.sessionTapped(session)) } label: {
-                            ActivityListRow(
-                                session: session,
-                                meta: SessionMetaStore.load(sessionId: session.id)
-                            )
+                VStack(spacing: Theme.Spacing.large) {
+                    ActivitiesSearchBar(
+                        text: $store.activitySearchText,
+                        filter: $store.activityFilter,
+                        resultCount: store.filteredActivities.count
+                    )
+
+                    if store.filteredActivities.isEmpty {
+                        filteredEmptyState
+                    } else {
+                        LazyVStack(spacing: Theme.Spacing.medium) {
+                            ForEach(store.filteredActivities) { session in
+                                Button { store.send(.sessionTapped(session)) } label: {
+                                    ActivityListRow(
+                                        session: session,
+                                        meta: SessionMetaStore.load(sessionId: session.id)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.large)
@@ -65,95 +77,275 @@ struct ActivitiesView: View {
             }
             Text("No activities yet")
                 .font(Theme.Typography.title(size: 20))
-            Text("Matches from your Watch or manual logs appear here.")
+            Text("Your recorded matches appear here.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(Theme.Spacing.xl)
     }
+
+    private var filteredEmptyState: some View {
+        VStack(spacing: Theme.Spacing.medium) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundStyle(Theme.Colors.textSecondary.opacity(0.6))
+            Text("No matches found")
+                .font(Theme.Typography.body(size: 16))
+                .foregroundStyle(Theme.Colors.textPrimary)
+            Text("Try another search or filter.")
+                .font(Theme.Typography.caption())
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Theme.Spacing.xl)
+    }
 }
 
-/// Strava-style activity row for the Activities tab.
-struct ActivityListRow: View {
-    let session: SportSession
-    let meta: SessionMeta
+// MARK: - Search & filters
+
+private struct ActivitiesSearchBar: View {
+    @Binding var text: String
+    @Binding var filter: ActivityListFilter
+    let resultCount: Int
 
     var body: some View {
-        HStack(spacing: Theme.Spacing.medium) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(
+        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
+            HStack(spacing: Theme.Spacing.small) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+
+                TextField("Search venue, type, result…", text: $text)
+                    .font(Theme.Typography.body(size: 15))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                if !text.isEmpty {
+                    Button {
+                        text = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Theme.Colors.textSecondary.opacity(0.7))
+                    }
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.medium)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
                         LinearGradient(
                             colors: [
-                                Theme.Colors.accent.opacity(0.25),
-                                Theme.Colors.accent.opacity(0.08),
+                                Theme.Colors.accent.opacity(text.isEmpty ? 0.15 : 0.45),
+                                Color.white.opacity(0.06),
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
-                        )
+                        ),
+                        lineWidth: 1
                     )
-                    .frame(width: 54, height: 54)
-                Image(systemName: session.source == "watch" ? "applewatch" : "figure.soccer")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Theme.Colors.accent)
             }
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(Theme.Typography.body(size: 15))
-                    .foregroundStyle(Theme.Colors.textPrimary)
-
-                Text(SessionActivityGeometry.displayLocation(session: session, meta: meta))
-                    .font(Theme.Typography.caption(size: 12))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .lineLimit(1)
-
-                HStack(spacing: 8) {
-                    metricChip(String(format: "%.2f", session.distanceM / 1000), unit: "km")
-                    metricChip("\(session.durationS / 60)", unit: "min")
-                    if let hr = session.hrAvg {
-                        metricChip("\(hr)", unit: "bpm")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Theme.Spacing.small) {
+                    ForEach(ActivityListFilter.allCases) { option in
+                        ActivitiesFilterChip(
+                            title: option.rawValue,
+                            isSelected: filter == option
+                        ) {
+                            filter = option
+                        }
                     }
                 }
             }
 
-            Spacer(minLength: 0)
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.Colors.textSecondary.opacity(0.5))
+            Text("\(resultCount) \(resultCount == 1 ? "match" : "matches")")
+                .font(Theme.Typography.caption(size: 11))
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
-        .padding(Theme.Spacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.Radius.card)
+    }
+}
+
+private struct ActivitiesFilterChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(Theme.Typography.statLabel(size: 11))
+                .foregroundStyle(isSelected ? Color.black : Theme.Colors.textSecondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background {
+                    if isSelected {
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Theme.Colors.accentBright, Theme.Colors.accent],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    } else {
+                        Capsule()
+                            .fill(Color.white.opacity(0.06))
+                    }
+                }
+                .overlay {
+                    if !isSelected {
+                        Capsule()
+                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Activity row
+
+/// Modern activity card for the Activities tab.
+struct ActivityListRow: View {
+    let session: SportSession
+    let meta: SessionMeta
+
+    private var headlineDate: String {
+        session.startedAt.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+    }
+
+    private var headlineTime: String {
+        session.startedAt.formatted(date: .omitted, time: .shortened)
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Theme.Spacing.medium) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(headlineDate.uppercased())
+                    .font(Theme.Typography.statLabel(size: 9))
+                    .foregroundStyle(Theme.Colors.accentBright.opacity(0.9))
+                    .tracking(0.8)
+                Text(headlineTime)
+                    .font(Theme.Typography.metric(size: 22))
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+            }
+            .frame(width: 72, alignment: .leading)
+
+            Rectangle()
                 .fill(
                     LinearGradient(
-                        colors: [Theme.Colors.surface, Color(red: 0.1, green: 0.1, blue: 0.11)],
+                        colors: [Theme.Colors.accentBright, Theme.Colors.accent.opacity(0.3)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
+                .frame(width: 2)
+                .clipShape(Capsule())
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(SessionActivityGeometry.displayLocation(session: session, meta: meta))
+                        .font(Theme.Typography.body(size: 15))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 8)
+
+                    if let rating = session.matchRating {
+                        Text(String(format: "%.0f", rating))
+                            .font(Theme.Typography.statLabel(size: 11))
+                            .foregroundStyle(Theme.Colors.accentBright)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Theme.Colors.accent.opacity(0.18))
+                            .clipShape(Capsule())
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.textSecondary.opacity(0.45))
+                }
+
+                if let context = contextSubtitle {
+                    Text(context)
+                        .font(Theme.Typography.caption(size: 11))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+
+                HStack(spacing: 0) {
+                    statColumn(String(format: "%.2f", session.distanceM / 1000), "km")
+                    statDivider
+                    statColumn("\(session.durationS / 60)", "min")
+                    statDivider
+                    statColumn("\(session.sprints)", "sprints")
+                    if let hr = session.hrAvg {
+                        statDivider
+                        statColumn("\(hr)", "bpm")
+                    }
+                }
+            }
+        }
+        .padding(Theme.Spacing.medium)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.12, green: 0.12, blue: 0.13),
+                            Theme.Colors.surface,
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         )
         .overlay {
-            RoundedRectangle(cornerRadius: Theme.Radius.card)
-                .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.1), Color.white.opacity(0.03)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         }
     }
 
-    private func metricChip(_ value: String, unit: String) -> some View {
-        HStack(spacing: 3) {
+    private var contextSubtitle: String? {
+        var parts: [String] = []
+        if let matchType = session.matchType { parts.append(matchType) }
+        if let result = session.result { parts.append(result) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private var statDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.08))
+            .frame(width: 1, height: 28)
+            .padding(.horizontal, 10)
+    }
+
+    private func statColumn(_ value: String, _ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(Theme.Typography.statLabel(size: 11))
-                .foregroundStyle(Theme.Colors.textPrimary.opacity(0.9))
+                .font(Theme.Typography.statLabel(size: 13))
+                .foregroundStyle(Theme.Colors.textPrimary)
                 .monospacedDigit()
-            Text(unit)
-                .font(Theme.Typography.statLabel(size: 10))
+            Text(label)
+                .font(Theme.Typography.statLabel(size: 9))
                 .foregroundStyle(Theme.Colors.textSecondary)
+                .textCase(.uppercase)
         }
-        .padding(.horizontal, 7)
-        .padding(.vertical, 4)
-        .background(Color.white.opacity(0.05))
-        .clipShape(Capsule())
     }
 }

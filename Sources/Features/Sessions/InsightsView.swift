@@ -54,16 +54,42 @@ struct InsightsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                 InsightsHeroCard(totals: insights.totals)
+
+                if !store.recentSessions.isEmpty {
+                    InsightsCharts.recentMatchesTrendCard(sessions: store.recentSessions)
+                    InsightsCharts.matchRatingTrendCard(sessions: store.recentSessions)
+                }
+
+                InsightsCharts.averagesBarCard(averages: insights.averages)
                 InsightsAveragesGrid(averages: insights.averages)
 
                 if !insights.byMatchType.isEmpty {
-                    InsightsBreakdownCard(title: "Match type", groups: insights.byMatchType)
+                    InsightsCharts.breakdownCard(
+                        title: "Match type",
+                        groups: insights.byMatchType,
+                        style: .donut
+                    )
                 }
                 if !insights.bySurface.isEmpty {
-                    InsightsBreakdownCard(title: "Surface", groups: insights.bySurface)
+                    InsightsCharts.breakdownCard(
+                        title: "Surface",
+                        groups: insights.bySurface,
+                        style: .verticalBars
+                    )
                 }
                 if !insights.byPosition.isEmpty {
-                    InsightsBreakdownCard(title: "Position", groups: insights.byPosition)
+                    InsightsCharts.breakdownCard(
+                        title: "Position",
+                        groups: insights.byPosition,
+                        style: .line
+                    )
+                }
+                if !insights.byMatchType.isEmpty, insights.byMatchType.contains(where: { $0.avgDistance != nil }) {
+                    InsightsCharts.breakdownCard(
+                        title: "Distance by type",
+                        groups: insights.byMatchType,
+                        style: .area
+                    )
                 }
             }
             .padding(.horizontal, Theme.Spacing.large)
@@ -297,90 +323,6 @@ private struct InsightsStatTile: View {
         .overlay {
             RoundedRectangle(cornerRadius: 18)
                 .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
-        }
-    }
-}
-
-// MARK: - Breakdown
-
-private struct InsightsBreakdownCard: View {
-    let title: String
-    let groups: [ContextGroup]
-
-    private var maxCount: Int { groups.map(\.count).max() ?? 1 }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text(title.uppercased())
-                .font(Theme.Typography.statLabel(size: 10))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .tracking(1.2)
-
-            VStack(spacing: Theme.Spacing.medium) {
-                ForEach(groups) { group in
-                    InsightsBreakdownRow(group: group, maxCount: maxCount)
-                }
-            }
-            .padding(Theme.Spacing.medium)
-            .background(Theme.Colors.surface)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-            .overlay {
-                RoundedRectangle(cornerRadius: Theme.Radius.card)
-                    .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
-            }
-        }
-    }
-}
-
-private struct InsightsBreakdownRow: View {
-    let group: ContextGroup
-    let maxCount: Int
-
-    private var barFraction: CGFloat {
-        CGFloat(group.count) / CGFloat(max(maxCount, 1))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(group.value)
-                    .font(Theme.Typography.body(size: 15))
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .lineLimit(1)
-
-                Spacer(minLength: 8)
-
-                if let rating = group.avgMatchRating {
-                    Text(String(format: "%.0f", rating))
-                        .font(Theme.Typography.metric(size: 16))
-                        .foregroundStyle(Theme.Colors.accent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Theme.Colors.accent.opacity(0.15))
-                        .clipShape(Capsule())
-                }
-            }
-
-            Text("\(group.count) matches")
-                .font(Theme.Typography.caption(size: 11))
-                .foregroundStyle(Theme.Colors.textSecondary)
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.06))
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Theme.Colors.accentBright, Theme.Colors.accent],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(8, proxy.size.width * barFraction))
-                }
-            }
-            .frame(height: 6)
         }
     }
 }

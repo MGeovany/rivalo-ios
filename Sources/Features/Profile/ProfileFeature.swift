@@ -105,6 +105,7 @@ struct ProfileFeature {
         case photoAdjustFinished
         case photoRemoved
         case countryCodeChanged(String)
+        case errorDismissed
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -113,6 +114,8 @@ struct ProfileFeature {
     }
 
     @Dependency(\.apiClient) var apiClient
+
+    private enum CancelID { case errorToast }
 
     var body: some ReducerOf<Self> {
         BindingReducer()
@@ -140,7 +143,7 @@ struct ProfileFeature {
             case .loadResponse(.failure):
                 state.isLoading = false
                 state.errorMessage = "Could not load your profile."
-                return .none
+                return Self.scheduleErrorDismiss()
 
             case let .sessionsForCardResponse(.success(sessions)):
                 state.sessions = sessions
@@ -173,7 +176,7 @@ struct ProfileFeature {
             case .saveResponse(.failure):
                 state.isSaving = false
                 state.errorMessage = "Could not save your profile."
-                return .none
+                return Self.scheduleErrorDismiss()
 
             case .signOutTapped:
                 return .send(.delegate(.signOut))
@@ -224,7 +227,7 @@ struct ProfileFeature {
                     ProfilePhotoLog.error("photoProcessed: save failed or nil data")
                     state.isPhotoPlacementLocked = false
                     state.errorMessage = "Could not cut out your photo. Try another image."
-                    return .none
+                    return Self.scheduleErrorDismiss()
                 }
                 ProfilePhotoLog.info("photoProcessed: saved cutout \(saved.count) bytes")
                 state.avatarImageData = saved
@@ -297,10 +300,24 @@ struct ProfileFeature {
                 }
                 return .none
 
+            case .errorDismissed:
+                state.errorMessage = nil
+                return .cancel(id: CancelID.errorToast)
+
             case .binding, .delegate:
                 return .none
             }
         }
+    }
+}
+
+private extension ProfileFeature {
+    static func scheduleErrorDismiss() -> Effect<Action> {
+        .run { send in
+            try await Task.sleep(for: .seconds(4))
+            await send(.errorDismissed)
+        }
+        .cancellable(id: CancelID.errorToast, cancelInFlight: true)
     }
 }
 

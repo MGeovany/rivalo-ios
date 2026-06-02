@@ -41,10 +41,6 @@ struct ProfileView: View {
                             aboutCard
                             physicalCard
 
-                            if let message = store.errorMessage {
-                                AuthInlineMessage(text: message, kind: .error)
-                            }
-
                             ProfilePrimaryButton(
                                 title: "Save changes",
                                 isEnabled: store.canSave,
@@ -68,6 +64,9 @@ struct ProfileView: View {
         }
         .tint(Theme.Colors.accent)
         .foregroundStyle(Theme.Colors.textPrimary)
+        .rivalToast(message: store.errorMessage, kind: .error) {
+            store.send(.errorDismissed)
+        }
         .onAppear { store.send(.onAppear) }
         .refreshable { store.send(.onAppear) }
     }

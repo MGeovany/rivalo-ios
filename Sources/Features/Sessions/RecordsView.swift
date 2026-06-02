@@ -20,9 +20,27 @@ struct RecordsView: View {
                 }
             }
             .rivalNavigationChrome(title: "Personal Records")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        store.send(.dismissTapped)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Back")
+                                .font(Theme.Typography.body(size: 15))
+                        }
+                    }
+                    .tint(Theme.Colors.accent)
+                }
+            }
             .task { store.send(.onAppear) }
         }
         .tint(Theme.Colors.accent)
+        .sheet(item: $store.scope(state: \.detail, action: \.detail)) { detailStore in
+            SessionDetailView(store: detailStore)
+        }
     }
 
     private var loadingState: some View {
@@ -91,7 +109,13 @@ struct RecordsView: View {
                     spacing: Theme.Spacing.medium
                 ) {
                     ForEach(store.records) { record in
-                        RecordMetricCard(record: record)
+                        Button {
+                            store.send(.recordTapped(record))
+                        } label: {
+                            RecordMetricCard(record: record)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(record.sessionId.isEmpty)
                     }
                 }
             }
@@ -265,23 +289,13 @@ private struct RecordMetricCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            HStack {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(record.accentColor.opacity(0.18))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: record.icon)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(record.accentColor)
-                }
-                Spacer(minLength: 0)
-                Text("PR")
-                    .font(Theme.Typography.statLabel(size: 8))
-                    .foregroundStyle(Color(red: 1, green: 0.85, blue: 0.35))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color(red: 1, green: 0.75, blue: 0.2).opacity(0.2))
-                    .clipShape(Capsule())
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(record.accentColor.opacity(0.18))
+                    .frame(width: 36, height: 36)
+                Image(systemName: record.icon)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(record.accentColor)
             }
 
             Text(record.formattedValue)
@@ -295,9 +309,15 @@ private struct RecordMetricCard: View {
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .tracking(0.6)
 
-            Text(record.startedAt.formatted(date: .abbreviated, time: .omitted))
-                .font(Theme.Typography.caption(size: 10))
-                .foregroundStyle(Theme.Colors.textSecondary.opacity(0.8))
+            HStack(spacing: 4) {
+                Text(record.startedAt.formatted(date: .abbreviated, time: .omitted))
+                    .font(Theme.Typography.caption(size: 10))
+                    .foregroundStyle(Theme.Colors.textSecondary.opacity(0.8))
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.accent.opacity(0.85))
+            }
         }
         .padding(Theme.Spacing.medium)
         .frame(maxWidth: .infinity, minHeight: 130, alignment: .leading)
