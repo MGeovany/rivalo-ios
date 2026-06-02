@@ -5,25 +5,58 @@ import Foundation
 @Reducer
 struct MatchContextFeature {
     @ObservableState
-    struct State: Equatable {
+    struct State: Equatable, Identifiable {
         let sessionId: String
         var accessToken: String
 
         var matchType: String = ""
         var surface: String = ""
         var position: String = ""
-        var result: String = ""
         var feeling: Int = 3
         var matchTag: String = ""
         var pitchId: String?
+        // Structured post-match result (V3)
+        var opponent: String = ""
+        var outcome: String = ""
+        var score: String = ""
+        var competition: String = ""
+        var goals: Int = 0
+        var assists: Int = 0
+        var notes: String = ""
         var pitches: [Pitch] = []
         var pitchesLoading = false
         var isSaving = false
         var errorMessage: String?
         var savedSuccessfully = false
 
+        var id: String { sessionId }
+
         var canSave: Bool {
             !isSaving
+        }
+
+        init(sessionId: String, accessToken: String) {
+            self.sessionId = sessionId
+            self.accessToken = accessToken
+        }
+
+        /// Preloads the form from an existing session (edit from detail).
+        init(session: SportSession, accessToken: String) {
+            self.sessionId = session.id
+            self.accessToken = accessToken
+            self.matchType = session.matchType ?? ""
+            self.surface = session.surface ?? ""
+            self.position = session.position ?? ""
+            self.feeling = session.feeling ?? 3
+            self.matchTag = session.matchTag ?? ""
+            self.pitchId = session.pitchId
+            self.opponent = session.opponent ?? ""
+            self.outcome = session.outcome ?? ""
+            self.score = session.score ?? ""
+            self.competition = session.competition ?? ""
+            self.goals = session.goals ?? 0
+            self.assists = session.assists ?? 0
+            self.notes = session.notes ?? session.result ?? ""
         }
     }
 
@@ -31,10 +64,16 @@ struct MatchContextFeature {
         case setMatchType(String)
         case setSurface(String)
         case setPosition(String)
-        case setResult(String)
         case setFeeling(Int)
         case setMatchTag(String)
         case setPitchId(String?)
+        case setOpponent(String)
+        case setOutcome(String)
+        case setScore(String)
+        case setCompetition(String)
+        case setGoals(Int)
+        case setAssists(Int)
+        case setNotes(String)
         case loadPitches
         case pitchesResponse([Pitch])
         case saveTapped
@@ -61,9 +100,6 @@ struct MatchContextFeature {
             case let .setPosition(v):
                 state.position = v
                 return .none
-            case let .setResult(v):
-                state.result = v
-                return .none
             case let .setFeeling(v):
                 state.feeling = v
                 return .none
@@ -72,6 +108,27 @@ struct MatchContextFeature {
                 return .none
             case let .setPitchId(v):
                 state.pitchId = v
+                return .none
+            case let .setOpponent(v):
+                state.opponent = v
+                return .none
+            case let .setOutcome(v):
+                state.outcome = v
+                return .none
+            case let .setScore(v):
+                state.score = v
+                return .none
+            case let .setCompetition(v):
+                state.competition = v
+                return .none
+            case let .setGoals(v):
+                state.goals = max(0, v)
+                return .none
+            case let .setAssists(v):
+                state.assists = max(0, v)
+                return .none
+            case let .setNotes(v):
+                state.notes = v
                 return .none
 
             case .loadPitches:
@@ -92,14 +149,22 @@ struct MatchContextFeature {
                 state.isSaving = true
                 state.errorMessage = nil
                 let feeling = state.feeling
+                let hasResult = !state.outcome.isEmpty
                 let update = SessionContextUpdate(
                     matchType: state.matchType.isEmpty ? nil : state.matchType,
                     surface: state.surface.isEmpty ? nil : state.surface,
                     position: state.position.isEmpty ? nil : state.position,
-                    result: state.result.isEmpty ? nil : state.result,
+                    result: nil,
                     feeling: feeling,
                     matchTag: state.matchTag.isEmpty ? nil : state.matchTag,
-                    pitchId: state.pitchId
+                    pitchId: state.pitchId,
+                    opponent: state.opponent.isEmpty ? nil : state.opponent,
+                    outcome: state.outcome.isEmpty ? nil : state.outcome,
+                    score: state.score.isEmpty ? nil : state.score,
+                    competition: state.competition.isEmpty ? nil : state.competition,
+                    goals: hasResult ? state.goals : nil,
+                    assists: hasResult ? state.assists : nil,
+                    notes: state.notes.isEmpty ? nil : state.notes
                 )
                 let token = state.accessToken
                 let id = state.sessionId
@@ -112,6 +177,7 @@ struct MatchContextFeature {
             case .saveResponse(.success):
                 state.isSaving = false
                 state.savedSuccessfully = true
+                MatchNotifications.shared.cancelResultReminder(sessionId: state.sessionId)
                 return .send(.delegate(.dismissed))
 
             case .saveResponse(.failure):

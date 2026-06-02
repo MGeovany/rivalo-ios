@@ -10,6 +10,7 @@ struct RivaloApp: App {
 
     init() {
         Theme.registerFonts()
+        MatchNotifications.shared.bootstrap()
     }
 
     var body: some Scene {

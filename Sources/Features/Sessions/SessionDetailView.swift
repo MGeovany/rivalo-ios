@@ -42,6 +42,9 @@ struct SessionDetailView: View {
         .sheet(item: $store.scope(state: \.comparison, action: \.comparison)) { comparisonStore in
             PitchComparisonView(store: comparisonStore)
         }
+        .sheet(item: $store.scope(state: \.matchContext, action: \.matchContext)) { contextStore in
+            MatchContextView(store: contextStore)
+        }
     }
 
     private var shareSheetBinding: Binding<Bool> {
@@ -91,6 +94,12 @@ struct SessionDetailView: View {
                     Label("Add photos", systemImage: "photo.on.rectangle.angled")
                 }
                 if let session = store.session {
+                    Button {
+                        store.send(.addResultTapped)
+                    } label: {
+                        Label(session.outcome == nil ? "Add match result" : "Edit match result",
+                              systemImage: "flag.checkered")
+                    }
                     Button {
                         store.send(.editTapped)
                     } label: {
@@ -182,6 +191,10 @@ struct SessionDetailView: View {
             .font(Theme.Typography.body(size: 15))
             .foregroundStyle(Theme.Colors.textSecondary)
 
+            if session.outcome != nil || session.opponent != nil {
+                resultSection(session)
+            }
+
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Theme.Spacing.small) {
                 detailStat(session.distanceKmText, "Distance", "figure.run")
                 detailStat(session.durationText, "Time", "clock.fill")
@@ -206,6 +219,66 @@ struct SessionDetailView: View {
             if session.pitchId != nil {
                 comparePitchButton
             }
+        }
+    }
+
+    private func resultSection(_ session: SportSession) -> some View {
+        HStack(spacing: Theme.Spacing.medium) {
+            if let outcome = session.outcome {
+                Text(Self.outcomeLetter(outcome))
+                    .font(Theme.Typography.metric(size: 22))
+                    .foregroundStyle(.black)
+                    .frame(width: 40, height: 40)
+                    .background(Self.outcomeColor(outcome))
+                    .clipShape(Circle())
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    if let score = session.score {
+                        Text(score).font(Theme.Typography.title(size: 18))
+                    }
+                    if let opponent = session.opponent {
+                        Text("vs \(opponent)")
+                            .font(Theme.Typography.body(size: 15))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+                HStack(spacing: 8) {
+                    if let comp = session.competition {
+                        Text(comp.capitalized)
+                            .font(Theme.Typography.caption(size: 11))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                    if let g = session.goals, let a = session.assists {
+                        Text("\(g) G · \(a) A")
+                            .font(Theme.Typography.caption(size: 11))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Theme.Spacing.medium)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
+    private static func outcomeLetter(_ o: String) -> String {
+        switch o {
+        case "win": return "W"
+        case "draw": return "D"
+        case "loss": return "L"
+        default: return "?"
+        }
+    }
+
+    private static func outcomeColor(_ o: String) -> Color {
+        switch o {
+        case "win": return Theme.Colors.positive
+        case "draw": return Theme.Colors.accent
+        case "loss": return Theme.Colors.negative
+        default: return Theme.Colors.surface
         }
     }
 

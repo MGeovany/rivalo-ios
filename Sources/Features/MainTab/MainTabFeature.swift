@@ -33,6 +33,7 @@ struct MainTabFeature {
         case task
         case watchSessionsChanged
         case watchSessionUploaded(SportSession)
+        case openSessionFromNotification(MatchOpenEvent)
         case sessions(SessionsFeature.Action)
         case record(RecordFeature.Action)
         case profile(ProfileFeature.Action)
@@ -111,6 +112,11 @@ struct MainTabFeature {
                                 await send(.record(.liveEventReceived(event)))
                             }
                         }
+                        group.addTask {
+                            for await open in MatchNotifications.shared.events() {
+                                await send(.openSessionFromNotification(open))
+                            }
+                        }
                     }
                 }
 
@@ -133,9 +139,26 @@ struct MainTabFeature {
 
             case let .watchSessionUploaded(created):
                 state.selectedTab = .home
+                let summaryBody = "\(created.distanceKmText) · \(created.durationText)"
+                    + (created.matchRating.map { String(format: " · rating %.0f", $0) } ?? "")
                 return .merge(
                     .send(.sessions(.onAppear)),
-                    .send(.sessions(.showSummary(created)))
+                    .send(.sessions(.showSummary(created))),
+                    .run { _ in
+                        MatchNotifications.shared.scheduleSummary(
+                            sessionId: created.id,
+                            title: "Match saved ⚽️",
+                            body: summaryBody
+                        )
+                        MatchNotifications.shared.scheduleResultReminder(sessionId: created.id)
+                    }
+                )
+
+            case let .openSessionFromNotification(open):
+                state.selectedTab = .home
+                return .merge(
+                    .send(.sessions(.onAppear)),
+                    .send(.sessions(.openSession(open.sessionId, open.openResult)))
                 )
 
             case .profile(.delegate(.signOut)):

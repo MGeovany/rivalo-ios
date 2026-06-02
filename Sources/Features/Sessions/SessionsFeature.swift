@@ -56,6 +56,7 @@ struct SessionsFeature {
         case addTapped
         case sessionTapped(SportSession)
         case showSummary(SportSession)
+        case openSession(String, Bool)
         case entry(PresentationAction<SessionEntryFeature.Action>)
         case detail(PresentationAction<SessionDetailFeature.Action>)
         case recordsTapped
@@ -152,6 +153,14 @@ struct SessionsFeature {
                     accessToken: state.accessToken,
                     id: session.id,
                     session: session
+                )
+                return .none
+
+            case let .openSession(id, openResult):
+                state.detail = SessionDetailFeature.State(
+                    accessToken: state.accessToken,
+                    id: id,
+                    autoOpenResult: openResult
                 )
                 return .none
 

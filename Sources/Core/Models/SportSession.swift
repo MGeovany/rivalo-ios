@@ -62,6 +62,14 @@ struct SportSession: Equatable, Codable, Identifiable {
     let feeling: Int?
     let matchTag: String?
     let pitchId: String?
+    // Structured post-match result (V3)
+    let opponent: String?
+    let outcome: String?
+    let score: String?
+    let competition: String?
+    let goals: Int?
+    let assists: Int?
+    let notes: String?
     let matchRating: Double?
     let createdAt: Date
     /// Time series; present on detail reads, absent on the list.
@@ -112,6 +120,14 @@ struct SessionContextUpdate: Equatable, Encodable, Sendable {
     var feeling: Int?
     var matchTag: String?
     var pitchId: String?
+    // Structured post-match result (V3)
+    var opponent: String?
+    var outcome: String?
+    var score: String?
+    var competition: String?
+    var goals: Int?
+    var assists: Int?
+    var notes: String?
 }
 
 /// Payload sent to update a session (PUT /v1/sessions/{id}).

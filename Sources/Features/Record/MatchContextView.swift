@@ -9,6 +9,8 @@ struct MatchContextView: View {
     private let surfaces = ["Natural grass", "Artificial turf", "Indoor", "Concrete", "Other"]
     private let positions = ["Goalkeeper", "Defender", "Full-back", "Midfielder", "Winger", "Forward"]
     private let matchTags = ["friendly", "league", "training"]
+    private let outcomes = ["win", "draw", "loss"]
+    private let competitions = ["friendly", "league", "tournament"]
 
     var body: some View {
         NavigationStack {
@@ -49,16 +51,35 @@ struct MatchContextView: View {
                 }
 
                 Section("Result") {
-                    TextField("e.g. Won 3-1", text: $store.result.sending(\.setResult))
-                }
-
-                Section("Tag") {
-                    Picker("Tag", selection: $store.matchTag.sending(\.setMatchTag)) {
+                    Picker("Outcome", selection: $store.outcome.sending(\.setOutcome)) {
                         Text("None").tag("")
-                        ForEach(matchTags, id: \.self) { tag in
-                            Text(tag).tag(tag)
+                        ForEach(outcomes, id: \.self) { o in
+                            Text(outcomeLabel(o)).tag(o)
                         }
                     }
+                    TextField("Score (e.g. 3-1)", text: $store.score.sending(\.setScore))
+                    TextField("Opponent", text: $store.opponent.sending(\.setOpponent))
+                }
+
+                if !store.outcome.isEmpty {
+                    Section("Your stats") {
+                        Stepper("Goals: \(store.goals)", value: $store.goals.sending(\.setGoals), in: 0...20)
+                        Stepper("Assists: \(store.assists)", value: $store.assists.sending(\.setAssists), in: 0...20)
+                    }
+                }
+
+                Section("Competition") {
+                    Picker("Competition", selection: $store.competition.sending(\.setCompetition)) {
+                        Text("None").tag("")
+                        ForEach(competitions, id: \.self) { c in
+                            Text(c.capitalized).tag(c)
+                        }
+                    }
+                }
+
+                Section("Notes") {
+                    TextField("Anything to remember", text: $store.notes.sending(\.setNotes), axis: .vertical)
+                        .lineLimit(1...4)
                 }
 
                 Section("Pitch") {
@@ -103,6 +124,15 @@ struct MatchContextView: View {
                         .disabled(!store.canSave)
                 }
             }
+        }
+    }
+
+    private func outcomeLabel(_ o: String) -> String {
+        switch o {
+        case "win": return "Win"
+        case "draw": return "Draw"
+        case "loss": return "Loss"
+        default: return o
         }
     }
 
