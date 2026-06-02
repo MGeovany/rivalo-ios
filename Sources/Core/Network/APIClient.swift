@@ -39,6 +39,10 @@ struct APIClient {
     var listPitches: @Sendable (_ accessToken: String) async throws -> [Pitch]
     /// Creates a pitch via `POST /v1/pitches`.
     var createPitch: @Sendable (_ accessToken: String, _ new: NewPitch) async throws -> Pitch
+    /// Updates a pitch via `PUT /v1/pitches/{id}`.
+    var updatePitch: @Sendable (_ accessToken: String, _ id: String, _ update: PitchUpdate) async throws -> Pitch
+    /// Deletes a pitch via `DELETE /v1/pitches/{id}`.
+    var deletePitch: @Sendable (_ accessToken: String, _ id: String) async throws -> Void
     /// Fetches personal bests via `GET /v1/sessions/records`.
     var fetchRecords: @Sendable (_ accessToken: String) async throws -> PersonalRecords
     /// Fetches session insights via `GET /v1/sessions/insights`.
@@ -145,6 +149,23 @@ extension APIClient: DependencyKey {
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try apiEncoder().encode(new)
                 return try await apiSend(request, as: Pitch.self)
+            }
+        },
+        updatePitch: { token, id, update in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            return try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                var request = authorizedRequest("v1/pitches/\(id)", method: "PUT", token: newToken)
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try apiEncoder().encode(update)
+                return try await apiSend(request, as: Pitch.self)
+            }
+        },
+        deletePitch: { token, id in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSendEmpty(authorizedRequest("v1/pitches/\(id)", method: "DELETE", token: newToken))
             }
         },
         fetchRecords: { token in

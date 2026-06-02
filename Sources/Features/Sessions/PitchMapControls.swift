@@ -25,7 +25,6 @@ enum PitchMapStyle {
     static let panelBackground = Color(red: 28 / 255, green: 29 / 255, blue: 31 / 255)
     static let panelBorder = Color.white.opacity(0.08)
     static let segmentTrack = Color(red: 18 / 255, green: 19 / 255, blue: 21 / 255)
-    static let segmentActive = Color(red: 48 / 255, green: 50 / 255, blue: 54 / 255)
     static let pitchGreenTop = Color(red: 0.10, green: 0.34, blue: 0.14)
     static let pitchGreenBottom = Color(red: 0.06, green: 0.24, blue: 0.09)
     static let pitchLine = Color.white.opacity(0.32)
@@ -40,19 +39,19 @@ struct PitchSegmentedControl<Item: Hashable & Identifiable>: View where Item: Ra
         HStack(spacing: 4) {
             ForEach(items) { item in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                         selection = item
                     }
                 } label: {
                     Text(item.rawValue.uppercased())
-                        .font(Theme.Typography.statLabel(size: 11))
-                        .tracking(0.5)
-                        .foregroundStyle(selection == item ? Theme.Colors.accent : Theme.Colors.textSecondary)
+                        .font(Theme.Typography.statLabel(size: 10))
+                        .tracking(0.8)
+                        .foregroundStyle(selection == item ? Color.black : Theme.Colors.textSecondary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
+                        .padding(.vertical, 10)
                         .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(selection == item ? PitchMapStyle.segmentActive : Color.clear)
+                            Capsule()
+                                .fill(selection == item ? Theme.Colors.accent : Color.clear)
                         )
                 }
                 .buttonStyle(.plain)
@@ -60,10 +59,45 @@ struct PitchSegmentedControl<Item: Hashable & Identifiable>: View where Item: Ra
         }
         .padding(4)
         .background(PitchMapStyle.segmentTrack)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(Capsule())
         .overlay {
-            RoundedRectangle(cornerRadius: 10)
+            Capsule()
                 .strokeBorder(PitchMapStyle.panelBorder, lineWidth: 1)
+        }
+    }
+}
+
+/// Capsule picker for match period (Full / 1st / 2nd half).
+struct PitchPeriodPicker: View {
+    @Binding var selection: PitchMatchPeriod
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.small) {
+            ForEach(PitchMatchPeriod.allCases) { period in
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                        selection = period
+                    }
+                } label: {
+                    Text(period.shortLabel)
+                        .font(Theme.Typography.caption(size: 12))
+                        .foregroundStyle(selection == period ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule()
+                                .fill(selection == period ? Color.white.opacity(0.1) : Color.clear)
+                        )
+                        .overlay {
+                            if selection == period {
+                                Capsule()
+                                    .strokeBorder(Theme.Colors.accent.opacity(0.45), lineWidth: 1)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer(minLength: 0)
         }
     }
 }

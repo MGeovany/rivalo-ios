@@ -93,4 +93,12 @@ enum PitchMatchPeriod: String, CaseIterable, Identifiable {
     case secondHalf = "Second half"
 
     var id: String { rawValue }
+
+    var shortLabel: String {
+        switch self {
+        case .full: "Full"
+        case .firstHalf: "1st half"
+        case .secondHalf: "2nd half"
+        }
+    }
 }

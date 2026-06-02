@@ -5,6 +5,8 @@ struct PitchMapView: View {
     let session: SportSession
     /// Hides the bottom info card (e.g. embedded in latest-match card).
     var showsInfoCard: Bool = true
+    /// Flat layout without the outer pitch panel chrome (nested in another card).
+    var embeddedInCard: Bool = false
 
     @State private var mapMode: PitchMapMode = .heatmap
     @State private var matchPeriod: PitchMatchPeriod = .full
@@ -23,10 +25,25 @@ struct PitchMapView: View {
     }
 
     var body: some View {
-        PitchMapPanel {
+        Group {
+            if embeddedInCard {
+                mapContent
+            } else {
+                PitchMapPanel { mapContent }
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: mapMode)
+        .animation(.easeInOut(duration: 0.2), value: matchPeriod)
+        .task(id: "\(renderKey)-\(mapMode.rawValue)") {
+            await renderHeatmap()
+        }
+    }
+
+    private var mapContent: some View {
+        VStack(alignment: .leading, spacing: embeddedInCard ? 10 : 14) {
             PitchSegmentedControl(selection: $mapMode, items: PitchMapMode.allCases)
 
-            PitchSegmentedControl(selection: $matchPeriod, items: PitchMatchPeriod.allCases)
+            PitchPeriodPicker(selection: $matchPeriod)
 
             PitchAttackDirectionView()
 
@@ -45,11 +62,6 @@ struct PitchMapView: View {
                     icon: infoIcon
                 )
             }
-        }
-        .animation(.easeInOut(duration: 0.2), value: mapMode)
-        .animation(.easeInOut(duration: 0.2), value: matchPeriod)
-        .task(id: "\(renderKey)-\(mapMode.rawValue)") {
-            await renderHeatmap()
         }
     }
 
