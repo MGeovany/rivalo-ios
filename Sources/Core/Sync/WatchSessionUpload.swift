@@ -35,6 +35,18 @@ enum WatchSessionUpload {
             SessionMetaStore.save(sessionId: created.id, meta: meta)
         }
 
+        let lastConfig = iOSMatchSetup(
+            mode: payload.mode,
+            matchType: payload.matchType ?? "11-a-side",
+            surface: payload.surface ?? "Artificial turf",
+            pitchId: payload.pitchId,
+            pitchName: payload.pitchName,
+            pitchLatitude: payload.pitchLatitude,
+            pitchLongitude: payload.pitchLongitude,
+            competition: nil
+        )
+        LastSetupStore.save(lastConfig)
+
         return created
     }
 }

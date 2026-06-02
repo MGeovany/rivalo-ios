@@ -32,6 +32,10 @@ struct RecordView: View {
                             }
                         }
 
+                        if let setup = store.lastSetup {
+                            lastSetupCard(setup)
+                        }
+
                         Button {
                             store.send(.measureCourtTapped)
                         } label: {
@@ -67,6 +71,7 @@ struct RecordView: View {
             )
         }
         .tint(Theme.Colors.accent)
+        .onAppear { store.send(.onAppear) }
     }
 
     private var recordAlertPresented: Binding<Bool> {
@@ -161,6 +166,60 @@ private struct RecordStartOrb: View {
                 .frame(width: 44, height: 44)
         }
         .scaleEffect(1 + glow * 0.01)
+    }
+}
+
+// MARK: - Last setup
+
+private extension RecordView {
+    func lastSetupCard(_ setup: iOSMatchSetup) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("LAST MATCH")
+                .font(Theme.Typography.statLabel(size: 10))
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .tracking(0.8)
+
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(formatLabel)
+                        .font(Theme.Typography.body(size: 15))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+
+                    Text(setup.matchType)
+                        .font(Theme.Typography.caption(size: 12))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+
+                    if let name = setup.pitchName {
+                        Text(name)
+                            .font(Theme.Typography.caption(size: 12))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "repeat")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.Colors.accent)
+            }
+            .padding(12)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Theme.Colors.accent.opacity(0.3), lineWidth: 1)
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.xl)
+    }
+
+    var formatLabel: String {
+        guard let setup = store.lastSetup else { return "" }
+        var parts: [String] = [setup.mode.capitalized]
+        if let comp = setup.competition, !comp.isEmpty {
+            parts.append(comp.capitalized)
+        }
+        return parts.joined(separator: " · ")
     }
 }
 

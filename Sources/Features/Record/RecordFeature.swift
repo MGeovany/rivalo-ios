@@ -6,10 +6,16 @@ struct RecordFeature {
     @ObservableState
     struct State: Equatable {
         var recordAlertMessage: String?
+        var lastSetup: iOSMatchSetup?
         @Presents var liveMatch: LiveMatchFeature.State?
+
+        init() {
+            self.lastSetup = LastSetupStore.load()
+        }
     }
 
     enum Action: Equatable {
+        case onAppear
         case recordTapped
         case measureCourtTapped
         case startMatchResponse(StartMatchResult)
@@ -29,6 +35,10 @@ struct RecordFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .onAppear:
+                state.lastSetup = LastSetupStore.load()
+                return .none
+
             case .measureCourtTapped:
                 return .send(.delegate(.openMeasureCourt))
 
