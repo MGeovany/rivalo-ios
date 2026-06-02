@@ -33,7 +33,7 @@ extension SportSession {
 }
 
 /// Payload sent to create a session (POST /v1/sessions).
-struct NewSportSession: Equatable, Encodable {
+struct NewSportSession: Equatable, Codable, Sendable {
     var startedAt: Date
     var endedAt: Date
     var durationS: Int
@@ -43,4 +43,29 @@ struct NewSportSession: Equatable, Encodable {
     var sprints: Int
     var intensity: Double?
     var source: String
+}
+
+extension NewSportSession {
+    /// Builds a payload from a WatchConnectivity `userInfo` dictionary sent by the
+    /// watch. Returns nil if required fields are missing or malformed.
+    init?(watchUserInfo info: [String: Any]) {
+        let formatter = ISO8601DateFormatter()
+        guard
+            let startedRaw = info["started_at"] as? String,
+            let endedRaw = info["ended_at"] as? String,
+            let started = formatter.date(from: startedRaw),
+            let ended = formatter.date(from: endedRaw),
+            let duration = info["duration_s"] as? Int
+        else { return nil }
+
+        self.startedAt = started
+        self.endedAt = ended
+        self.durationS = duration
+        self.distanceM = (info["distance_m"] as? Double) ?? 0
+        self.hrAvg = info["hr_avg"] as? Int
+        self.hrMax = info["hr_max"] as? Int
+        self.sprints = (info["sprints"] as? Int) ?? 0
+        self.intensity = info["intensity"] as? Double
+        self.source = (info["source"] as? String) ?? "watch"
+    }
 }

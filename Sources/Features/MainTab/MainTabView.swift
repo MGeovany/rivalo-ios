@@ -19,6 +19,7 @@ struct MainTabView: View {
                 .tag(MainTabFeature.State.Tab.status)
         }
         .tint(Theme.Colors.accent)
+        .task { store.send(.task) }
     }
 
     private var tabSelection: Binding<MainTabFeature.State.Tab> {

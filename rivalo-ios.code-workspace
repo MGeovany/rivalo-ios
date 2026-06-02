@@ -1,0 +1,14 @@
+{
+  "folders": [
+	{
+		"path": "."
+	},
+	{
+		"path": "../rivalo-server"
+	},
+	{
+		"path": "../rivalo-watch"
+	}
+],
+  "settings": {}
+}
