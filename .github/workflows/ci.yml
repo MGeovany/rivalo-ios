@@ -1,0 +1,63 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build iOS App
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout iOS repo
+        uses: actions/checkout@v4
+        with:
+          path: rivalo-ios
+
+      - name: Checkout Watch repo sibling
+        uses: actions/checkout@v4
+        with:
+          repository: MGeovany/rivalo-watch
+          path: rivalo-watch
+          token: ${{ secrets.CI_GITHUB_TOKEN || github.token }}
+
+      - name: Select latest Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+
+      - name: Generate Xcode project
+        working-directory: rivalo-ios
+        run: xcodegen generate
+
+      - name: Resolve Swift packages
+        working-directory: rivalo-ios
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project Rivalo.xcodeproj \
+            -scheme Rivalo
+
+      - name: Build Rivalo iOS
+        working-directory: rivalo-ios
+        run: |
+          xcodebuild build \
+            -project Rivalo.xcodeproj \
+            -scheme Rivalo \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
