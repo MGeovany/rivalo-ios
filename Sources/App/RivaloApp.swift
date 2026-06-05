@@ -14,8 +14,8 @@ struct RivaloApp: App {
         MatchNotifications.shared.bootstrap()
 
         let config = PostHogConfig(
-            apiKey: PostHogEnv.projectToken.value,
-            host: PostHogEnv.host.value
+            apiKey: PostHogEnv.projectToken,
+            host: PostHogEnv.host
         )
         config.captureApplicationLifecycleEvents = true
         config.errorTrackingConfig.autoCapture = true

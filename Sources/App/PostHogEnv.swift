@@ -1,13 +1,22 @@
 import Foundation
 
-enum PostHogEnv: String {
-    case projectToken = "POSTHOG_PROJECT_TOKEN"
-    case host = "POSTHOG_HOST"
+enum PostHogEnv {
+    static var projectToken: String {
+        value(forKey: "PostHogProjectToken", envKey: "POSTHOG_PROJECT_TOKEN")
+    }
 
-    var value: String {
-        guard let value = ProcessInfo.processInfo.environment[rawValue] else {
-            fatalError("Set \(rawValue) in the Xcode scheme environment variables.")
+    static var host: String {
+        value(forKey: "PostHogHost", envKey: "POSTHOG_HOST")
+    }
+
+    private static func value(forKey plistKey: String, envKey: String) -> String {
+        if let bundled = Bundle.main.object(forInfoDictionaryKey: plistKey) as? String,
+           !bundled.isEmpty {
+            return bundled
         }
-        return value
+        if let env = ProcessInfo.processInfo.environment[envKey], !env.isEmpty {
+            return env
+        }
+        fatalError("Missing PostHog config: add \(plistKey) to Info.plist or set \(envKey) in the scheme.")
     }
 }
