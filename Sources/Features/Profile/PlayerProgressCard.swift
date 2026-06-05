@@ -90,6 +90,7 @@ struct PlayerProgressCardCanvas: View {
                     .position(x: anchor.x, y: anchor.y)
             }
             .frame(width: width, height: height)
+            .compositingGroup()
             .modifier(PhotoMaskModifier(isPending: isPendingPhotoPlacement, mask: softPhotoMask))
             .modifier(ConditionalGestureModifier(isEnabled: isPhotoAdjustable, gesture: photoAdjustGesture))
         }
