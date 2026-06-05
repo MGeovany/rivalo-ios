@@ -81,26 +81,32 @@ struct MainTabFeature {
                 return .run { send in
                     await PitchesSync.refresh(accessToken: token, apiClient: api)
                     for item in queue.all() {
-                        if let created = try? await WatchSessionUpload.createFromWatch(
-                            accessToken: token,
-                            payload: item.payload,
-                            apiClient: api
-                        ) {
+                        do {
+                            let created = try await WatchSessionUpload.createFromWatch(
+                                accessToken: token,
+                                payload: item.payload,
+                                apiClient: api
+                            )
                             queue.remove(item.id)
                             await send(.watchSessionUploaded(created))
+                        } catch {
+                            PostHogAnalytics.matchSaveFromWatchFailed(error: error.localizedDescription)
                         }
                     }
                     await withDiscardingTaskGroup { group in
                         group.addTask {
                             for await received in watch.incomingSessions() {
                                 let queued = queue.enqueue(received)
-                                if let created = try? await WatchSessionUpload.createFromWatch(
-                                    accessToken: token,
-                                    payload: received,
-                                    apiClient: api
-                                ) {
+                                do {
+                                    let created = try await WatchSessionUpload.createFromWatch(
+                                        accessToken: token,
+                                        payload: received,
+                                        apiClient: api
+                                    )
                                     queue.remove(queued.id)
                                     await send(.watchSessionUploaded(created))
+                                } catch {
+                                    PostHogAnalytics.matchSaveFromWatchFailed(error: error.localizedDescription)
                                 }
                             }
                         }
@@ -149,6 +155,11 @@ struct MainTabFeature {
                     .send(.sessions(.onAppear)),
                     .send(.sessions(.showSummary(created))),
                     .run { _ in
+                        PostHogAnalytics.matchSavedFromWatch(
+                            durationS: created.durationS,
+                            distanceM: created.distanceM ?? 0,
+                            rating: created.matchRating
+                        )
                         MatchNotifications.shared.scheduleSummary(
                             sessionId: created.id,
                             title: "Match saved ⚽️",

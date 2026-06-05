@@ -141,7 +141,9 @@ struct AuthenticationFeature {
                 let userId = session.userID
                 return .merge(
                     .run { _ in
-                        PostHogSDK.shared.capture("user_signed_up")
+                        PostHogSDK.shared.capture("user_signed_up", properties: [
+                            "needs_email_confirmation": false,
+                        ])
                         PostHogSDK.shared.identify(userId)
                     },
                     .send(.delegate(.authenticated(session)))
@@ -165,12 +167,29 @@ struct AuthenticationFeature {
                     PostHogSDK.shared.capture("password_recovery_requested")
                 }
 
-            case let .signInResult(.failure(error)),
-                 let .signUpResult(.failure(error)),
-                 let .recoverResult(.failure(error)):
+            case let .signInResult(.failure(error)):
                 state.isSubmitting = false
-                state.errorMessage = errorText(error)
-                return .none
+                let signInMsg = errorText(error)
+                state.errorMessage = signInMsg
+                return .run { [signInMsg] _ in
+                    PostHogAnalytics.authFailed(flow: "sign_in", error: signInMsg)
+                }
+
+            case let .signUpResult(.failure(error)):
+                state.isSubmitting = false
+                let signUpMsg = errorText(error)
+                state.errorMessage = signUpMsg
+                return .run { [signUpMsg] _ in
+                    PostHogAnalytics.authFailed(flow: "sign_up", error: signUpMsg)
+                }
+
+            case let .recoverResult(.failure(error)):
+                state.isSubmitting = false
+                let recoverMsg = errorText(error)
+                state.errorMessage = recoverMsg
+                return .run { [recoverMsg] _ in
+                    PostHogAnalytics.authFailed(flow: "password_recovery", error: recoverMsg)
+                }
 
             case .delegate:
                 return .none
