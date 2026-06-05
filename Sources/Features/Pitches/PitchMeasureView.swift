@@ -11,7 +11,7 @@ struct PitchMeasureView: View {
                 case .hub:
                     hubContent
                 case .walk:
-                    PitchWalkMeasureView(onBack: { store.send(.backToHub) })
+                    PitchWalkMeasureView(accessToken: store.accessToken, onBack: { store.send(.backToHub) })
                 }
             }
             .navigationTitle(navigationTitle)

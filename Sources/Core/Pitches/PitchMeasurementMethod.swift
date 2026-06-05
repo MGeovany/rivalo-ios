@@ -19,7 +19,7 @@ enum PitchMeasurementMethod: String, Equatable, Codable, Sendable, CaseIterable,
 
     var subtitle: String {
         switch self {
-        case .walk: "Jog or run the length and width — GPS on Apple Watch"
+        case .walk: "Jog the length and width — GPS on iPhone or Apple Watch"
         case .manual: "Set meters on your Apple Watch"
         }
     }
@@ -33,7 +33,7 @@ enum PitchMeasurementMethod: String, Equatable, Codable, Sendable, CaseIterable,
 
     var deviceHint: String {
         switch self {
-        case .walk: "Apple Watch"
+        case .walk: "iPhone · Apple Watch"
         case .manual: "Apple Watch"
         }
     }

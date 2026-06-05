@@ -23,6 +23,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Rivalo uses your location to measure the pitch size as you jog its length and width.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Rivalo uses your photo library to set your player card picture.</string>
 	<key>RivaloAPIBaseURL</key>

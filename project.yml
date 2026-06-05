@@ -55,6 +55,7 @@ targets:
         SupabaseURL: $(RIVALO_SUPABASE_URL)
         SupabaseAnonKey: $(RIVALO_SUPABASE_ANON_KEY)
         # Allow plain-HTTP requests to the local backend during development.
+        NSLocationWhenInUseUsageDescription: Rivalo uses your location to measure the pitch size as you jog its length and width.
         NSPhotoLibraryUsageDescription: Rivalo uses your photo library to set your player card picture.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
@@ -114,6 +115,7 @@ targets:
           UIColorName: LaunchBackground
           UIImageName: Isotipo
           UIImageRespectsSafeAreaInsets: true
+        NSLocationWhenInUseUsageDescription: Rivalo uses your location to measure the pitch while you walk its length and width.
         NSHealthShareUsageDescription: Rivalo reads your heart rate, distance and energy during a match to build your performance summary.
         NSHealthUpdateUsageDescription: Rivalo saves each match as a workout in the Health app.
         PostHogProjectToken: phc_C6YFLY4Rn6vSqQegH4G4c3nR9seBPZyxqwTpx94RQGZz
