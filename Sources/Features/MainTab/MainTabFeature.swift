@@ -74,7 +74,15 @@ struct MainTabFeature {
                 let watch = watchSyncClient
                 return .run { send in
                     await PitchesSync.refresh(accessToken: token, apiClient: api)
-                    for item in queue.all() {
+
+                    let pending = queue.all()
+                    if !pending.isEmpty {
+                        PostHogAnalytics.captureLog(
+                            "draining \(pending.count) pending watch session(s) on launch",
+                            level: .info
+                        )
+                    }
+                    for item in pending {
                         do {
                             let created = try await WatchSessionUpload.createFromWatch(
                                 accessToken: token,
@@ -82,14 +90,56 @@ struct MainTabFeature {
                                 apiClient: api
                             )
                             queue.remove(item.id)
+                            PostHogAnalytics.captureLog(
+                                "pending watch session uploaded",
+                                level: .info,
+                                attributes: ["session_id": created.id, "queue_id": item.id.uuidString]
+                            )
                             await send(.watchSessionUploaded(created))
+                        } catch APIError.statusCode(let code) where (400..<500).contains(code) && code != 401 {
+                            // Permanent rejection — drop it, never retry.
+                            queue.remove(item.id)
+                            PostHogAnalytics.captureLog(
+                                "pending watch session rejected by server (4xx) — dropped from queue",
+                                level: .error,
+                                attributes: ["status_code": code, "queue_id": item.id.uuidString]
+                            )
+                            PostHogAnalytics.matchSaveFromWatchFailed(error: "status_\(code)")
                         } catch {
+                            PostHogAnalytics.captureLog(
+                                "pending watch session upload failed — will retry",
+                                level: .error,
+                                attributes: ["error": error.localizedDescription, "queue_id": item.id.uuidString]
+                            )
                             PostHogAnalytics.matchSaveFromWatchFailed(error: error.localizedDescription)
                         }
                     }
                     await withDiscardingTaskGroup { group in
                         group.addTask {
                             for await received in watch.incomingSessions() {
+                                // Skip duplicates already in the queue (WCSession re-delivers on
+                                // every launch until the session uploads successfully).
+                                let isDuplicate = queue.all().contains {
+                                    $0.payload.startedAt == received.startedAt
+                                }
+                                guard !isDuplicate else {
+                                    PostHogAnalytics.captureLog(
+                                        "watch session skipped — duplicate already queued",
+                                        level: .info,
+                                        attributes: ["started_at": received.startedAt.timeIntervalSince1970]
+                                    )
+                                    continue
+                                }
+                                PostHogAnalytics.captureLog(
+                                    "watch session received via WatchConnectivity",
+                                    level: .info,
+                                    attributes: [
+                                        "duration_s": received.durationS,
+                                        "distance_m": received.distanceM,
+                                        "source": received.source,
+                                        "mode": received.mode,
+                                    ]
+                                )
                                 let queued = queue.enqueue(received)
                                 do {
                                     let created = try await WatchSessionUpload.createFromWatch(
@@ -98,8 +148,34 @@ struct MainTabFeature {
                                         apiClient: api
                                     )
                                     queue.remove(queued.id)
+                                    PostHogAnalytics.captureLog(
+                                        "watch session uploaded successfully",
+                                        level: .info,
+                                        attributes: ["session_id": created.id]
+                                    )
                                     await send(.watchSessionUploaded(created))
+                                } catch APIError.statusCode(let code) where (400..<500).contains(code) && code != 401 {
+                                    // Permanent client-side rejection — remove from queue so it is
+                                    // never retried. Log it so we can see the payload is invalid.
+                                    queue.remove(queued.id)
+                                    PostHogAnalytics.captureLog(
+                                        "watch session rejected by server (4xx) — dropped from queue",
+                                        level: .error,
+                                        attributes: [
+                                            "status_code": code,
+                                            "queue_id": queued.id.uuidString,
+                                        ]
+                                    )
+                                    PostHogAnalytics.matchSaveFromWatchFailed(error: "status_\(code)")
                                 } catch {
+                                    PostHogAnalytics.captureLog(
+                                        "watch session upload failed — will retry",
+                                        level: .error,
+                                        attributes: [
+                                            "error": error.localizedDescription,
+                                            "queue_id": queued.id.uuidString,
+                                        ]
+                                    )
                                     PostHogAnalytics.matchSaveFromWatchFailed(error: error.localizedDescription)
                                 }
                             }
@@ -109,13 +185,35 @@ struct MainTabFeature {
                             while !Task.isCancelled {
                                 try? await Task.sleep(for: .seconds(30))
                                 for item in queue.all() {
-                                    guard let created = try? await WatchSessionUpload.createFromWatch(
-                                        accessToken: token,
-                                        payload: item.payload,
-                                        apiClient: api
-                                    ) else { continue }
-                                    queue.remove(item.id)
-                                    await send(.watchSessionUploaded(created))
+                                    do {
+                                        let created = try await WatchSessionUpload.createFromWatch(
+                                            accessToken: token,
+                                            payload: item.payload,
+                                            apiClient: api
+                                        )
+                                        queue.remove(item.id)
+                                        PostHogAnalytics.captureLog(
+                                            "pending watch session uploaded via retry",
+                                            level: .info,
+                                            attributes: ["session_id": created.id, "queue_id": item.id.uuidString]
+                                        )
+                                        await send(.watchSessionUploaded(created))
+                                    } catch APIError.statusCode(let code) where (400..<500).contains(code) && code != 401 {
+                                        // Permanent client-side rejection — drop from queue.
+                                        queue.remove(item.id)
+                                        PostHogAnalytics.captureLog(
+                                            "queued watch session rejected by server (4xx) — dropped",
+                                            level: .error,
+                                            attributes: ["status_code": code, "queue_id": item.id.uuidString]
+                                        )
+                                    } catch {
+                                        // Network error or 5xx — keep in queue for next retry.
+                                        PostHogAnalytics.captureLog(
+                                            "queued watch session retry failed — will try again",
+                                            level: .error,
+                                            attributes: ["error": error.localizedDescription, "queue_id": item.id.uuidString]
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -142,10 +240,12 @@ struct MainTabFeature {
                 return .merge(
                     .send(.sessions(.onAppear)),
                     .send(.sessions(.openSession(created.id, true))),
+                    // Dismiss the live match view if it is still showing (Watch ended the match).
+                    .send(.record(.dismissLiveMatch)),
                     .run { _ in
                         PostHogAnalytics.matchSavedFromWatch(
                             durationS: created.durationS,
-                            distanceM: created.distanceM ?? 0,
+                            distanceM: created.distanceM,
                             rating: created.matchRating
                         )
                         MatchNotifications.shared.scheduleSummary(

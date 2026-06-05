@@ -220,6 +220,18 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
     // MARK: WCSessionDelegate
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        let action = userInfo[WatchCommand.actionKey] as? String ?? "(workout_summary)"
+        let isSummary = userInfo[WatchCommand.actionKey] == nil
+        PostHogAnalytics.captureLog(
+            "WCSession didReceiveUserInfo",
+            level: .info,
+            attributes: [
+                "action": action,
+                "is_workout_summary": isSummary,
+                "keys": userInfo.keys.sorted().joined(separator: ","),
+            ]
+        )
+
         if userInfo[WatchCommand.actionKey] as? String == WatchCommand.savePitch {
             let lengthM = userInfo["length_m"] as? Double ?? 0
             let widthM = userInfo["width_m"] as? Double ?? 0
@@ -239,7 +251,18 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
             return
         }
         if let received = NewSportSession(watchUserInfo: userInfo) {
+            PostHogAnalytics.captureLog(
+                "watch workout summary parsed — emitting to incomingSessions",
+                level: .info,
+                attributes: ["duration_s": received.durationS, "distance_m": received.distanceM]
+            )
             emit(received)
+        } else if isSummary {
+            PostHogAnalytics.captureLog(
+                "watch userInfo received but NewSportSession init failed — missing required fields",
+                level: .error,
+                attributes: ["keys": userInfo.keys.sorted().joined(separator: ",")]
+            )
         }
     }
 
