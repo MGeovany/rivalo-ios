@@ -9,16 +9,18 @@ struct InsightsView: View {
             ZStack {
                 Theme.Colors.background.ignoresSafeArea()
 
-                if store.isLoading, store.insights == nil {
+                if store.isLoading && store.insights == nil {
                     loadingState
-                } else if let error = store.errorMessage, store.insights == nil {
-                    errorState(error)
                 } else if let insights = store.insights {
                     if insights.totals.sessionCount == 0 {
                         emptyState
                     } else {
                         insightsContent(insights)
                     }
+                } else if let error = store.errorMessage, !store.recentSessions.isEmpty {
+                    errorState(error)
+                } else if !store.isLoading {
+                    emptyState
                 }
             }
             .rivalNavigationChrome(title: "Insights")

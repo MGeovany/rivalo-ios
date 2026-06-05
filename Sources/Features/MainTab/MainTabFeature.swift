@@ -104,6 +104,21 @@ struct MainTabFeature {
                                 }
                             }
                         }
+                        // Retries sessions that failed to upload (e.g. API was unreachable).
+                        group.addTask {
+                            while !Task.isCancelled {
+                                try? await Task.sleep(for: .seconds(30))
+                                for item in queue.all() {
+                                    guard let created = try? await WatchSessionUpload.createFromWatch(
+                                        accessToken: token,
+                                        payload: item.payload,
+                                        apiClient: api
+                                    ) else { continue }
+                                    queue.remove(item.id)
+                                    await send(.watchSessionUploaded(created))
+                                }
+                            }
+                        }
                         group.addTask {
                             for await event in watch.liveMatchEvents() {
                                 await send(.record(.liveEventReceived(event)))
@@ -126,7 +141,7 @@ struct MainTabFeature {
                     + (created.matchRating.map { String(format: " · rating %.0f", $0) } ?? "")
                 return .merge(
                     .send(.sessions(.onAppear)),
-                    .send(.sessions(.showSummary(created))),
+                    .send(.sessions(.openSession(created.id, true))),
                     .run { _ in
                         PostHogAnalytics.matchSavedFromWatch(
                             durationS: created.durationS,
