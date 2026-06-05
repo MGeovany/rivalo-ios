@@ -53,8 +53,7 @@ struct ProfileFeature {
                 physicalRating: metrics.physicalRating,
                 displayStats: metrics.displayStats,
                 countryCode: countryCode,
-                initials: ProfileFormatting.initials(from: name),
-                achievementBadge: metrics.badge
+                initials: ProfileFormatting.initials(from: name)
             )
         }
 
@@ -347,5 +346,4 @@ struct PlayerCardModel: Equatable {
     let displayStats: PlayerCardDisplayStats
     let countryCode: String
     let initials: String
-    let achievementBadge: PlayerCardBadge?
 }

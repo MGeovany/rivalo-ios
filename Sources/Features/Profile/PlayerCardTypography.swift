@@ -36,11 +36,8 @@ enum PlayerCardTypography {
         ThemeFont.font(name: "Rajdhani-SemiBold", size: size * 0.036)
     }
 
+    /// `size` is the emblem diamond width, not the full card width.
     static func emblemInitials(size: CGFloat) -> Font {
-        ThemeFont.font(name: "Rajdhani-Bold", size: size * 0.118)
-    }
-
-    static func emblemBadge(size: CGFloat) -> Font {
-        ThemeFont.font(name: "Rajdhani-SemiBold", size: size * 0.028)
+        ThemeFont.font(name: "Rajdhani-Bold", size: size * 0.52)
     }
 }

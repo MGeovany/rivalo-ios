@@ -17,8 +17,12 @@ struct PlayerProgressCardCanvas: View {
     var body: some View {
         ZStack {
             layerImage(.background)
-            emblemOverlay
             layerImage(.frame)
+            PlayerCardEmblem(
+                initials: content.initials,
+                style: style,
+                canvasSize: canvasSize
+            )
             ratingOverlay
             positionOverlay
             flagOverlay
@@ -49,76 +53,6 @@ struct PlayerProgressCardCanvas: View {
                     .clipped()
             } else {
                 Color.clear
-            }
-        }
-        .allowsHitTesting(false)
-    }
-
-    // MARK: - Emblem
-
-    private var emblemOverlay: some View {
-        let area = PlayerCardLayout.emblem.frame(in: canvasSize)
-        let diameter = min(area.width, area.height)
-        let center = PlayerCardLayout.emblem.center(in: canvasSize)
-
-        return ZStack {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [style.glow.opacity(0.55), style.innerTint.opacity(0.95), .clear],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: diameter * 0.62
-                    )
-                )
-                .frame(width: diameter * 1.18, height: diameter * 1.18)
-                .position(center)
-
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [style.frameTop.opacity(0.35), style.innerTint, style.frameDeep.opacity(0.9)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: diameter, height: diameter)
-                .overlay {
-                    Circle()
-                        .strokeBorder(style.borderGradient, lineWidth: max(2, width * 0.004))
-                }
-                .shadow(color: style.glow.opacity(0.45), radius: diameter * 0.08)
-                .position(center)
-
-            Image(systemName: "rosette")
-                .font(.system(size: diameter * 0.92, weight: .bold))
-                .foregroundStyle(style.accent.opacity(0.22))
-                .position(center)
-
-            Text(content.initials)
-                .font(PlayerCardTypography.emblemInitials(size: width))
-                .foregroundStyle(style.ratingForeground)
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
-                .frame(width: diameter * 0.62)
-                .position(center)
-
-            if let badge = content.achievementBadge {
-                Text(badge.label)
-                    .font(PlayerCardTypography.emblemBadge(size: width))
-                    .foregroundStyle(style.accentBright)
-                    .padding(.horizontal, width * 0.018)
-                    .padding(.vertical, height * 0.004)
-                    .background(style.frameDeep.opacity(0.82))
-                    .clipShape(Capsule())
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(style.accent.opacity(0.55), lineWidth: max(1, width * 0.0015))
-                    }
-                    .position(
-                        x: center.x,
-                        y: center.y + diameter * 0.44
-                    )
             }
         }
         .allowsHitTesting(false)
@@ -175,19 +109,13 @@ struct PlayerProgressCardCanvas: View {
     }
 
     private var statsOverlay: some View {
-        let leftArea = PlayerCardLayout.leftStats
-        let rightArea = PlayerCardLayout.rightStats
-        let bandTop = rightArea.y
-        let bandHeight = PlayerCardLayout.playerName.y - bandTop - 0.025
-        let rowWidth = rightArea.x + rightArea.width - leftArea.x
-        let columnWidth = width * leftArea.width
-        let dividerPadding = height * 0.008
         let valueFont = statsValueFont
+        let dividerPadding = height * 0.008
 
-        return HStack(alignment: .bottom, spacing: 0) {
-            statsColumn(
+        return ZStack {
+            positionedStatsColumn(
+                area: PlayerCardLayout.leftStats,
                 left: true,
-                columnWidth: columnWidth,
                 dividerPadding: dividerPadding,
                 valueFont: valueFont,
                 entries: [
@@ -195,10 +123,9 @@ struct PlayerProgressCardCanvas: View {
                     (.speed, content.topSpeedText),
                 ]
             )
-            Spacer(minLength: width * 0.06)
-            statsColumn(
+            positionedStatsColumn(
+                area: PlayerCardLayout.rightStats,
                 left: false,
-                columnWidth: columnWidth,
                 dividerPadding: dividerPadding,
                 valueFont: valueFont,
                 entries: [
@@ -208,11 +135,26 @@ struct PlayerProgressCardCanvas: View {
                 ]
             )
         }
-        .frame(width: width * rowWidth, height: height * bandHeight, alignment: .bottom)
-        .position(
-            x: width * (leftArea.x + rowWidth / 2),
-            y: height * (bandTop + bandHeight / 2)
+    }
+
+    private func positionedStatsColumn(
+        area: PlayerCardLayout.SafeArea,
+        left: Bool,
+        dividerPadding: CGFloat,
+        valueFont: Font,
+        entries: [(PlayerCardStatKind, String)]
+    ) -> some View {
+        let frame = area.frame(in: canvasSize)
+
+        return statsColumn(
+            left: left,
+            columnWidth: frame.width,
+            dividerPadding: dividerPadding,
+            valueFont: valueFont,
+            entries: entries
         )
+        .frame(width: frame.width, height: frame.height, alignment: left ? .bottomLeading : .bottomTrailing)
+        .position(x: frame.midX, y: frame.midY)
     }
 
     /// One value size for both columns — sized to the longest stat so nothing scales unevenly.
@@ -364,25 +306,30 @@ struct PlayerProgressCard: View {
 
 // MARK: - Previews
 
-private func previewContent(tier: PlayerCardRank, country: String = "CA") -> PlayerCardContent {
+private func previewContent(tier: PlayerCardRank, country: String = "HN") -> PlayerCardContent {
     PlayerCardContent(
-        name: "Geovany",
-        initials: "G",
+        name: "Alex",
+        initials: "A",
         countryCode: country,
-        position: "Midfielder",
+        position: "Forward",
         rating: 74,
         tier: tier,
-        matches: 5,
-        distanceKm: 42.6,
-        topSpeed: 25.0,
-        sprints: 46,
-        intensity: 74,
-        achievementBadge: .newPR
+        matches: 20,
+        distanceKm: 145.8,
+        topSpeed: 28.5,
+        sprints: 174,
+        intensity: 74
     )
 }
 
 #Preview("Bronze card") {
     PlayerProgressCard(content: previewContent(tier: .bronze))
+        .padding()
+        .background(Color.black)
+}
+
+#Preview("Platinum card") {
+    PlayerProgressCard(content: previewContent(tier: .platinum))
         .padding()
         .background(Color.black)
 }

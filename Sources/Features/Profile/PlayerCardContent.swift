@@ -13,7 +13,6 @@ struct PlayerCardContent: Equatable {
     let topSpeed: Double?
     let sprints: Int
     let intensity: Int?
-    var achievementBadge: PlayerCardBadge?
 
     var positionAbbrev: String {
         ProfileFormatting.positionAbbreviation(position)
@@ -67,8 +66,7 @@ extension PlayerCardContent {
             distanceKm: km,
             topSpeed: spd,
             sprints: Int(metrics.displayStats.sprValue) ?? 0,
-            intensity: intensity,
-            achievementBadge: metrics.badge
+            intensity: intensity
         )
     }
 }
@@ -86,8 +84,7 @@ extension PlayerCardModel {
             distanceKm: Double(displayStats.kmValue) ?? 0,
             topSpeed: Double(displayStats.spdValue),
             sprints: Int(displayStats.sprValue) ?? 0,
-            intensity: Int(displayStats.intValue),
-            achievementBadge: achievementBadge
+            intensity: Int(displayStats.intValue)
         )
     }
 }

@@ -1,17 +1,5 @@
 import Foundation
 
-enum PlayerCardBadge: Equatable {
-    case newPR
-    case mostImproved
-
-    var label: String {
-        switch self {
-        case .newPR: "NEW PR"
-        case .mostImproved: "MOST IMPROVED"
-        }
-    }
-}
-
 /// Card stat abbreviations (INT / SPD / SPR / KM / MAT) with tap-to-explain copy.
 enum PlayerCardStatKind: String, CaseIterable, Identifiable {
     case intensity
@@ -82,7 +70,6 @@ struct PlayerCardMetrics: Equatable {
     let tierProgress: Int
     let physicalRating: Int?
     let displayStats: PlayerCardDisplayStats
-    let badge: PlayerCardBadge?
 }
 
 enum PlayerCardStatsBuilder {
@@ -93,8 +80,7 @@ enum PlayerCardStatsBuilder {
                 rank: .unranked,
                 tierProgress: 0,
                 physicalRating: nil,
-                displayStats: .empty,
-                badge: nil
+                displayStats: .empty
             )
         }
 
@@ -124,31 +110,8 @@ enum PlayerCardStatsBuilder {
             rank: rank,
             tierProgress: tierProgress,
             physicalRating: physicalRating,
-            displayStats: displayStats,
-            badge: detectBadge(from: sessions)
+            displayStats: displayStats
         )
-    }
-
-    private static func detectBadge(from sessions: [SportSession]) -> PlayerCardBadge? {
-        let sorted = sessions.sorted { $0.startedAt > $1.startedAt }
-        guard let latest = sorted.first, sorted.count >= 2 else { return nil }
-        let prior = Array(sorted.dropFirst())
-
-        if let speed = latest.speedMaxKmh {
-            let priorMax = prior.compactMap(\.speedMaxKmh).max() ?? 0
-            if speed > priorMax { return .newPR }
-        }
-        if latest.distanceM > (prior.map(\.distanceM).max() ?? 0) { return .newPR }
-        if latest.sprints > (prior.map(\.sprints).max() ?? 0) { return .newPR }
-
-        if let latestIntensity = latest.intensity {
-            let priorIntensities = prior.compactMap(\.intensity)
-            guard !priorIntensities.isEmpty else { return nil }
-            let average = priorIntensities.reduce(0, +) / Double(priorIntensities.count)
-            if latestIntensity - average >= 8 { return .mostImproved }
-        }
-
-        return nil
     }
 }
 
