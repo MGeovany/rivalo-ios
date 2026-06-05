@@ -48,6 +48,7 @@
 	<key>WKBackgroundModes</key>
 	<array>
 		<string>workout-processing</string>
+		<string>self-restorable</string>
 	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.mgeovany.rivalo</string>

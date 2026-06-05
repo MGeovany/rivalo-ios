@@ -36,3 +36,10 @@ Carthage/Build/
 .env
 .env.local
 Secrets.plist
+
+# Agent skills (local, not tracked)
+.claude/skills/
+.agent/skills/
+.agents/skills/
+.kiro/skills/
+skills-lock.json

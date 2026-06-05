@@ -10,6 +10,9 @@ packages:
   ComposableArchitecture:
     url: https://github.com/pointfreeco/swift-composable-architecture
     from: "1.17.1"
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios
+    from: "3.58.0"
 
 settings:
   base:
@@ -30,6 +33,8 @@ targets:
     dependencies:
       - package: ComposableArchitecture
         product: ComposableArchitecture
+      - package: PostHog
+        product: PostHog
       - target: RivaloWatch
         embed: true
     info:
@@ -110,6 +115,7 @@ targets:
         NSHealthUpdateUsageDescription: Rivalo saves each match as a workout in the Health app.
         WKBackgroundModes:
           - workout-processing
+          - self-restorable
     entitlements:
       path: WatchSupport/RivaloWatch.entitlements
       properties:
@@ -120,3 +126,17 @@ targets:
         GENERATE_INFOPLIST_FILE: false
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+schemes:
+  Rivalo:
+    build:
+      targets:
+        Rivalo: all
+    run:
+      environmentVariables:
+        POSTHOG_PROJECT_TOKEN:
+          value: phc_C6YFLY4Rn6vSqQegH4G4c3nR9seBPZyxqwTpx94RQGZz
+          isEnabled: true
+        POSTHOG_HOST:
+          value: https://us.i.posthog.com
+          isEnabled: true

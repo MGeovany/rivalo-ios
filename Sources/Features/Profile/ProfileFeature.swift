@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import PostHog
 
 /// Loads and edits the authenticated user's profile via the backend.
 @Reducer
@@ -33,6 +34,8 @@ struct ProfileFeature {
         var isProcessingPhoto = false
         /// Saved or pending photo still has a full background and needs Vision cutout.
         var photoNeedsBackgroundRemoval = false
+        var isDeleteAccountAlertShown = false
+        var isDeletingAccount = false
         @Presents var courts: CourtsFeature.State?
         @Presents var badges: BadgesFeature.State?
         @Presents var rivalries: RivalriesFeature.State?
@@ -99,6 +102,11 @@ struct ProfileFeature {
         case saveTapped
         case saveResponse(Result<Profile, APIError>)
         case signOutTapped
+        case deleteAccountTapped
+        case deleteAccountCancelled
+        case deleteAccountConfirmed
+        case deleteAccountSucceeded
+        case deleteAccountFailed
         case heightUnitChanged(HeightUnit)
         case weightUnitChanged(WeightUnit)
         case photoSelected(Data)
@@ -122,6 +130,7 @@ struct ProfileFeature {
 
         enum Delegate: Equatable {
             case signOut
+            case accountDeleted
         }
     }
 
@@ -179,11 +188,14 @@ struct ProfileFeature {
                 state.isSaving = false
                 state.apply(profile)
                 let token = state.accessToken
-                return .run { send in
-                    await send(.sessionsForCardResponse(Result {
-                        try await apiClient.listSessions(token)
-                    }.mapError { $0 as? APIError ?? .invalidResponse }))
-                }
+                return .merge(
+                    .run { _ in PostHogSDK.shared.capture("profile_saved") },
+                    .run { send in
+                        await send(.sessionsForCardResponse(Result {
+                            try await apiClient.listSessions(token)
+                        }.mapError { $0 as? APIError ?? .invalidResponse }))
+                    }
+                )
 
             case .saveResponse(.failure):
                 state.isSaving = false
@@ -192,6 +204,40 @@ struct ProfileFeature {
 
             case .signOutTapped:
                 return .send(.delegate(.signOut))
+
+            case .deleteAccountTapped:
+                state.isDeleteAccountAlertShown = true
+                return .none
+
+            case .deleteAccountCancelled:
+                state.isDeleteAccountAlertShown = false
+                return .none
+
+            case .deleteAccountConfirmed:
+                state.isDeleteAccountAlertShown = false
+                state.isDeletingAccount = true
+                state.errorMessage = nil
+                let token = state.accessToken
+                return .run { send in
+                    do {
+                        try await apiClient.deleteAccount(token)
+                        await send(.deleteAccountSucceeded)
+                    } catch {
+                        await send(.deleteAccountFailed)
+                    }
+                }
+
+            case .deleteAccountSucceeded:
+                state.isDeletingAccount = false
+                return .merge(
+                    .run { _ in PostHogSDK.shared.capture("account_deleted") },
+                    .send(.delegate(.accountDeleted))
+                )
+
+            case .deleteAccountFailed:
+                state.isDeletingAccount = false
+                state.errorMessage = "Could not delete your account. Please try again."
+                return Self.scheduleErrorDismiss()
 
             case let .heightUnitChanged(unit):
                 let cm = state.heightUnit.parseToCm(state.heightText)
@@ -216,7 +262,7 @@ struct ProfileFeature {
                 state.isProcessingPhoto = false
                 state.photoNeedsBackgroundRemoval = true
                 state.errorMessage = nil
-                return .none
+                return .run { _ in PostHogSDK.shared.capture("player_card_photo_added") }
 
             case .photoFixTapped:
                 guard state.profile?.id != nil else { return .none }
@@ -241,7 +287,14 @@ struct ProfileFeature {
                     state.errorMessage = BackgroundRemover.isSimulator
                         ? "El recorte de fondo no funciona en el Simulador. Prueba en un iPhone físico."
                         : "Could not cut out your photo. Try another image."
-                    return Self.scheduleErrorDismiss()
+                    return .merge(
+                        .run { _ in
+                            PostHogSDK.shared.capture("player_card_photo_processed", properties: [
+                                "success": false,
+                            ])
+                        },
+                        Self.scheduleErrorDismiss()
+                    )
                 }
                 ProfilePhotoLog.info("photoProcessed: saved cutout \(saved.count) bytes")
                 state.avatarImageData = saved
@@ -250,7 +303,11 @@ struct ProfileFeature {
                 ProfilePhotoPlacementStore.save(userId: userId, placement: state.photoPlacement)
                 state.isPhotoPlacementLocked = true
                 ProfilePhotoPlacementLockStore.save(userId: userId, locked: true)
-                return .none
+                return .run { _ in
+                    PostHogSDK.shared.capture("player_card_photo_processed", properties: [
+                        "success": true,
+                    ])
+                }
 
             case let .photoPlacementChanged(placement):
                 guard !state.isPhotoPlacementLocked else { return .none }

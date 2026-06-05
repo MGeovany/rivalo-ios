@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import PostHog
 import SwiftUI
 
 @main
@@ -11,6 +12,19 @@ struct RivaloApp: App {
     init() {
         Theme.registerFonts()
         MatchNotifications.shared.bootstrap()
+
+        let config = PostHogConfig(
+            apiKey: PostHogEnv.projectToken.value,
+            host: PostHogEnv.host.value
+        )
+        config.captureApplicationLifecycleEvents = true
+        config.errorTrackingConfig.autoCapture = true
+        config.sessionReplay = true
+        config.sessionReplayConfig.screenshotMode = true
+        config.sessionReplayConfig.maskAllTextInputs = true
+        config.sessionReplayConfig.maskAllImages = true
+        config.sessionReplayConfig.captureLogs = true
+        PostHogSDK.shared.setup(config)
     }
 
     var body: some Scene {

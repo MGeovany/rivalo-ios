@@ -65,6 +65,10 @@ struct ProfileView: View {
                             ProfileSignOutButton {
                                 store.send(.signOutTapped)
                             }
+
+                            ProfileDeleteAccountButton(isLoading: store.isDeletingAccount) {
+                                store.send(.deleteAccountTapped)
+                            }
                         }
                         .padding(.horizontal, Theme.Spacing.large)
                         .padding(.top, Theme.Spacing.medium)
@@ -77,6 +81,18 @@ struct ProfileView: View {
         }
         .tint(Theme.Colors.accent)
         .foregroundStyle(Theme.Colors.textPrimary)
+        .alert(
+            "Delete account",
+            isPresented: Binding(
+                get: { store.isDeleteAccountAlertShown },
+                set: { if !$0 { store.send(.deleteAccountCancelled) } }
+            )
+        ) {
+            Button("Delete", role: .destructive) { store.send(.deleteAccountConfirmed) }
+            Button("Cancel", role: .cancel) { store.send(.deleteAccountCancelled) }
+        } message: {
+            Text("This will permanently delete your account and all your data. This action cannot be undone.")
+        }
         .rivalToast(message: store.errorMessage, kind: .error) {
             store.send(.errorDismissed)
         }

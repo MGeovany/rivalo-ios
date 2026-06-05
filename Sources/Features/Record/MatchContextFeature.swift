@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import PostHog
 
 /// Post-match context form that appears after finishing a session and is editable from the detail.
 @Reducer
@@ -185,7 +186,17 @@ struct MatchContextFeature {
                 state.isSaving = false
                 state.savedSuccessfully = true
                 MatchNotifications.shared.cancelResultReminder(sessionId: state.sessionId)
-                return .send(.delegate(.dismissed))
+                let outcome = state.outcome
+                let matchType = state.matchType
+                return .merge(
+                    .run { _ in
+                        PostHogSDK.shared.capture("match_context_saved", properties: [
+                            "outcome": outcome,
+                            "match_type": matchType,
+                        ])
+                    },
+                    .send(.delegate(.dismissed))
+                )
 
             case .saveResponse(.failure):
                 state.isSaving = false

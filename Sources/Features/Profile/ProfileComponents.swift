@@ -311,6 +311,30 @@ struct ProfileSignOutButton: View {
     }
 }
 
+struct ProfileDeleteAccountButton: View {
+    let isLoading: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Theme.Spacing.small) {
+                if isLoading {
+                    ProgressView().tint(Theme.Colors.negative)
+                } else {
+                    Image(systemName: "trash")
+                    Text("Delete account")
+                        .font(Theme.Typography.button(size: 16))
+                }
+            }
+            .foregroundStyle(Theme.Colors.negative.opacity(0.7))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Theme.Spacing.small)
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+    }
+}
+
 // MARK: - Helpers
 
 enum ProfileFormatting {

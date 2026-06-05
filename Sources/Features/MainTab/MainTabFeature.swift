@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import PostHog
 
 /// Signed-in tab bar: Home, Record, You, Activities, and Insights.
 @Reducer
@@ -45,6 +46,7 @@ struct MainTabFeature {
 
         enum Delegate: Equatable {
             case signOut
+            case accountDeleted
         }
     }
 
@@ -125,7 +127,9 @@ struct MainTabFeature {
                     accessToken: state.accessToken,
                     prefill: method
                 )
-                return .none
+                return .run { _ in
+                    PostHogAnalytics.courtMeasureStarted(source: "watch_\(method.rawValue)")
+                }
 
             case .pitchMeasure(.presented(.delegate(.dismissed))):
                 state.pitchMeasure = nil
@@ -163,6 +167,9 @@ struct MainTabFeature {
 
             case .profile(.delegate(.signOut)):
                 return .send(.delegate(.signOut))
+
+            case .profile(.delegate(.accountDeleted)):
+                return .send(.delegate(.accountDeleted))
 
             case let .selectedTabChanged(tab):
                 state.selectedTab = tab

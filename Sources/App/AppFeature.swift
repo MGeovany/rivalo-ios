@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import PostHog
 
 /// Root reducer. Restores a stored session on launch and routes between the
 /// authentication flow and the signed-in tab bar.
@@ -45,7 +46,11 @@ struct AppFeature {
                 if let session {
                     state.refreshToken = session.refreshToken
                     state.main = MainTabFeature.State(accessToken: session.accessToken)
-                    return startRefreshTimer(session)
+                    let userId = session.userID
+                    return .merge(
+                        .run { _ in PostHogSDK.shared.identify(userId) },
+                        startRefreshTimer(session)
+                    )
                 }
                 return .none
 
@@ -75,17 +80,31 @@ struct AppFeature {
                 state.refreshToken = session.refreshToken
                 state.main = MainTabFeature.State(accessToken: session.accessToken)
                 try? tokenStore.save(session)
-                return startRefreshTimer(session)
+                let userId = session.userID
+                return .merge(
+                    .run { _ in PostHogSDK.shared.identify(userId) },
+                    startRefreshTimer(session)
+                )
 
             case .main(.delegate(.signOut)):
                 let accessToken = state.main?.profile.accessToken
                 state.main = nil
                 state.refreshToken = nil
                 return .run { _ in
+                    PostHogSDK.shared.capture("user_signed_out")
+                    PostHogSDK.shared.reset()
                     tokenStore.clear()
                     if let accessToken {
                         try? await authClient.signOut(accessToken)
                     }
+                }
+
+            case .main(.delegate(.accountDeleted)):
+                state.main = nil
+                state.refreshToken = nil
+                return .run { _ in
+                    PostHogSDK.shared.reset()
+                    tokenStore.clear()
                 }
 
             case .auth, .main:

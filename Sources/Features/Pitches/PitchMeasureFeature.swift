@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import PostHog
 
 /// hub: measure on Apple Watch (walk); manual is watch-only.
 @Reducer
@@ -38,7 +39,9 @@ struct PitchMeasureFeature {
             switch action {
             case .methodSelected(.walk):
                 state.route = .walk
-                return .none
+                return .run { _ in
+                    PostHogSDK.shared.capture("court_measure_walk_selected")
+                }
 
             case .methodSelected(.manual):
                 return .none

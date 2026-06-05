@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import PostHog
 
 /// Starts a match on the paired Apple Watch via WatchConnectivity.
 @Reducer
@@ -40,7 +41,10 @@ struct RecordFeature {
                 return .none
 
             case .measureCourtTapped:
-                return .send(.delegate(.openMeasureCourt))
+                return .merge(
+                    .run { _ in PostHogAnalytics.courtMeasureStarted(source: "record_tab") },
+                    .send(.delegate(.openMeasureCourt))
+                )
 
             case .recordTapped:
                 return .run { send in
@@ -52,25 +56,32 @@ struct RecordFeature {
                 switch result {
                 case .started:
                     state.recordAlertMessage = nil
-                    return .none
+                    return .run { _ in
+                        PostHogSDK.shared.capture("match_start_requested", properties: [
+                            "result": "started",
+                        ])
+                    }
                 case .queued:
                     state.recordAlertMessage =
                         "Open Rivalo on your Apple Watch — your match is ready to start."
-                    return .none
+                    return .run { _ in
+                        PostHogSDK.shared.capture("match_start_requested", properties: [
+                            "result": "queued",
+                        ])
+                    }
                 case let .unavailable(message):
                     state.recordAlertMessage = message
-                    return .none
+                    return .run { _ in
+                        PostHogSDK.shared.capture("match_start_requested", properties: [
+                            "result": "unavailable",
+                            "reason": message,
+                        ])
+                    }
                 }
 
             case let .liveEventReceived(event):
                 if state.liveMatch == nil {
-                    state.liveMatch = LiveMatchFeature.State(
-                        mode: event.mode,
-                        elapsedS: event.elapsedS,
-                        heartRate: event.heartRate,
-                        distanceM: event.distanceM,
-                        segment: event.segment
-                    )
+                    state.liveMatch = LiveMatchFeature.State()
                 }
                 return .send(.liveMatch(.presented(.liveEventReceived(event))))
 

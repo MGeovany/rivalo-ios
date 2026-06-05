@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import PostHog
 
 @Reducer
 struct InsightsFeature {
@@ -98,7 +99,9 @@ struct InsightsFeature {
 
             case .positionInsightsTapped:
                 state.positionInsights = PositionInsightsFeature.State(accessToken: state.accessToken)
-                return .none
+                return .run { _ in
+                    PostHogSDK.shared.capture("insights_position_viewed")
+                }
 
             case .positionInsights(.presented(.delegate(.dismissed))):
                 state.positionInsights = nil

@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import PostHog
 
 /// Registration, sign-in, and password recovery (Supabase Auth).
 @Reducer
@@ -126,23 +127,43 @@ struct AuthenticationFeature {
 
             case let .signInResult(.success(session)):
                 state.isSubmitting = false
-                return .send(.delegate(.authenticated(session)))
+                let userId = session.userID
+                return .merge(
+                    .run { _ in
+                        PostHogSDK.shared.capture("user_signed_in")
+                        PostHogSDK.shared.identify(userId)
+                    },
+                    .send(.delegate(.authenticated(session)))
+                )
 
             case let .signUpResult(.success(.session(session))):
                 state.isSubmitting = false
-                return .send(.delegate(.authenticated(session)))
+                let userId = session.userID
+                return .merge(
+                    .run { _ in
+                        PostHogSDK.shared.capture("user_signed_up")
+                        PostHogSDK.shared.identify(userId)
+                    },
+                    .send(.delegate(.authenticated(session)))
+                )
 
             case .signUpResult(.success(.needsEmailConfirmation)):
                 state.isSubmitting = false
                 state.screen = .login
                 state.password = ""
                 state.infoMessage = "Check your email to confirm your account, then sign in."
-                return .none
+                return .run { _ in
+                    PostHogSDK.shared.capture("user_signed_up", properties: [
+                        "needs_email_confirmation": true,
+                    ])
+                }
 
             case .recoverResult(.success(.sent)):
                 state.isSubmitting = false
                 state.infoMessage = "If an account exists for this email, you will receive reset instructions."
-                return .none
+                return .run { _ in
+                    PostHogSDK.shared.capture("password_recovery_requested")
+                }
 
             case let .signInResult(.failure(error)),
                  let .signUpResult(.failure(error)),

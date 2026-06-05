@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import PostHog
 
 /// Loads and displays a single session with Strava-style charts and actions.
 @Reducer
@@ -180,7 +181,10 @@ struct SessionDetailFeature {
                 state.isDeleting = false
                 SessionMetaStore.delete(sessionId: state.sessionId)
                 SessionPhotoStore.deleteAll(sessionId: state.sessionId)
-                return .send(.delegate(.deleted))
+                return .merge(
+                    .run { _ in PostHogSDK.shared.capture("session_deleted") },
+                    .send(.delegate(.deleted))
+                )
 
             case .deleteFailed:
                 state.isDeleting = false

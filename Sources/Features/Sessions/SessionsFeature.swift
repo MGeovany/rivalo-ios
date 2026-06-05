@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import PostHog
 
 /// Home feed: week activity, latest match, and records promo (Strava-style).
 @Reducer
@@ -176,7 +177,9 @@ struct SessionsFeature {
 
             case let .sessionTapped(session):
                 state.detail = SessionDetailFeature.State(accessToken: state.accessToken, id: session.id)
-                return .none
+                return .run { _ in
+                    PostHogSDK.shared.capture("session_viewed")
+                }
 
             case let .showSummary(session):
                 state.detail = SessionDetailFeature.State(

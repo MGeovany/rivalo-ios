@@ -35,9 +35,15 @@ enum PitchesSync {
             let lengthM = info["length_m"] as? Double,
             let widthM = info["width_m"] as? Double,
             lengthM > 0, widthM > 0
-        else { return }
+        else {
+            PostHogAnalytics.watchPitchSaveFailed(reason: "invalid_payload")
+            return
+        }
 
-        guard let token = TokenStore.liveValue.load()?.accessToken else { return }
+        guard let token = TokenStore.liveValue.load()?.accessToken else {
+            PostHogAnalytics.watchPitchSaveFailed(reason: "no_access_token")
+            return
+        }
         let api = APIClient.liveValue
 
         let method = info["measurement_method"] as? String
@@ -46,7 +52,7 @@ enum PitchesSync {
         let lat = info["latitude"] as? Double
         let lon = info["longitude"] as? Double
 
-        _ = try? await create(
+        let created = try? await create(
             accessToken: token,
             apiClient: api,
             pitch: NewPitch(
@@ -60,5 +66,8 @@ enum PitchesSync {
                 measurementMethod: method
             )
         )
+        if created == nil {
+            PostHogAnalytics.watchPitchSaveFailed(reason: "api_create_failed")
+        }
     }
 }

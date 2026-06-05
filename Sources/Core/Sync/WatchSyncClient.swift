@@ -8,6 +8,7 @@ enum WatchCommand {
     static let startMatch = "startMatch"
     static let measureCourt = "measureCourt"
     static let savePitch = "savePitch"
+    static let pitchWalkProgress = "pitchWalkProgress"
     // Live match
     static let liveEvent = "liveMatchEvent"
     static let matchPause = "matchPause"
@@ -25,10 +26,15 @@ enum StartMatchResult: Equatable {
 /// Live match event received from the watch.
 struct LiveMatchEvent: Equatable, Sendable {
     let mode: String
-    let elapsedS: Int
+    /// Absolute time when the match started (used to drive a local clock on iPhone).
+    let startedAt: Date
     let heartRate: Int
     let distanceM: Double
     let segment: String
+    /// Duration of the first half in seconds. Non-nil once halftime has occurred.
+    let halftimeOffsetS: Int?
+    /// Absolute time when the halftime break started.
+    let halftimeStartedAt: Date?
 }
 
 /// Command the user can send from iPhone to the watch.
@@ -222,13 +228,33 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
            method != .walk {
             emitMeasureCourt(method)
         }
+        if action == WatchCommand.pitchWalkProgress {
+            let phase = payload["phase"] as? String ?? "unknown"
+            let liveMeters = payload["live_meters"] as? Double ?? 0
+            let lengthM = payload["length_m"] as? Double
+            let gpsAccuracyM = payload["gps_accuracy_m"] as? Double ?? -1
+            PostHogAnalytics.watchPitchWalkProgress(
+                phase: phase,
+                liveMeters: liveMeters,
+                lengthM: lengthM,
+                gpsAccuracyM: gpsAccuracyM
+            )
+        }
         if action == WatchCommand.liveEvent {
+            let startedAtMs = payload["started_at_ms"] as? Double ?? 0
+            let startedAt = startedAtMs > 0
+                ? Date(timeIntervalSince1970: startedAtMs / 1000)
+                : Date()
+            let halftimeMs = payload["halftime_started_at_ms"] as? Double
+            let halftimeStartedAt = halftimeMs.map { Date(timeIntervalSince1970: $0 / 1000) }
             let event = LiveMatchEvent(
                 mode: payload["mode"] as? String ?? "quick",
-                elapsedS: payload["elapsed_s"] as? Int ?? 0,
+                startedAt: startedAt,
                 heartRate: payload["heart_rate"] as? Int ?? 0,
                 distanceM: payload["distance_m"] as? Double ?? 0,
-                segment: payload["segment"] as? String ?? "firstHalf"
+                segment: payload["segment"] as? String ?? "firstHalf",
+                halftimeOffsetS: payload["halftime_offset_s"] as? Int,
+                halftimeStartedAt: halftimeStartedAt
             )
             emitLiveEvent(event)
         }
@@ -237,6 +263,16 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
     // MARK: WCSessionDelegate
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        if userInfo[WatchCommand.actionKey] as? String == WatchCommand.savePitch {
+            let lengthM = userInfo["length_m"] as? Double ?? 0
+            let widthM = userInfo["width_m"] as? Double ?? 0
+            let method = userInfo["measurement_method"] as? String
+            PostHogAnalytics.watchPitchSaved(
+                lengthM: lengthM,
+                widthM: widthM,
+                method: method
+            )
+        }
         if userInfo[WatchCommand.actionKey] as? String == WatchCommand.savePitch,
            let data = try? JSONSerialization.data(withJSONObject: userInfo),
            let copy = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {

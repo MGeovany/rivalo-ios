@@ -67,6 +67,8 @@ struct APIClient {
     var updateGoal: @Sendable (_ accessToken: String, _ id: String, _ update: GoalUpdate) async throws -> Goal
     /// Deletes a personal goal via `DELETE /v1/goals/{id}`.
     var deleteGoal: @Sendable (_ accessToken: String, _ id: String) async throws -> Void
+    /// Permanently deletes the authenticated user's account via `DELETE /v1/me`.
+    var deleteAccount: @Sendable (_ accessToken: String) async throws -> Void
 }
 
 extension APIClient: DependencyKey {
@@ -272,6 +274,13 @@ extension APIClient: DependencyKey {
             @Dependency(\.tokenStore) var tokenStore
             try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
                 try await apiSendEmpty(authorizedRequest("v1/goals/\(id)", method: "DELETE", token: newToken))
+            }
+        },
+        deleteAccount: { token in
+            @Dependency(\.authClient) var authClient
+            @Dependency(\.tokenStore) var tokenStore
+            try await retryOnUnauthorized(token, authClient: authClient, tokenStore: tokenStore) { newToken in
+                try await apiSendEmpty(authorizedRequest("v1/me", method: "DELETE", token: newToken))
             }
         }
     )
