@@ -62,7 +62,7 @@ struct InsightsFeature {
             case .loadResponse(.failure):
                 state.isLoading = false
                 state.errorMessage = "Could not load insights."
-                return .run { _ in PostHogAnalytics.apiError(context: "insights_load", error: "api_failure") }
+                return .none
 
             case let .sessionsResponse(.success(sessions)):
                 state.recentSessions = sessions.sorted { $0.startedAt > $1.startedAt }

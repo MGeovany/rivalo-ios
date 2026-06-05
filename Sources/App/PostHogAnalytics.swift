@@ -3,10 +3,43 @@ import PostHog
 
 enum PostHogAnalytics {
 
+    // MARK: - Error tracking
+
+    static func captureError(
+        _ error: Error,
+        context: String,
+        extra: [String: Any] = [:]
+    ) {
+        var properties = extra
+        properties["context"] = context
+        properties["platform"] = "ios"
+        PostHogSDK.shared.captureException(error, properties: properties)
+        captureLog(
+            "Exception captured",
+            level: .error,
+            attributes: properties.merging(["message": error.localizedDescription]) { _, new in new }
+        )
+    }
+
+    static func captureErrorMessage(
+        _ message: String,
+        context: String,
+        extra: [String: Any] = [:]
+    ) {
+        captureError(
+            NSError(
+                domain: "com.mgeovany.rivalo",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: message]
+            ),
+            context: context,
+            extra: extra
+        )
+    }
+
     // MARK: - Court measurement
 
     static func courtMeasureStarted(source: String) {
-        PostHogSDK.shared.startSessionRecording(resumeCurrent: true)
         PostHogSDK.shared.capture("court_measure_started", properties: ["source": source])
         captureLog("Court measure flow opened", level: .info, attributes: ["source": source])
     }
@@ -17,7 +50,6 @@ enum PostHogAnalytics {
         lengthM: Double?,
         gpsAccuracyM: Double
     ) {
-        PostHogSDK.shared.startSessionRecording(resumeCurrent: true)
         var attributes: [String: Any] = [
             "phase": phase,
             "live_meters": liveMeters,
@@ -39,8 +71,7 @@ enum PostHogAnalytics {
     }
 
     static func watchPitchSaveFailed(reason: String) {
-        captureLog("Watch pitch save failed on iPhone", level: .warn, attributes: ["reason": reason])
-        PostHogSDK.shared.capture("watch_pitch_save_failed", properties: ["reason": reason])
+        captureErrorMessage(reason, context: "watch_pitch_save")
     }
 
     // MARK: - Match
@@ -60,22 +91,37 @@ enum PostHogAnalytics {
     }
 
     static func matchSaveFromWatchFailed(error: String) {
-        captureLog("Watch session upload to backend failed", level: .error, attributes: ["error": error])
-        PostHogSDK.shared.capture("match_save_from_watch_failed", properties: ["error": error])
+        captureErrorMessage(error, context: "watch_session_upload")
     }
 
     // MARK: - Auth errors
 
-    static func authFailed(flow: String, error: String) {
-        captureLog("Auth failed", level: .error, attributes: ["flow": flow, "error": error])
-        PostHogSDK.shared.capture("auth_failed", properties: ["flow": flow, "error": error])
+    static func authFailed(flow: String, error: Error) {
+        captureError(error, context: "auth", extra: ["flow": flow])
     }
 
     // MARK: - API errors
 
-    static func apiError(context: String, error: String) {
-        captureLog("API error", level: .error, attributes: ["context": context, "error": error])
-        PostHogSDK.shared.capture("api_error", properties: ["context": context, "error": error])
+    static func apiError(context: String, error: Error) {
+        captureError(error, context: context)
+    }
+
+    static func apiError(context: String, message: String) {
+        captureErrorMessage(message, context: context)
+    }
+
+    static func apiRequestFailed(
+        method: String,
+        path: String,
+        error: Error,
+        statusCode: Int? = nil
+    ) {
+        var extra: [String: Any] = [
+            "method": method,
+            "path": path,
+        ]
+        if let statusCode { extra["status_code"] = statusCode }
+        captureError(error, context: "api_request", extra: extra)
     }
 
     // MARK: - Internal

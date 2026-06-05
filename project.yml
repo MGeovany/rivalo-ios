@@ -93,6 +93,9 @@ targets:
         excludes:
           - "Info.plist"
           - "*.entitlements"
+    dependencies:
+      - package: PostHog
+        product: PostHog
     info:
       path: WatchSupport/Info.plist
       properties:
@@ -113,6 +116,8 @@ targets:
           UIImageRespectsSafeAreaInsets: true
         NSHealthShareUsageDescription: Rivalo reads your heart rate, distance and energy during a match to build your performance summary.
         NSHealthUpdateUsageDescription: Rivalo saves each match as a workout in the Health app.
+        PostHogProjectToken: phc_C6YFLY4Rn6vSqQegH4G4c3nR9seBPZyxqwTpx94RQGZz
+        PostHogHost: https://us.i.posthog.com
         WKBackgroundModes:
           - workout-processing
     entitlements:

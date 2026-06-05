@@ -19,11 +19,6 @@ struct RivaloApp: App {
         )
         config.captureApplicationLifecycleEvents = true
         config.errorTrackingConfig.autoCapture = true
-        config.sessionReplay = true
-        config.sessionReplayConfig.screenshotMode = true
-        config.sessionReplayConfig.maskAllTextInputs = true
-        config.sessionReplayConfig.maskAllImages = true
-        config.sessionReplayConfig.captureLogs = true
         PostHogSDK.shared.setup(config)
     }
 

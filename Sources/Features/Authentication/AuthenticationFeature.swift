@@ -171,24 +171,24 @@ struct AuthenticationFeature {
                 state.isSubmitting = false
                 let signInMsg = errorText(error)
                 state.errorMessage = signInMsg
-                return .run { [signInMsg] _ in
-                    PostHogAnalytics.authFailed(flow: "sign_in", error: signInMsg)
+                return .run { [error] _ in
+                    PostHogAnalytics.authFailed(flow: "sign_in", error: error)
                 }
 
             case let .signUpResult(.failure(error)):
                 state.isSubmitting = false
                 let signUpMsg = errorText(error)
                 state.errorMessage = signUpMsg
-                return .run { [signUpMsg] _ in
-                    PostHogAnalytics.authFailed(flow: "sign_up", error: signUpMsg)
+                return .run { [error] _ in
+                    PostHogAnalytics.authFailed(flow: "sign_up", error: error)
                 }
 
             case let .recoverResult(.failure(error)):
                 state.isSubmitting = false
                 let recoverMsg = errorText(error)
                 state.errorMessage = recoverMsg
-                return .run { [recoverMsg] _ in
-                    PostHogAnalytics.authFailed(flow: "password_recovery", error: recoverMsg)
+                return .run { [error] _ in
+                    PostHogAnalytics.authFailed(flow: "password_recovery", error: error)
                 }
 
             case .delegate:

@@ -24,6 +24,10 @@
 	<string>Rivalo reads your heart rate, distance and energy during a match to build your performance summary.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Rivalo saves each match as a workout in the Health app.</string>
+	<key>PostHogHost</key>
+	<string>https://us.i.posthog.com</string>
+	<key>PostHogProjectToken</key>
+	<string>phc_C6YFLY4Rn6vSqQegH4G4c3nR9seBPZyxqwTpx94RQGZz</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Michroma-Regular.ttf</string>

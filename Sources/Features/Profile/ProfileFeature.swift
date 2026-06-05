@@ -164,10 +164,7 @@ struct ProfileFeature {
             case .loadResponse(.failure):
                 state.isLoading = false
                 state.errorMessage = "Could not load your profile."
-                return .merge(
-                    Self.scheduleErrorDismiss(),
-                    .run { _ in PostHogAnalytics.apiError(context: "profile_load", error: "api_failure") }
-                )
+                return Self.scheduleErrorDismiss()
 
             case let .sessionsForCardResponse(.success(sessions)):
                 state.sessions = sessions
@@ -203,10 +200,7 @@ struct ProfileFeature {
             case .saveResponse(.failure):
                 state.isSaving = false
                 state.errorMessage = "Could not save your profile."
-                return .merge(
-                    Self.scheduleErrorDismiss(),
-                    .run { _ in PostHogAnalytics.apiError(context: "profile_save", error: "api_failure") }
-                )
+                return Self.scheduleErrorDismiss()
 
             case .signOutTapped:
                 return .send(.delegate(.signOut))
@@ -243,10 +237,7 @@ struct ProfileFeature {
             case .deleteAccountFailed:
                 state.isDeletingAccount = false
                 state.errorMessage = "Could not delete your account. Please try again."
-                return .merge(
-                    Self.scheduleErrorDismiss(),
-                    .run { _ in PostHogAnalytics.apiError(context: "account_delete", error: "api_failure") }
-                )
+                return Self.scheduleErrorDismiss()
 
             case let .heightUnitChanged(unit):
                 let cm = state.heightUnit.parseToCm(state.heightText)

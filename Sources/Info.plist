@@ -18,28 +18,19 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Rivalo uses your photo library to set your player card picture.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>PostHogProjectToken</key>
-	<string>phc_C6YFLY4Rn6vSqQegH4G4c3nR9seBPZyxqwTpx94RQGZz</string>
-	<key>PostHogHost</key>
-	<string>https://us.i.posthog.com</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Rivalo uses your photo library to set your player card picture.</string>
 	<key>RivaloAPIBaseURL</key>
 	<string>$(RIVALO_API_BASE_URL)</string>
 	<key>SupabaseAnonKey</key>
 	<string>$(RIVALO_SUPABASE_ANON_KEY)</string>
 	<key>SupabaseURL</key>
 	<string>$(RIVALO_SUPABASE_URL)</string>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-	</dict>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Michroma-Regular.ttf</string>
@@ -50,6 +41,11 @@
 		<string>SpaceMono-Regular.ttf</string>
 		<string>SpaceMono-Bold.ttf</string>
 	</array>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

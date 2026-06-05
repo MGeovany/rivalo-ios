@@ -75,14 +75,32 @@ extension APIClient: DependencyKey {
     static let liveValue = APIClient(
         health: {
             let url = APIConfig.baseURL.appendingPathComponent("health")
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let http = response as? HTTPURLResponse else {
-                throw APIError.invalidResponse
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+                guard let http = response as? HTTPURLResponse else {
+                    let error = APIError.invalidResponse
+                    reportAPIFailure(request, error: error)
+                    throw error
+                }
+                guard (200..<300).contains(http.statusCode) else {
+                    let error = APIError.statusCode(http.statusCode)
+                    reportAPIFailure(request, error: error, statusCode: http.statusCode)
+                    throw error
+                }
+                do {
+                    return try JSONDecoder().decode(HealthStatus.self, from: data)
+                } catch {
+                    reportAPIFailure(request, error: error)
+                    throw error
+                }
+            } catch let error as APIError {
+                throw error
+            } catch {
+                reportAPIFailure(request, error: error)
+                throw error
             }
-            guard (200..<300).contains(http.statusCode) else {
-                throw APIError.statusCode(http.statusCode)
-            }
-            return try JSONDecoder().decode(HealthStatus.self, from: data)
         },
         me: { token in
             @Dependency(\.authClient) var authClient
@@ -340,9 +358,26 @@ private func retryOnUnauthorized<T>(
 }
 
 private func apiSendEmpty(_ request: URLRequest) async throws {
-    let (_, response) = try await URLSession.shared.data(for: request)
-    guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
-    guard (200..<300).contains(http.statusCode) else { throw APIError.statusCode(http.statusCode) }
+    do {
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            let error = APIError.invalidResponse
+            reportAPIFailure(request, error: error)
+            throw error
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let error = APIError.statusCode(http.statusCode)
+            if http.statusCode != 401 {
+                reportAPIFailure(request, error: error, statusCode: http.statusCode)
+            }
+            throw error
+        }
+    } catch let error as APIError {
+        throw error
+    } catch {
+        reportAPIFailure(request, error: error)
+        throw error
+    }
 }
 
 // MARK: - Transport helpers
@@ -381,10 +416,47 @@ private func authorizedRequest(_ path: String, method: String, token: String) ->
 }
 
 private func apiSend<T: Decodable>(_ request: URLRequest, as _: T.Type) async throws -> T {
-    let (data, response) = try await URLSession.shared.data(for: request)
-    guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
-    guard (200..<300).contains(http.statusCode) else { throw APIError.statusCode(http.statusCode) }
-    return try apiDecoder().decode(T.self, from: data)
+    do {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            let error = APIError.invalidResponse
+            reportAPIFailure(request, error: error)
+            throw error
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let error = APIError.statusCode(http.statusCode)
+            if http.statusCode != 401 {
+                reportAPIFailure(request, error: error, statusCode: http.statusCode)
+            }
+            throw error
+        }
+        do {
+            return try apiDecoder().decode(T.self, from: data)
+        } catch {
+            reportAPIFailure(request, error: error)
+            throw error
+        }
+    } catch let error as APIError {
+        throw error
+    } catch {
+        reportAPIFailure(request, error: error)
+        throw error
+    }
+}
+
+private func reportAPIFailure(
+    _ request: URLRequest,
+    error: Error,
+    statusCode: Int? = nil
+) {
+    let path = request.url?.path ?? request.url?.absoluteString ?? "unknown"
+    let method = request.httpMethod ?? "GET"
+    PostHogAnalytics.apiRequestFailed(
+        method: method,
+        path: path,
+        error: error,
+        statusCode: statusCode
+    )
 }
 
 extension DependencyValues {
