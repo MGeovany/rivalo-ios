@@ -28,6 +28,12 @@ struct MainTabView: View {
         }
         .tint(Theme.Colors.accent)
         .task { store.send(.task) }
+        #if DEBUG
+        .overlay(alignment: .top) {
+            WatchDebugOverlay()
+                .padding(.top, 52)
+        }
+        #endif
     }
 
     private var tabSelection: Binding<MainTabFeature.State.Tab> {

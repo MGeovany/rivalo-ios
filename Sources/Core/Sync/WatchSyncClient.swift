@@ -100,9 +100,9 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         session.delegate = self
-        if session.activationState != .activated {
-            session.activate()
-        }
+        guard session.activationState != .activated else { return }
+        // WCSession.activate() must be called from the main thread.
+        DispatchQueue.main.async { session.activate() }
     }
 
     func stream() -> AsyncStream<NewSportSession> {

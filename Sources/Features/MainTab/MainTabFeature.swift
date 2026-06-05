@@ -82,6 +82,14 @@ struct MainTabFeature {
                             level: .info
                         )
                     }
+                    #if DEBUG
+                    await MainActor.run {
+                        WatchDebugState.shared.pendingCount = pending.count
+                        if !pending.isEmpty {
+                            WatchDebugState.shared.append("launch: \(pending.count) queued", level: .warning)
+                        }
+                    }
+                    #endif
                     for item in pending {
                         do {
                             let created = try await WatchSessionUpload.createFromWatch(
@@ -95,6 +103,12 @@ struct MainTabFeature {
                                 level: .info,
                                 attributes: ["session_id": created.id, "queue_id": item.id.uuidString]
                             )
+                            #if DEBUG
+                            await MainActor.run {
+                                WatchDebugState.shared.pendingCount = queue.all().count
+                                WatchDebugState.shared.append("✓ queued session uploaded", level: .success)
+                            }
+                            #endif
                             await send(.watchSessionUploaded(created))
                         } catch APIError.statusCode(let code) where (400..<500).contains(code) && code != 401 {
                             // Permanent rejection — drop it, never retry.
@@ -105,6 +119,12 @@ struct MainTabFeature {
                                 attributes: ["status_code": code, "queue_id": item.id.uuidString]
                             )
                             PostHogAnalytics.matchSaveFromWatchFailed(error: "status_\(code)")
+                            #if DEBUG
+                            await MainActor.run {
+                                WatchDebugState.shared.pendingCount = queue.all().count
+                                WatchDebugState.shared.append("✗ queued session \(code) — dropped", level: .error)
+                            }
+                            #endif
                         } catch {
                             PostHogAnalytics.captureLog(
                                 "pending watch session upload failed — will retry",
@@ -112,6 +132,11 @@ struct MainTabFeature {
                                 attributes: ["error": error.localizedDescription, "queue_id": item.id.uuidString]
                             )
                             PostHogAnalytics.matchSaveFromWatchFailed(error: error.localizedDescription)
+                            #if DEBUG
+                            await MainActor.run {
+                                WatchDebugState.shared.append("✗ queued upload failed — retry", level: .error)
+                            }
+                            #endif
                         }
                     }
                     await withDiscardingTaskGroup { group in
@@ -128,6 +153,11 @@ struct MainTabFeature {
                                         level: .info,
                                         attributes: ["started_at": received.startedAt.timeIntervalSince1970]
                                     )
+                                    #if DEBUG
+                                    await MainActor.run {
+                                        WatchDebugState.shared.append("event arrived — dup, skipped", level: .warning)
+                                    }
+                                    #endif
                                     continue
                                 }
                                 PostHogAnalytics.captureLog(
@@ -140,7 +170,26 @@ struct MainTabFeature {
                                         "mode": received.mode,
                                     ]
                                 )
+                                #if DEBUG
+                                await MainActor.run {
+                                    let dur = Int(received.durationS)
+                                    WatchDebugState.shared.append("event: \(dur)s \(received.mode)", level: .info)
+                                }
+                                #endif
+                                // Watch ended the match — dismiss live view immediately,
+                                // regardless of whether the upload succeeds.
+                                await send(.record(.dismissLiveMatch))
+                                #if DEBUG
+                                await MainActor.run {
+                                    WatchDebugState.shared.append("dismissed live match", level: .info)
+                                }
+                                #endif
                                 let queued = queue.enqueue(received)
+                                #if DEBUG
+                                await MainActor.run {
+                                    WatchDebugState.shared.pendingCount = queue.all().count
+                                }
+                                #endif
                                 do {
                                     let created = try await WatchSessionUpload.createFromWatch(
                                         accessToken: token,
@@ -153,6 +202,12 @@ struct MainTabFeature {
                                         level: .info,
                                         attributes: ["session_id": created.id]
                                     )
+                                    #if DEBUG
+                                    await MainActor.run {
+                                        WatchDebugState.shared.pendingCount = queue.all().count
+                                        WatchDebugState.shared.append("✓ uploaded — session saved", level: .success)
+                                    }
+                                    #endif
                                     await send(.watchSessionUploaded(created))
                                 } catch APIError.statusCode(let code) where (400..<500).contains(code) && code != 401 {
                                     // Permanent client-side rejection — remove from queue so it is
@@ -167,6 +222,12 @@ struct MainTabFeature {
                                         ]
                                     )
                                     PostHogAnalytics.matchSaveFromWatchFailed(error: "status_\(code)")
+                                    #if DEBUG
+                                    await MainActor.run {
+                                        WatchDebugState.shared.pendingCount = queue.all().count
+                                        WatchDebugState.shared.append("✗ server \(code) — dropped", level: .error)
+                                    }
+                                    #endif
                                 } catch {
                                     PostHogAnalytics.captureLog(
                                         "watch session upload failed — will retry",
@@ -177,6 +238,11 @@ struct MainTabFeature {
                                         ]
                                     )
                                     PostHogAnalytics.matchSaveFromWatchFailed(error: error.localizedDescription)
+                                    #if DEBUG
+                                    await MainActor.run {
+                                        WatchDebugState.shared.append("✗ upload err — will retry", level: .error)
+                                    }
+                                    #endif
                                 }
                             }
                         }
