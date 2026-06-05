@@ -12,28 +12,28 @@ enum PitchMeasurementMethod: String, Equatable, Codable, Sendable, CaseIterable,
 
     var title: String {
         switch self {
-        case .walk: "Run the pitch"
+        case .walk: "Measure with camera"
         case .manual: "Manual"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .walk: "Jog the length and width — GPS on iPhone or Apple Watch"
+        case .walk: "Walk the length and width — camera tracks your path"
         case .manual: "Set meters on your Apple Watch"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .walk: "figure.run"
+        case .walk: "camera.metering.matrix"
         case .manual: "ruler"
         }
     }
 
     var deviceHint: String {
         switch self {
-        case .walk: "iPhone · Apple Watch"
+        case .walk: "iPhone"
         case .manual: "Apple Watch"
         }
     }

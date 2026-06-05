@@ -27,7 +27,7 @@ struct PitchMeasureView: View {
     private var navigationTitle: String {
         switch store.route {
         case .hub: "Measure court"
-        case .walk: "Run the pitch"
+        case .walk: "Measure with camera"
         }
     }
 
@@ -41,23 +41,6 @@ struct PitchMeasureView: View {
                 ForEach(PitchMeasurementMethod.iphoneHubCases) { method in
                     methodCard(method)
                 }
-
-                HStack(spacing: Theme.Spacing.medium) {
-                    Image(systemName: "applewatch")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Theme.Colors.accent)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Manual on Apple Watch")
-                            .font(Theme.Typography.title(size: 16))
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                        Text("Set length and width with +/− on your watch. Courts get a default name from the date and time.")
-                            .font(Theme.Typography.body(size: 14))
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                }
-                .padding(Theme.Spacing.large)
-                .background(Theme.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .padding(Theme.Spacing.xl)
         }

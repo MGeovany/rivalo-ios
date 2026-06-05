@@ -23,10 +23,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Rivalo uses your location to measure the pitch size as you jog its length and width.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Rivalo uses the camera to measure the pitch as you walk its length and width.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Rivalo uses your photo library to set your player card picture.</string>
+	<key>PostHogHost</key>
+	<string>https://us.i.posthog.com</string>
+	<key>PostHogProjectToken</key>
+	<string>phc_C6YFLY4Rn6vSqQegH4G4c3nR9seBPZyxqwTpx94RQGZz</string>
 	<key>RivaloAPIBaseURL</key>
 	<string>$(RIVALO_API_BASE_URL)</string>
 	<key>SupabaseAnonKey</key>
