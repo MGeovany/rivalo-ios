@@ -14,7 +14,11 @@ struct InsightsView: View {
                 } else if let error = store.errorMessage, store.insights == nil {
                     errorState(error)
                 } else if let insights = store.insights {
-                    insightsContent(insights)
+                    if insights.totals.sessionCount == 0 {
+                        emptyState
+                    } else {
+                        insightsContent(insights)
+                    }
                 }
             }
             .rivalNavigationChrome(title: "Insights")
@@ -24,6 +28,27 @@ struct InsightsView: View {
         .sheet(item: $store.scope(state: \.positionInsights, action: \.positionInsights)) { positionStore in
             PositionInsightsView(store: positionStore)
         }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: Theme.Spacing.large) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 48, weight: .light))
+                .foregroundStyle(Theme.Colors.accent.opacity(0.5))
+
+            VStack(spacing: Theme.Spacing.small) {
+                Text("No insights yet")
+                    .font(Theme.Typography.title(size: 20))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+
+                Text("Record your first match to start seeing your performance trends, distance, and activity patterns.")
+                    .font(Theme.Typography.body(size: 15))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(Theme.Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var loadingState: some View {
