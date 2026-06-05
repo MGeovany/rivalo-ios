@@ -39,27 +39,6 @@ enum PostHogAnalytics {
 
     // MARK: - Court measurement
 
-    static func courtMeasureStarted(source: String) {
-        PostHogSDK.shared.capture("court_measure_started", properties: ["source": source])
-        captureLog("Court measure flow opened", level: .info, attributes: ["source": source])
-    }
-
-    static func watchPitchWalkProgress(
-        phase: String,
-        liveMeters: Double,
-        lengthM: Double?,
-        gpsAccuracyM: Double
-    ) {
-        var attributes: [String: Any] = [
-            "phase": phase,
-            "live_meters": liveMeters,
-            "gps_accuracy_m": gpsAccuracyM,
-        ]
-        if let lengthM { attributes["length_m"] = lengthM }
-        captureLog("iPhone received watch pitch walk meters", level: .info, attributes: attributes)
-        PostHogSDK.shared.capture("watch_pitch_walk_progress", properties: attributes)
-    }
-
     static func watchPitchSaved(lengthM: Double, widthM: Double, method: String?) {
         let attributes: [String: Any] = [
             "length_m": lengthM,

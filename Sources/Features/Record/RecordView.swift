@@ -36,21 +36,6 @@ struct RecordView: View {
                             lastSetupCard(setup)
                         }
 
-                        Button {
-                            store.send(.measureCourtTapped)
-                        } label: {
-                            Label("Measure court", systemImage: "ruler")
-                                .font(Theme.Typography.button(size: 16))
-                                .foregroundStyle(Theme.Colors.accent)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .overlay {
-                                    Capsule()
-                                        .strokeBorder(Theme.Colors.accent.opacity(0.5), lineWidth: 1)
-                                }
-                        }
-                        .padding(.bottom, Theme.Spacing.xl)
-
                         Spacer()
                     }
                     .padding(.horizontal, Theme.Spacing.xl)

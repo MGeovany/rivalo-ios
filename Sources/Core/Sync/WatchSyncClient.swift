@@ -4,11 +4,8 @@ import WatchConnectivity
 
 enum WatchCommand {
     static let actionKey = "action"
-    static let methodKey = "method"
     static let startMatch = "startMatch"
-    static let measureCourt = "measureCourt"
     static let savePitch = "savePitch"
-    static let pitchWalkProgress = "pitchWalkProgress"
     // Live match
     static let liveEvent = "liveMatchEvent"
     static let matchPause = "matchPause"
@@ -52,8 +49,6 @@ struct WatchSyncClient {
     var incomingSessions: @Sendable () -> AsyncStream<NewSportSession> = { .finished }
     /// Asks the paired watch to begin a HealthKit match capture.
     var startMatch: @Sendable () async -> StartMatchResult = { .unavailable("Watch Connectivity is not available.") }
-    /// Opens pitch measurement when the watch requests manual entry on iPhone.
-    var incomingMeasureCourt: @Sendable () -> AsyncStream<PitchMeasurementMethod> = { .finished }
     /// Stream of live match events from the watch.
     var liveMatchEvents: @Sendable () -> AsyncStream<LiveMatchEvent> = { .finished }
     /// Sends a control command to the watch (pause/resume/halftime/end).
@@ -76,10 +71,6 @@ extension WatchSyncClient: DependencyKey {
         startMatch: {
             await WatchReceiver.shared.startMatch()
         },
-        incomingMeasureCourt: {
-            WatchReceiver.shared.activate()
-            return WatchReceiver.shared.measureCourtStream()
-        },
         liveMatchEvents: {
             WatchReceiver.shared.activate()
             return WatchReceiver.shared.liveMatchStream()
@@ -92,7 +83,6 @@ extension WatchSyncClient: DependencyKey {
     static let testValue = WatchSyncClient(
         incomingSessions: { .finished },
         startMatch: { .started },
-        incomingMeasureCourt: { .finished },
         liveMatchEvents: { .finished },
         sendControlCommand: { _ in true }
     )
@@ -104,7 +94,6 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
 
     private let lock = NSLock()
     private var continuations: [UUID: AsyncStream<NewSportSession>.Continuation] = [:]
-    private var measureContinuations: [UUID: AsyncStream<PitchMeasurementMethod>.Continuation] = [:]
     private var liveContinuations: [UUID: AsyncStream<LiveMatchEvent>.Continuation] = [:]
 
     func activate() {
@@ -122,16 +111,6 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
             lock.withLock { continuations[id] = continuation }
             continuation.onTermination = { [weak self] _ in
                 self?.lock.withLock { _ = self?.continuations.removeValue(forKey: id) }
-            }
-        }
-    }
-
-    func measureCourtStream() -> AsyncStream<PitchMeasurementMethod> {
-        AsyncStream { continuation in
-            let id = UUID()
-            lock.withLock { measureContinuations[id] = continuation }
-            continuation.onTermination = { [weak self] _ in
-                self?.lock.withLock { _ = self?.measureContinuations.removeValue(forKey: id) }
             }
         }
     }
@@ -209,10 +188,6 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
         lock.withLock { continuations.values.forEach { $0.yield(session) } }
     }
 
-    private func emitMeasureCourt(_ method: PitchMeasurementMethod) {
-        lock.withLock { measureContinuations.values.forEach { $0.yield(method) } }
-    }
-
     private func emitLiveEvent(_ event: LiveMatchEvent) {
         lock.withLock { liveContinuations.values.forEach { $0.yield(event) } }
     }
@@ -221,24 +196,6 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
         guard let action = payload[WatchCommand.actionKey] as? String else { return }
         if action == WatchCommand.startMatch {
             return
-        }
-        if action == WatchCommand.measureCourt,
-           let raw = payload[WatchCommand.methodKey] as? String,
-           let method = PitchMeasurementMethod(watchRawValue: raw),
-           method != .walk {
-            emitMeasureCourt(method)
-        }
-        if action == WatchCommand.pitchWalkProgress {
-            let phase = payload["phase"] as? String ?? "unknown"
-            let liveMeters = payload["live_meters"] as? Double ?? 0
-            let lengthM = payload["length_m"] as? Double
-            let gpsAccuracyM = payload["gps_accuracy_m"] as? Double ?? -1
-            PostHogAnalytics.watchPitchWalkProgress(
-                phase: phase,
-                liveMeters: liveMeters,
-                lengthM: lengthM,
-                gpsAccuracyM: gpsAccuracyM
-            )
         }
         if action == WatchCommand.liveEvent {
             let startedAtMs = payload["started_at_ms"] as? Double ?? 0

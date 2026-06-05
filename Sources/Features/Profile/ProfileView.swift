@@ -15,25 +15,7 @@ struct ProfileView: View {
                     ScrollView {
                         VStack(spacing: Theme.Spacing.xl) {
                             if let card = store.playerCard {
-                                PlayerProgressCard(
-                                    model: card,
-                                    isPhotoAdjustable: store.canAdjustCardPhoto,
-                                    onPhotoPlacementChange: { store.send(.photoPlacementChanged($0)) }
-                                )
-
-                                if store.profile != nil {
-                                    ProfileCardPhotoControls(
-                                        hasPhoto: store.hasCardPhoto,
-                                        isProcessing: store.isProcessingPhoto,
-                                        showsFixButton: store.showsPhotoFixButton,
-                                        isPlacementLocked: store.isPhotoPlacementLocked,
-                                        onPhotoData: { store.send(.photoSelected($0)) },
-                                        onRemove: { store.send(.photoRemoved) },
-                                        onFixPhoto: { store.send(.photoFixTapped) },
-                                        onAdjust: { store.send(.photoAdjustTapped) },
-                                        onAdjustDone: { store.send(.photoAdjustFinished) }
-                                    )
-                                }
+                                PlayerProgressCard(model: card)
                             } else {
                                 profileSetupHint
                             }
@@ -60,6 +42,9 @@ struct ProfileView: View {
                             }
                             profileRow(title: "Goals", icon: "target") {
                                 store.send(.goalsTapped)
+                            }
+                            profileRow(title: "Dev: API Status", icon: "antenna.radiowaves.left.and.right") {
+                                store.send(.devTapped)
                             }
 
                             ProfileSignOutButton {
@@ -109,6 +94,9 @@ struct ProfileView: View {
         }
         .sheet(item: $store.scope(state: \.goals, action: \.goals)) { goalsStore in
             GoalsView(store: goalsStore)
+        }
+        .sheet(item: $store.scope(state: \.serverStatus, action: \.serverStatus)) { serverStatusStore in
+            ServerStatusView(store: serverStatusStore)
         }
     }
 

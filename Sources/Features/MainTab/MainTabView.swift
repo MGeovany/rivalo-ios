@@ -28,9 +28,6 @@ struct MainTabView: View {
         }
         .tint(Theme.Colors.accent)
         .task { store.send(.task) }
-        .sheet(item: $store.scope(state: \.pitchMeasure, action: \.pitchMeasure)) { measureStore in
-            PitchMeasureView(store: measureStore)
-        }
     }
 
     private var tabSelection: Binding<MainTabFeature.State.Tab> {

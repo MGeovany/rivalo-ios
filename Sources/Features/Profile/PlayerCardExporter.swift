@@ -7,18 +7,13 @@ enum PlayerCardExporter {
     static func renderImage(
         content: PlayerCardContent,
         images: [PlayerCardLayer: UIImage],
-        avatarImageData: Data?,
-        photoPlacement: PlayerCardPhotoPlacement = .default,
         scale: CGFloat = 2
     ) -> UIImage? {
         let size = CGSize(width: PlayerCardLayout.canvasWidth, height: PlayerCardLayout.canvasHeight)
         let canvas = PlayerProgressCardCanvas(
             content: content,
             canvasSize: size,
-            images: images,
-            avatarImageData: avatarImageData,
-            photoPlacement: photoPlacement,
-            isPhotoAdjustable: false
+            images: images
         )
         .frame(width: size.width, height: size.height)
         .clipped()
@@ -33,16 +28,8 @@ enum PlayerCardExporter {
     static func renderPNGData(
         content: PlayerCardContent,
         images: [PlayerCardLayer: UIImage],
-        avatarImageData: Data?,
-        photoPlacement: PlayerCardPhotoPlacement = .default,
         scale: CGFloat = 2
     ) -> Data? {
-        renderImage(
-            content: content,
-            images: images,
-            avatarImageData: avatarImageData,
-            photoPlacement: photoPlacement,
-            scale: scale
-        )?.pngData()
+        renderImage(content: content, images: images, scale: scale)?.pngData()
     }
 }

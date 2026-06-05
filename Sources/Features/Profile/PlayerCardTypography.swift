@@ -35,4 +35,12 @@ enum PlayerCardTypography {
     static func countryCode(size: CGFloat) -> Font {
         ThemeFont.font(name: "Rajdhani-SemiBold", size: size * 0.036)
     }
+
+    static func emblemInitials(size: CGFloat) -> Font {
+        ThemeFont.font(name: "Rajdhani-Bold", size: size * 0.118)
+    }
+
+    static func emblemBadge(size: CGFloat) -> Font {
+        ThemeFont.font(name: "Rajdhani-SemiBold", size: size * 0.028)
+    }
 }

@@ -6,7 +6,6 @@ enum PlayerCardLayer: String, CaseIterable {
     case background
     case frame
     case fxOverlay = "fx-overlay"
-    case photoMask = "photo-mask-soft"
 
     var fileName: String { "\(rawValue).png" }
 }
@@ -57,7 +56,8 @@ enum PlayerCardLayout {
     static let rating = SafeArea(x: 0.11, y: 0.08, width: 0.23, height: 0.17)
     static let position = SafeArea(x: 0.13, y: 0.23, width: 0.16, height: 0.07)
     static let country = SafeArea(x: 0.77, y: 0.08, width: 0.14, height: 0.11)
-    static let portrait = SafeArea(x: 0.15, y: 0.13, width: 0.70, height: 0.62)
+    /// Center medallion where the player insignia is drawn at runtime.
+    static let emblem = SafeArea(x: 0.28, y: 0.24, width: 0.44, height: 0.30)
     static let leftStats = SafeArea(x: 0.21, y: 0.56, width: 0.18, height: 0.18)
     /// Right column sits higher — three stats must clear the nameplate.
     static let rightStats = SafeArea(x: 0.61, y: 0.50, width: 0.18, height: 0.22)

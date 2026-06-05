@@ -3,6 +3,7 @@ import Foundation
 /// Dynamic inputs for the shareable player card.
 struct PlayerCardContent: Equatable {
     let name: String
+    let initials: String
     let countryCode: String
     let position: String
     let rating: Int?
@@ -12,6 +13,7 @@ struct PlayerCardContent: Equatable {
     let topSpeed: Double?
     let sprints: Int
     let intensity: Int?
+    var achievementBadge: PlayerCardBadge?
 
     var positionAbbrev: String {
         ProfileFormatting.positionAbbreviation(position)
@@ -56,6 +58,7 @@ extension PlayerCardContent {
 
         return PlayerCardContent(
             name: name,
+            initials: ProfileFormatting.initials(from: name),
             countryCode: countryCode,
             position: positionText.isEmpty ? "—" : positionText,
             rating: metrics.physicalRating,
@@ -64,7 +67,8 @@ extension PlayerCardContent {
             distanceKm: km,
             topSpeed: spd,
             sprints: Int(metrics.displayStats.sprValue) ?? 0,
-            intensity: intensity
+            intensity: intensity,
+            achievementBadge: metrics.badge
         )
     }
 }
@@ -73,6 +77,7 @@ extension PlayerCardModel {
     var content: PlayerCardContent {
         PlayerCardContent(
             name: displayName,
+            initials: initials,
             countryCode: countryCode,
             position: position ?? "—",
             rating: physicalRating,
@@ -81,7 +86,8 @@ extension PlayerCardModel {
             distanceKm: Double(displayStats.kmValue) ?? 0,
             topSpeed: Double(displayStats.spdValue),
             sprints: Int(displayStats.sprValue) ?? 0,
-            intensity: Int(displayStats.intValue)
+            intensity: Int(displayStats.intValue),
+            achievementBadge: achievementBadge
         )
     }
 }

@@ -6,16 +6,8 @@ struct PlayerProgressCardCanvas: View {
     let content: PlayerCardContent
     let canvasSize: CGSize
     let images: [PlayerCardLayer: UIImage]
-    var avatarImageData: Data?
-    var isPendingPhotoPlacement = false
-    var photoPlacement: PlayerCardPhotoPlacement = .default
-    var isPhotoAdjustable = false
     var showsStatExplanations = false
-    var onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)?
 
-    @State private var placement: PlayerCardPhotoPlacement = .default
-    @State private var dragTranslation: CGSize = .zero
-    @State private var livePinchScale: CGFloat = 1
     @State private var explainedStat: PlayerCardStatKind?
 
     private var style: PlayerCardRankStyle { content.tier.style }
@@ -25,9 +17,7 @@ struct PlayerProgressCardCanvas: View {
     var body: some View {
         ZStack {
             layerImage(.background)
-            if avatarImageData != nil {
-                playerPhoto
-            }
+            emblemOverlay
             layerImage(.frame)
             ratingOverlay
             positionOverlay
@@ -35,18 +25,9 @@ struct PlayerProgressCardCanvas: View {
             statsOverlay
             nameOverlay
             layerImage(.fxOverlay)
-            if isPhotoAdjustable, avatarImageData != nil {
-                photoAdjustHint
-            }
         }
         .frame(width: width, height: height)
         .clipped()
-        .onAppear { placement = photoPlacement }
-        .onChange(of: photoPlacement) { _, newValue in
-            placement = newValue
-            dragTranslation = .zero
-            livePinchScale = 1
-        }
         .alert(item: $explainedStat) { stat in
             Alert(
                 title: Text(stat.title),
@@ -73,98 +54,72 @@ struct PlayerProgressCardCanvas: View {
         .allowsHitTesting(false)
     }
 
-    // MARK: - Player photo
+    // MARK: - Emblem
 
-    @ViewBuilder
-    private var playerPhoto: some View {
-        if let data = avatarImageData, let uiImage = UIImage(data: data) {
-            let anchor = portraitCenter
-            let portrait = PlayerCardLayout.portrait.frame(in: canvasSize)
-            let photoScale = placement.scale * livePinchScale
-
-            ZStack {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: portrait.width * photoScale, height: portrait.height * photoScale)
-                    .position(x: anchor.x, y: anchor.y)
-            }
-            .frame(width: width, height: height)
-            .compositingGroup()
-            .modifier(PhotoMaskModifier(isPending: isPendingPhotoPlacement, mask: softPhotoMask))
-            .modifier(ConditionalGestureModifier(isEnabled: isPhotoAdjustable, gesture: photoAdjustGesture))
-        }
-    }
-
-    private struct PhotoMaskModifier: ViewModifier {
-        let isPending: Bool
-        let mask: AnyView
-
-        init(isPending: Bool, mask: some View) {
-            self.isPending = isPending
-            self.mask = AnyView(mask)
-        }
-
-        func body(content: Content) -> some View {
-            if isPending {
-                content
-            } else {
-                content.mask(mask)
-            }
-        }
-    }
-
-    private struct ConditionalGestureModifier<G: Gesture>: ViewModifier {
-        let isEnabled: Bool
-        let gesture: G
-
-        func body(content: Content) -> some View {
-            if isEnabled {
-                content.highPriorityGesture(gesture)
-            } else {
-                content
-            }
-        }
-    }
-
-    private var portraitCenter: CGPoint {
-        let portrait = PlayerCardLayout.portrait
-        return CGPoint(
-            x: width * (portrait.x + portrait.width / 2 + placement.offsetX) + dragTranslation.width,
-            y: height * (portrait.y + portrait.height / 2 + placement.offsetY) + dragTranslation.height
-        )
-    }
-
-    private var softPhotoMask: some View {
-        Group {
-            if let uiImage = images[.photoMask] {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: width, height: height)
-            } else {
-                LinearGradient(
-                    colors: [.white, .white.opacity(0)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-        }
-    }
-
-    private var photoAdjustHint: some View {
-        let portrait = PlayerCardLayout.portrait.frame(in: canvasSize)
+    private var emblemOverlay: some View {
+        let area = PlayerCardLayout.emblem.frame(in: canvasSize)
+        let diameter = min(area.width, area.height)
+        let center = PlayerCardLayout.emblem.center(in: canvasSize)
 
         return ZStack {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(style.accent.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                .frame(width: portrait.width, height: portrait.height)
-                .position(x: portrait.midX, y: portrait.midY)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [style.glow.opacity(0.55), style.innerTint.opacity(0.95), .clear],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: diameter * 0.62
+                    )
+                )
+                .frame(width: diameter * 1.18, height: diameter * 1.18)
+                .position(center)
 
-            Text(isPendingPhotoPlacement ? "Drag · Pinch to position" : "Drag · Pinch to adjust")
-                .font(PlayerCardTypography.statLabel(size: width))
-                .foregroundStyle(style.accentBright.opacity(0.8))
-                .position(x: width * 0.5, y: portrait.maxY + height * 0.02)
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [style.frameTop.opacity(0.35), style.innerTint, style.frameDeep.opacity(0.9)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: diameter, height: diameter)
+                .overlay {
+                    Circle()
+                        .strokeBorder(style.borderGradient, lineWidth: max(2, width * 0.004))
+                }
+                .shadow(color: style.glow.opacity(0.45), radius: diameter * 0.08)
+                .position(center)
+
+            Image(systemName: "rosette")
+                .font(.system(size: diameter * 0.92, weight: .bold))
+                .foregroundStyle(style.accent.opacity(0.22))
+                .position(center)
+
+            Text(content.initials)
+                .font(PlayerCardTypography.emblemInitials(size: width))
+                .foregroundStyle(style.ratingForeground)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .frame(width: diameter * 0.62)
+                .position(center)
+
+            if let badge = content.achievementBadge {
+                Text(badge.label)
+                    .font(PlayerCardTypography.emblemBadge(size: width))
+                    .foregroundStyle(style.accentBright)
+                    .padding(.horizontal, width * 0.018)
+                    .padding(.vertical, height * 0.004)
+                    .background(style.frameDeep.opacity(0.82))
+                    .clipShape(Capsule())
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(style.accent.opacity(0.55), lineWidth: max(1, width * 0.0015))
+                    }
+                    .position(
+                        x: center.x,
+                        y: center.y + diameter * 0.44
+                    )
+            }
         }
         .allowsHitTesting(false)
     }
@@ -352,93 +307,20 @@ struct PlayerProgressCardCanvas: View {
                 y: height * (area.y + area.height / 2)
             )
     }
-
-    // MARK: - Gestures
-
-    private var photoAdjustGesture: some Gesture {
-        let drag = DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                guard isPhotoAdjustable else { return }
-                dragTranslation = value.translation
-            }
-            .onEnded { value in
-                guard isPhotoAdjustable else { return }
-                commitDrag(value.translation)
-            }
-
-        let pinch = MagnificationGesture()
-            .onChanged { value in
-                guard isPhotoAdjustable else { return }
-                livePinchScale = value
-            }
-            .onEnded { value in
-                guard isPhotoAdjustable else { return }
-                commitPinch(value)
-            }
-
-        return SimultaneousGesture(drag, pinch)
-    }
-
-    private func commitDrag(_ translation: CGSize) {
-        var updated = placement
-        updated.offsetX += translation.width / width
-        updated.offsetY += translation.height / height
-        updated = updated.clamped()
-        placement = updated
-        dragTranslation = .zero
-        onPhotoPlacementChange?(updated)
-    }
-
-    private func commitPinch(_ multiplier: CGFloat) {
-        var updated = placement
-        updated.scale *= multiplier
-        updated = updated.clamped()
-        placement = updated
-        livePinchScale = 1
-        onPhotoPlacementChange?(updated)
-    }
 }
 
-/// Composes layered tier assets with a user cutout and live stat overlays.
+/// Composes layered tier assets with a player insignia and live stat overlays.
 struct PlayerProgressCard: View {
     let content: PlayerCardContent
-    var avatarImageData: Data?
-    var isPendingPhotoPlacement = false
-    var photoPlacement: PlayerCardPhotoPlacement = .default
-    var isPhotoAdjustable = false
-    var onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)?
 
     @State private var assetLoader = PlayerCardAssetLoader()
 
-    init(
-        content: PlayerCardContent,
-        avatarImageData: Data? = nil,
-        isPendingPhotoPlacement: Bool = false,
-        photoPlacement: PlayerCardPhotoPlacement = .default,
-        isPhotoAdjustable: Bool = false,
-        onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)? = nil
-    ) {
+    init(content: PlayerCardContent) {
         self.content = content
-        self.avatarImageData = avatarImageData
-        self.isPendingPhotoPlacement = isPendingPhotoPlacement
-        self.photoPlacement = photoPlacement
-        self.isPhotoAdjustable = isPhotoAdjustable
-        self.onPhotoPlacementChange = onPhotoPlacementChange
     }
 
-    init(
-        model: PlayerCardModel,
-        isPhotoAdjustable: Bool = false,
-        onPhotoPlacementChange: ((PlayerCardPhotoPlacement) -> Void)? = nil
-    ) {
-        self.init(
-            content: model.content,
-            avatarImageData: model.avatarImageData,
-            isPendingPhotoPlacement: model.isPendingPhotoPlacement,
-            photoPlacement: model.photoPlacement,
-            isPhotoAdjustable: isPhotoAdjustable,
-            onPhotoPlacementChange: onPhotoPlacementChange
-        )
+    init(model: PlayerCardModel) {
+        self.init(content: model.content)
     }
 
     var body: some View {
@@ -447,12 +329,7 @@ struct PlayerProgressCard: View {
                 content: content,
                 canvasSize: geo.size,
                 images: assetLoader.images,
-                avatarImageData: avatarImageData,
-                isPendingPhotoPlacement: isPendingPhotoPlacement,
-                photoPlacement: photoPlacement,
-                isPhotoAdjustable: isPhotoAdjustable,
-                showsStatExplanations: true,
-                onPhotoPlacementChange: onPhotoPlacementChange
+                showsStatExplanations: true
             )
         }
         .aspectRatio(PlayerCardLayout.aspectRatio, contentMode: .fit)
@@ -475,8 +352,6 @@ struct PlayerProgressCard: View {
         return PlayerCardExporter.renderImage(
             content: content,
             images: assetLoader.images,
-            avatarImageData: avatarImageData,
-            photoPlacement: photoPlacement,
             scale: scale
         )
     }
@@ -492,6 +367,7 @@ struct PlayerProgressCard: View {
 private func previewContent(tier: PlayerCardRank, country: String = "CA") -> PlayerCardContent {
     PlayerCardContent(
         name: "Geovany",
+        initials: "G",
         countryCode: country,
         position: "Midfielder",
         rating: 74,
@@ -500,7 +376,8 @@ private func previewContent(tier: PlayerCardRank, country: String = "CA") -> Pla
         distanceKm: 42.6,
         topSpeed: 25.0,
         sprints: 46,
-        intensity: 74
+        intensity: 74,
+        achievementBadge: .newPR
     )
 }
 

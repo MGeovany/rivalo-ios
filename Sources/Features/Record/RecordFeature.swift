@@ -18,17 +18,11 @@ struct RecordFeature {
     enum Action: Equatable {
         case onAppear
         case recordTapped
-        case measureCourtTapped
         case startMatchResponse(StartMatchResult)
         case recordAlertDismissed
         case liveEventReceived(LiveMatchEvent)
         case dismissLiveMatch
         case liveMatch(PresentationAction<LiveMatchFeature.Action>)
-        case delegate(Delegate)
-
-        enum Delegate: Equatable {
-            case openMeasureCourt
-        }
     }
 
     @Dependency(\.watchSyncClient) var watchSyncClient
@@ -39,12 +33,6 @@ struct RecordFeature {
             case .onAppear:
                 state.lastSetup = LastSetupStore.load()
                 return .none
-
-            case .measureCourtTapped:
-                return .merge(
-                    .run { _ in PostHogAnalytics.courtMeasureStarted(source: "record_tab") },
-                    .send(.delegate(.openMeasureCourt))
-                )
 
             case .recordTapped:
                 return .run { send in
@@ -98,9 +86,6 @@ struct RecordFeature {
                 return .none
 
             case .liveMatch:
-                return .none
-
-            case .delegate:
                 return .none
             }
         }

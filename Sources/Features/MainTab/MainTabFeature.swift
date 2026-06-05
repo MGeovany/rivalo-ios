@@ -12,7 +12,6 @@ struct MainTabFeature {
         var profile: ProfileFeature.State
         var insights: InsightsFeature.State
         var selectedTab: Tab = .home
-        @Presents var pitchMeasure: PitchMeasureFeature.State?
 
         enum Tab: Equatable {
             case home
@@ -40,8 +39,6 @@ struct MainTabFeature {
         case profile(ProfileFeature.Action)
         case insights(InsightsFeature.Action)
         case selectedTabChanged(State.Tab)
-        case openPitchMeasure(PitchMeasurementMethod)
-        case pitchMeasure(PresentationAction<PitchMeasureFeature.Action>)
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -66,9 +63,6 @@ struct MainTabFeature {
         }
         Scope(state: \.insights, action: \.insights) {
             InsightsFeature()
-        }
-        .ifLet(\.$pitchMeasure, action: \.pitchMeasure) {
-            PitchMeasureFeature()
         }
 
         Reduce { state, action in
@@ -111,11 +105,6 @@ struct MainTabFeature {
                             }
                         }
                         group.addTask {
-                            for await method in watch.incomingMeasureCourt() {
-                                await send(.openPitchMeasure(method))
-                            }
-                        }
-                        group.addTask {
                             for await event in watch.liveMatchEvents() {
                                 await send(.record(.liveEventReceived(event)))
                             }
@@ -127,22 +116,6 @@ struct MainTabFeature {
                         }
                     }
                 }
-
-            case let .openPitchMeasure(method):
-                state.pitchMeasure = PitchMeasureFeature.State(
-                    accessToken: state.accessToken,
-                    prefill: method
-                )
-                return .run { _ in
-                    PostHogAnalytics.courtMeasureStarted(source: "watch_\(method.rawValue)")
-                }
-
-            case .pitchMeasure(.presented(.delegate(.dismissed))):
-                state.pitchMeasure = nil
-                return .none
-
-            case .pitchMeasure:
-                return .none
 
             case .watchSessionsChanged:
                 return .send(.sessions(.onAppear))
@@ -196,10 +169,6 @@ struct MainTabFeature {
                 case .record:
                     return .none
                 }
-
-            case .record(.delegate(.openMeasureCourt)):
-                state.pitchMeasure = PitchMeasureFeature.State(accessToken: state.accessToken)
-                return .none
 
             case .sessions, .record, .profile, .insights, .delegate:
                 return .none
