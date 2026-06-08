@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import PostHog
 
 /// Starts a match on the paired Apple Watch via WatchConnectivity.
@@ -9,6 +10,10 @@ struct RecordFeature {
         var recordAlertMessage: String?
         var lastSetup: iOSMatchSetup?
         @Presents var liveMatch: LiveMatchFeature.State?
+        /// `startedAt` of the match that was just dismissed. Live events for the
+        /// same match are ignored so a late `updateApplicationContext` delivery
+        /// can't resurrect the live view after the match has ended.
+        var endedMatchStartedAt: Date?
 
         init() {
             self.lastSetup = LastSetupStore.load()
@@ -68,12 +73,20 @@ struct RecordFeature {
                 }
 
             case let .liveEventReceived(event):
+                // Ignore stale events from a match that already ended — otherwise
+                // a delayed updateApplicationContext re-presents the live view.
+                if event.startedAt == state.endedMatchStartedAt {
+                    return .none
+                }
                 if state.liveMatch == nil {
                     state.liveMatch = LiveMatchFeature.State()
                 }
                 return .send(.liveMatch(.presented(.liveEventReceived(event))))
 
             case .dismissLiveMatch:
+                if let started = state.liveMatch?.startedAt {
+                    state.endedMatchStartedAt = started
+                }
                 state.liveMatch = nil
                 return .none
 
@@ -82,6 +95,9 @@ struct RecordFeature {
                 return .none
 
             case .liveMatch(.presented(.endTapped)):
+                if let started = state.liveMatch?.startedAt {
+                    state.endedMatchStartedAt = started
+                }
                 state.liveMatch = nil
                 return .none
 

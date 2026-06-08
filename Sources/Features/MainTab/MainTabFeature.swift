@@ -289,6 +289,16 @@ struct MainTabFeature {
                             }
                         }
                         group.addTask {
+                            for await _ in watch.matchEndedFromWatch() {
+                                #if DEBUG
+                                await MainActor.run {
+                                    WatchDebugState.shared.append("watch ended → dismissing", level: .warning)
+                                }
+                                #endif
+                                await send(.record(.dismissLiveMatch))
+                            }
+                        }
+                        group.addTask {
                             for await open in MatchNotifications.shared.events() {
                                 await send(.openSessionFromNotification(open))
                             }

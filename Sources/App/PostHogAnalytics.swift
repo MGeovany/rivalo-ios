@@ -93,13 +93,17 @@ enum PostHogAnalytics {
         method: String,
         path: String,
         error: Error,
-        statusCode: Int? = nil
+        statusCode: Int? = nil,
+        responseBody: String? = nil
     ) {
         var extra: [String: Any] = [
             "method": method,
             "path": path,
         ]
         if let statusCode { extra["status_code"] = statusCode }
+        if let responseBody, !responseBody.isEmpty {
+            extra["response_body"] = String(responseBody.prefix(500))
+        }
         captureError(error, context: "api_request", extra: extra)
     }
 

@@ -51,6 +51,8 @@ struct WatchSyncClient {
     var startMatch: @Sendable () async -> StartMatchResult = { .unavailable("Watch Connectivity is not available.") }
     /// Stream of live match events from the watch.
     var liveMatchEvents: @Sendable () -> AsyncStream<LiveMatchEvent> = { .finished }
+    /// Fires once each time the Watch explicitly ends the match (immediate dismissal signal).
+    var matchEndedFromWatch: @Sendable () -> AsyncStream<Void> = { .finished }
     /// Sends a control command to the watch (pause/resume/halftime/end).
     var sendControlCommand: @Sendable (MatchControlCommand) async -> Bool = { _ in false }
 }
@@ -75,6 +77,10 @@ extension WatchSyncClient: DependencyKey {
             WatchReceiver.shared.activate()
             return WatchReceiver.shared.liveMatchStream()
         },
+        matchEndedFromWatch: {
+            WatchReceiver.shared.activate()
+            return WatchReceiver.shared.matchEndedStream()
+        },
         sendControlCommand: { command in
             await WatchReceiver.shared.sendControlCommand(command)
         }
@@ -84,6 +90,7 @@ extension WatchSyncClient: DependencyKey {
         incomingSessions: { .finished },
         startMatch: { .started },
         liveMatchEvents: { .finished },
+        matchEndedFromWatch: { .finished },
         sendControlCommand: { _ in true }
     )
 }
@@ -95,6 +102,7 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
     private let lock = NSLock()
     private var continuations: [UUID: AsyncStream<NewSportSession>.Continuation] = [:]
     private var liveContinuations: [UUID: AsyncStream<LiveMatchEvent>.Continuation] = [:]
+    private var matchEndedContinuations: [UUID: AsyncStream<Void>.Continuation] = [:]
 
     func activate() {
         guard WCSession.isSupported() else { return }
@@ -121,6 +129,16 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
             lock.withLock { liveContinuations[id] = continuation }
             continuation.onTermination = { [weak self] _ in
                 self?.lock.withLock { _ = self?.liveContinuations.removeValue(forKey: id) }
+            }
+        }
+    }
+
+    func matchEndedStream() -> AsyncStream<Void> {
+        AsyncStream { continuation in
+            let id = UUID()
+            lock.withLock { matchEndedContinuations[id] = continuation }
+            continuation.onTermination = { [weak self] _ in
+                self?.lock.withLock { _ = self?.matchEndedContinuations.removeValue(forKey: id) }
             }
         }
     }
@@ -163,9 +181,8 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
 
     func sendControlCommand(_ command: MatchControlCommand) async -> Bool {
         guard WCSession.isSupported() else { return false }
-        activate()
         let session = WCSession.default
-        guard session.isReachable else { return false }
+        guard session.activationState == .activated, session.isReachable else { return false }
 
         let actionKey: String
         switch command {
@@ -175,13 +192,11 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
         case .end: actionKey = WatchCommand.matchEnd
         }
 
-        return await withCheckedContinuation { continuation in
-            session.sendMessage(
-                [WatchCommand.actionKey: actionKey],
-                replyHandler: { _ in continuation.resume(returning: true) },
-                errorHandler: { _ in continuation.resume(returning: false) }
-            )
-        }
+        // Fire-and-forget — the reply/error result is not used by any caller.
+        // Avoiding withCheckedContinuation prevents a crash if WCSession calls
+        // both reply and error handlers (possible in certain Simulator states).
+        session.sendMessage([WatchCommand.actionKey: actionKey], replyHandler: nil, errorHandler: nil)
+        return true
     }
 
     private func emit(_ session: NewSportSession) {
@@ -192,9 +207,17 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
         lock.withLock { liveContinuations.values.forEach { $0.yield(event) } }
     }
 
+    private func emitMatchEnded() {
+        lock.withLock { matchEndedContinuations.values.forEach { $0.yield(()) } }
+    }
+
     private func handleWatchCommand(_ payload: [String: Any]) {
         guard let action = payload[WatchCommand.actionKey] as? String else { return }
         if action == WatchCommand.startMatch {
+            return
+        }
+        if action == WatchCommand.matchEnd {
+            emitMatchEnded()
             return
         }
         if action == WatchCommand.liveEvent {
@@ -264,6 +287,10 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
                 attributes: ["keys": userInfo.keys.sorted().joined(separator: ",")]
             )
         }
+    }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        handleWatchCommand(message)
     }
 
     func session(

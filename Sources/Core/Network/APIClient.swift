@@ -426,7 +426,8 @@ private func apiSend<T: Decodable>(_ request: URLRequest, as _: T.Type) async th
         guard (200..<300).contains(http.statusCode) else {
             let error = APIError.statusCode(http.statusCode)
             if http.statusCode != 401 {
-                reportAPIFailure(request, error: error, statusCode: http.statusCode)
+                let responseBody = String(data: data, encoding: .utf8) ?? "<non-utf8>"
+                reportAPIFailure(request, error: error, statusCode: http.statusCode, responseBody: responseBody)
             }
             throw error
         }
@@ -447,7 +448,8 @@ private func apiSend<T: Decodable>(_ request: URLRequest, as _: T.Type) async th
 private func reportAPIFailure(
     _ request: URLRequest,
     error: Error,
-    statusCode: Int? = nil
+    statusCode: Int? = nil,
+    responseBody: String? = nil
 ) {
     let path = request.url?.path ?? request.url?.absoluteString ?? "unknown"
     let method = request.httpMethod ?? "GET"
@@ -455,7 +457,8 @@ private func reportAPIFailure(
         method: method,
         path: path,
         error: error,
-        statusCode: statusCode
+        statusCode: statusCode,
+        responseBody: responseBody
     )
 }
 
