@@ -7,21 +7,25 @@ import PostHog
 struct RecordFeature {
     @ObservableState
     struct State: Equatable {
+        let accessToken: String
         var recordAlertMessage: String?
         var lastSetup: iOSMatchSetup?
+        var lastSession: SportSession?
         @Presents var liveMatch: LiveMatchFeature.State?
         /// `startedAt` of the match that was just dismissed. Live events for the
         /// same match are ignored so a late `updateApplicationContext` delivery
         /// can't resurrect the live view after the match has ended.
         var endedMatchStartedAt: Date?
 
-        init() {
+        init(accessToken: String) {
+            self.accessToken = accessToken
             self.lastSetup = LastSetupStore.load()
         }
     }
 
     enum Action: Equatable {
         case onAppear
+        case lastSessionResponse(Result<SportSession?, APIError>)
         case recordTapped
         case startMatchResponse(StartMatchResult)
         case recordAlertDismissed
@@ -31,12 +35,26 @@ struct RecordFeature {
     }
 
     @Dependency(\.watchSyncClient) var watchSyncClient
+    @Dependency(\.apiClient) var apiClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
                 state.lastSetup = LastSetupStore.load()
+                let token = state.accessToken
+                return .run { send in
+                    await send(.lastSessionResponse(Result {
+                        let sessions = try await apiClient.listSessions(token)
+                        return sessions.max(by: { $0.startedAt < $1.startedAt })
+                    }.mapError { $0 as? APIError ?? .invalidResponse }))
+                }
+
+            case let .lastSessionResponse(.success(session)):
+                state.lastSession = session
+                return .none
+
+            case .lastSessionResponse(.failure):
                 return .none
 
             case .recordTapped:

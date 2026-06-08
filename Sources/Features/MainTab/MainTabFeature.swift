@@ -8,7 +8,7 @@ struct MainTabFeature {
     struct State: Equatable {
         var accessToken: String
         var sessions: SessionsFeature.State
-        var record = RecordFeature.State()
+        var record = RecordFeature.State(accessToken: accessToken)
         var profile: ProfileFeature.State
         var insights: InsightsFeature.State
         var selectedTab: Tab = .home
@@ -316,6 +316,7 @@ struct MainTabFeature {
                 return .merge(
                     .send(.sessions(.onAppear)),
                     .send(.sessions(.openSession(created.id, true))),
+                    .send(.record(.onAppear)),
                     // Dismiss the live match view if it is still showing (Watch ended the match).
                     .send(.record(.dismissLiveMatch)),
                     .run { _ in
@@ -358,7 +359,7 @@ struct MainTabFeature {
                 case .activities:
                     return .send(.sessions(.onAppear))
                 case .record:
-                    return .none
+                    return .send(.record(.onAppear))
                 }
 
             case .sessions, .record, .profile, .insights, .delegate:
