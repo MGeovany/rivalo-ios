@@ -85,8 +85,20 @@ struct SessionDetailFeature {
                             .mapError { $0 as? APIError ?? .invalidResponse }))
                     }
                     : .none
-                let autoResultEffect: Effect<Action> =
-                    state.autoOpenResult && state.session != nil ? .send(.addResultTapped) : .none
+                let autoResultEffect: Effect<Action>
+                if state.autoOpenResult && state.session != nil {
+                    state.autoOpenResult = false
+                    // Delay so the session-detail sheet finishes animating in
+                    // before we present the form sheet on top of it. Presenting a
+                    // sheet over a still-animating sheet leaves the inner one
+                    // non-interactive (its toolbar buttons stop responding).
+                    autoResultEffect = .run { send in
+                        try? await Task.sleep(for: .milliseconds(600))
+                        await send(.addResultTapped)
+                    }
+                } else {
+                    autoResultEffect = .none
+                }
                 if let samples = state.session?.samples, !samples.isEmpty {
                     return .merge(averagesEffect, autoResultEffect)
                 }
@@ -114,7 +126,13 @@ struct SessionDetailFeature {
                 state.meta = SessionMetaStore.load(sessionId: session.id)
                 state.photos = SessionPhotoStore.load(sessionId: session.id)
                 if state.autoOpenResult && state.matchContext == nil {
-                    return .send(.addResultTapped)
+                    state.autoOpenResult = false
+                    // Delay so the detail sheet settles before the form opens
+                    // over it (otherwise the form's toolbar is non-interactive).
+                    return .run { send in
+                        try? await Task.sleep(for: .milliseconds(600))
+                        await send(.addResultTapped)
+                    }
                 }
                 return .none
 

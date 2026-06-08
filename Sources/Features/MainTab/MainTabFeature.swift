@@ -8,7 +8,7 @@ struct MainTabFeature {
     struct State: Equatable {
         var accessToken: String
         var sessions: SessionsFeature.State
-        var record = RecordFeature.State(accessToken: accessToken)
+        var record: RecordFeature.State
         var profile: ProfileFeature.State
         var insights: InsightsFeature.State
         var selectedTab: Tab = .home
@@ -24,6 +24,7 @@ struct MainTabFeature {
         init(accessToken: String) {
             self.accessToken = accessToken
             self.sessions = SessionsFeature.State(accessToken: accessToken)
+            self.record = RecordFeature.State(accessToken: accessToken)
             self.profile = ProfileFeature.State(accessToken: accessToken)
             self.insights = InsightsFeature.State(accessToken: accessToken)
         }

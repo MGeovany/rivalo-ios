@@ -32,6 +32,9 @@ struct MainTabView: View {
         .overlay(alignment: .top) {
             WatchDebugOverlay()
                 .padding(.top, 52)
+                // Purely informational — must never absorb taps meant for the UI
+                // beneath it (e.g. the post-match form's Skip/Save toolbar).
+                .allowsHitTesting(false)
         }
         #endif
     }

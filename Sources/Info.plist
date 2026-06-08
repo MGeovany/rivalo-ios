@@ -56,10 +56,6 @@
 	<dict>
 		<key>UIColorName</key>
 		<string>LaunchBackground</string>
-		<key>UIImageName</key>
-		<string>Isotipo</string>
-		<key>UIImageRespectsSafeAreaInsets</key>
-		<true/>
 	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

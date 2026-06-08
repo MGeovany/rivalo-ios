@@ -42,8 +42,6 @@ targets:
       properties:
         UILaunchScreen:
           UIColorName: LaunchBackground
-          UIImageName: Isotipo
-          UIImageRespectsSafeAreaInsets: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIApplicationSceneManifest:
