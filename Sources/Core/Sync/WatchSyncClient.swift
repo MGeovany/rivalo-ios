@@ -290,7 +290,7 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        handleWatchCommand(message)
+        handleIncomingMessage(message)
     }
 
     func session(
@@ -298,8 +298,26 @@ private final class WatchReceiver: NSObject, WCSessionDelegate, @unchecked Senda
         didReceiveMessage message: [String: Any],
         replyHandler: @escaping ([String: Any]) -> Void
     ) {
-        handleWatchCommand(message)
+        handleIncomingMessage(message)
         replyHandler(["status": "ok"])
+    }
+
+    /// Routes an inbound message: a workout summary (no action key, parses as a
+    /// session) is emitted like a transferUserInfo summary; everything else is a
+    /// control command. The watch sends the summary via sendMessage too because
+    /// transferUserInfo is unreliable between paired simulators.
+    private func handleIncomingMessage(_ message: [String: Any]) {
+        if message[WatchCommand.actionKey] == nil,
+           let received = NewSportSession(watchUserInfo: message) {
+            PostHogAnalytics.captureLog(
+                "watch workout summary received via sendMessage — emitting",
+                level: .info,
+                attributes: ["duration_s": received.durationS, "distance_m": received.distanceM]
+            )
+            emit(received)
+            return
+        }
+        handleWatchCommand(message)
     }
 
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
