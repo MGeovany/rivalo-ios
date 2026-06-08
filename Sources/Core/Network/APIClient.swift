@@ -308,7 +308,7 @@ extension APIClient: DependencyKey {
 /// rotates the refresh token on every use, so two parallel refreshes with the
 /// same token would invalidate the session — this serializes them so concurrent
 /// 401s share one refresh and all receive the new session.
-private actor TokenRefreshCoordinator {
+actor TokenRefreshCoordinator {
     static let shared = TokenRefreshCoordinator()
     private var inFlight: Task<Session, Error>?
 

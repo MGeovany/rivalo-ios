@@ -8,6 +8,8 @@ struct Profile: Equatable, Codable, Identifiable {
     var heightCm: Int?
     var weightKg: Double?
     var birthYear: Int?
+    /// Full date of birth as "YYYY-MM-DD". birthYear is derived from it server-side.
+    var birthDate: String?
 }
 
 /// Fields sent when updating the profile (PUT /v1/me).
@@ -17,4 +19,6 @@ struct ProfileUpdate: Equatable, Encodable {
     var heightCm: Int?
     var weightKg: Double?
     var birthYear: Int?
+    /// Full date of birth as "YYYY-MM-DD"; the server derives birthYear from it.
+    var birthDate: String?
 }

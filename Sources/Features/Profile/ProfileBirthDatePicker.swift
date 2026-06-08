@@ -204,6 +204,24 @@ enum ProfileBirthDate {
         date(day: 15, month: 6, year: birthYear) ?? defaultDate
     }
 
+    /// Formats a birth date as "YYYY-MM-DD" using local calendar components,
+    /// matching the day/month/year the picker shows (no timezone shift).
+    static func isoString(from date: Date?) -> String? {
+        guard let date else { return nil }
+        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        guard let y = c.year, let m = c.month, let d = c.day else { return nil }
+        return String(format: "%04d-%02d-%02d", y, m, d)
+    }
+
+    /// Parses a "YYYY-MM-DD" string into a date (noon, local), reusing the same
+    /// construction as the picker.
+    static func date(fromISO string: String?) -> Date? {
+        guard let string else { return nil }
+        let parts = string.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        return date(day: parts[2], month: parts[1], year: parts[0])
+    }
+
     static func birthYear(from date: Date?) -> Int? {
         guard let date else { return nil }
         return Calendar.current.component(.year, from: date)

@@ -316,7 +316,9 @@ private extension ProfileFeature.State {
         preferredPosition = profile.preferredPosition ?? ""
         heightText = heightUnit.format(cm: profile.heightCm)
         weightText = weightUnit.format(kg: profile.weightKg)
-        birthDate = profile.birthYear.map { ProfileBirthDate.date(fromBirthYear: $0) }
+        // Prefer the full stored date; fall back to year-only for old profiles.
+        birthDate = ProfileBirthDate.date(fromISO: profile.birthDate)
+            ?? profile.birthYear.map { ProfileBirthDate.date(fromBirthYear: $0) }
         countryCode = ProfileCountryStore.load(userId: profile.id) ?? ProfileCountryStore.defaultCode()
     }
 
@@ -328,7 +330,8 @@ private extension ProfileFeature.State {
             preferredPosition: position.isEmpty ? nil : position,
             heightCm: heightUnit.parseToCm(heightText),
             weightKg: weightUnit.parseToKg(weightText),
-            birthYear: ProfileBirthDate.birthYear(from: birthDate)
+            birthYear: ProfileBirthDate.birthYear(from: birthDate),
+            birthDate: ProfileBirthDate.isoString(from: birthDate)
         )
     }
 

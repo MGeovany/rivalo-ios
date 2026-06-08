@@ -49,7 +49,9 @@ struct AppFeature {
                     let userId = session.userID
                     return .merge(
                         .run { _ in PostHogSDK.shared.identify(userId) },
-                        startRefreshTimer(session)
+                        // If the stored token is already expired, refresh now
+                        // instead of waiting for the timer (or a 401 round-trip).
+                        session.isExpired ? .send(.refreshTimerTick) : startRefreshTimer(session)
                     )
                 }
                 return .none
@@ -58,8 +60,15 @@ struct AppFeature {
                 return .run { [refreshToken = state.refreshToken] send in
                     let token = tokenStore.load()?.refreshToken ?? refreshToken
                     guard let token else { return }
+                    // Route through the same coordinator as on-401 refreshes so
+                    // the rotating refresh token is never used twice concurrently
+                    // (Supabase revokes the whole session on refresh-token reuse).
                     let result = await Result {
-                        try await authClient.refresh(token)
+                        try await TokenRefreshCoordinator.shared.refresh(
+                            refreshToken: token,
+                            authClient: authClient,
+                            tokenStore: tokenStore
+                        )
                     }.mapError { $0 as? AuthError ?? .invalidResponse }
                     await send(.tokenRefreshed(result))
                 }
@@ -69,11 +78,17 @@ struct AppFeature {
                 state.main?.accessToken = session.accessToken
                 state.main?.sessions.accessToken = session.accessToken
                 state.main?.profile.accessToken = session.accessToken
+                state.main?.insights.accessToken = session.accessToken
                 try? tokenStore.save(session)
                 return startRefreshTimer(session)
 
             case .tokenRefreshed(.failure):
-                return .none
+                // Don't kill the proactive loop on a transient failure — retry
+                // after a short backoff. On-401 refresh remains the fallback.
+                return .run { send in
+                    try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
+                    await send(.refreshTimerTick)
+                }
 
             case let .auth(.delegate(.authenticated(session))):
                 state.auth = AuthenticationFeature.State()
