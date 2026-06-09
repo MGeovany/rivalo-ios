@@ -18,7 +18,7 @@ struct ServerStatusView: View {
                 Button {
                     store.send(.checkTapped)
                 } label: {
-                    Text("Check again")
+                    Text("Verificar de nuevo")
                         .font(Theme.Typography.button())
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -35,7 +35,7 @@ struct ServerStatusView: View {
 
     private var statusCard: some View {
         VStack(spacing: Theme.Spacing.small) {
-            Text("Server")
+            Text("Servidor")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
 
@@ -44,7 +44,7 @@ struct ServerStatusView: View {
                 LoadingView(style: .compact)
 
             case let .online(database):
-                Text("Online")
+                Text("En línea")
                     .font(Theme.Typography.title())
                     .foregroundStyle(Theme.Colors.positive)
                 Text("database: \(database)")
@@ -52,7 +52,7 @@ struct ServerStatusView: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
 
             case let .offline(message):
-                Text("Offline")
+                Text("Fuera de línea")
                     .font(Theme.Typography.title())
                     .foregroundStyle(Theme.Colors.negative)
                 Text(message)

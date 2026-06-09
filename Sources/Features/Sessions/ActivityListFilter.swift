@@ -2,9 +2,9 @@ import Foundation
 
 /// Time window filters for the Activities list.
 enum ActivityListFilter: String, CaseIterable, Identifiable, Equatable {
-    case all = "All"
-    case thisWeek = "This week"
-    case thisMonth = "This month"
+    case all = "Todo"
+    case thisWeek = "Esta semana"
+    case thisMonth = "Este mes"
 
     var id: String { rawValue }
 

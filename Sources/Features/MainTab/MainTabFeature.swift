@@ -328,7 +328,7 @@ struct MainTabFeature {
                         )
                         MatchNotifications.shared.scheduleSummary(
                             sessionId: created.id,
-                            title: "Match saved ⚽️",
+                            title: "Partido guardado ⚽️",
                             body: summaryBody
                         )
                         MatchNotifications.shared.scheduleResultReminder(sessionId: created.id)

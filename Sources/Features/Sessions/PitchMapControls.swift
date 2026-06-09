@@ -105,7 +105,7 @@ struct PitchPeriodPicker: View {
 struct PitchAttackDirectionView: View {
     var body: some View {
         HStack(spacing: 6) {
-            Text("ATTACK DIRECTION")
+            Text("DIRECCIÓN DE ATAQUE")
                 .font(Theme.Typography.statLabel(size: 10))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .tracking(1)
@@ -134,9 +134,9 @@ struct PitchHeatmapLegend: View {
                 .clipShape(Capsule())
 
             HStack {
-                Text("LESS ACTIVITY")
+                Text("MENOS ACTIVIDAD")
                 Spacer()
-                Text("MORE ACTIVITY")
+                Text("MÁS ACTIVIDAD")
             }
             .font(Theme.Typography.statLabel(size: 9))
             .foregroundStyle(Theme.Colors.textSecondary)

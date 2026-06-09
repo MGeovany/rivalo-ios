@@ -2,10 +2,10 @@ import Foundation
 
 /// Time window for Performance dashboard aggregates.
 enum PerformancePeriod: String, CaseIterable, Equatable, Identifiable {
-    case allTime = "All time"
-    case thisWeek = "This week"
-    case thisMonth = "This month"
-    case lastFive = "Last 5 matches"
+    case allTime = "Todo el tiempo"
+    case thisWeek = "Esta semana"
+    case thisMonth = "Este mes"
+    case lastFive = "Últimos 5 partidos"
 
     var id: String { rawValue }
 
@@ -116,7 +116,7 @@ enum PerformanceMetricKind: Equatable {
     var badge: String? {
         switch self {
         case .total: "Total"
-        case .average: "Avg"
+        case .average: "Med"
         case .record: "PR"
         }
     }

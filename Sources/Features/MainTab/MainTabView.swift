@@ -7,23 +7,23 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: tabSelection) {
             SessionsView(store: store.scope(state: \.sessions, action: \.sessions))
-                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tabItem { Label("Inicio", systemImage: "house.fill") }
                 .tag(MainTabFeature.State.Tab.home)
 
             ActivitiesView(store: store.scope(state: \.sessions, action: \.sessions))
-                .tabItem { Label("Activities", systemImage: "figure.run") }
+                .tabItem { Label("Actividades", systemImage: "figure.run") }
                 .tag(MainTabFeature.State.Tab.activities)
 
             RecordView(store: store.scope(state: \.record, action: \.record))
-                .tabItem { Label("Record", systemImage: "record.circle") }
+                .tabItem { Label("Grabar", systemImage: "record.circle") }
                 .tag(MainTabFeature.State.Tab.record)
 
             InsightsView(store: store.scope(state: \.insights, action: \.insights))
-                .tabItem { Label("Insights", systemImage: "chart.bar.fill") }
+                .tabItem { Label("Estadísticas", systemImage: "chart.bar.fill") }
                 .tag(MainTabFeature.State.Tab.insights)
 
             ProfileView(store: store.scope(state: \.profile, action: \.profile))
-                .tabItem { Label("You", systemImage: "person.fill") }
+                .tabItem { Label("Tú", systemImage: "person.fill") }
                 .tag(MainTabFeature.State.Tab.you)
         }
         .tint(Theme.Colors.accent)

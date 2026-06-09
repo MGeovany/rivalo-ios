@@ -41,8 +41,8 @@ final class MatchNotifications: NSObject, UNUserNotificationCenterDelegate, @unc
         let center = UNUserNotificationCenter.current()
         center.delegate = self
 
-        let openSummary = UNNotificationAction(identifier: Self.openSummaryAction, title: "View summary", options: [.foreground])
-        let addResult = UNNotificationAction(identifier: Self.addResultAction, title: "Add result", options: [.foreground])
+        let openSummary = UNNotificationAction(identifier: Self.openSummaryAction, title: "Ver resumen", options: [.foreground])
+        let addResult = UNNotificationAction(identifier: Self.addResultAction, title: "Añadir resultado", options: [.foreground])
         let summary = UNNotificationCategory(identifier: Self.summaryCategory, actions: [openSummary, addResult], intentIdentifiers: [], options: [])
         let reminder = UNNotificationCategory(identifier: Self.reminderCategory, actions: [addResult], intentIdentifiers: [], options: [])
         center.setNotificationCategories([summary, reminder])
@@ -67,8 +67,8 @@ final class MatchNotifications: NSObject, UNUserNotificationCenterDelegate, @unc
     /// Schedules the "add result" reminder unless one is already pending for this session.
     func scheduleResultReminder(sessionId: String, after delay: TimeInterval = MatchNotifications.reminderDelay) {
         let content = UNMutableNotificationContent()
-        content.title = "How did it go?"
-        content.body = "Add the result of your match — who you played and the score."
+        content.title = "¿Cómo te fue?"
+        content.body = "Añade el resultado de tu partido — contra quién jugaste y el marcador."
         content.sound = .default
         content.categoryIdentifier = Self.reminderCategory
         content.userInfo = ["sessionId": sessionId]

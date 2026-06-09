@@ -12,10 +12,10 @@ struct PositionInsightsView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Position insights")
+            .rivalNavigationChrome(title: "Estadísticas por posición")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { store.send(.dismissTapped) }
+                    Button("Cerrar") { store.send(.dismissTapped) }
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
@@ -54,7 +54,7 @@ struct PositionInsightsView: View {
     private func comparisonsSection(_ insights: PositionInsights) -> some View {
         if let comparisons = insights.comparisons, !comparisons.isEmpty {
             VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-                Text("WHAT YOUR PHYSICAL DATA SHOWS")
+                Text("LO QUE MUESTRAN TUS DATOS FÍSICOS")
                     .font(Theme.Typography.statLabel(size: 10))
                     .foregroundStyle(Theme.Colors.accentBright.opacity(0.9))
                     .tracking(1.2)
@@ -81,7 +81,7 @@ struct PositionInsightsView: View {
 
     private func positionsSection(_ positions: [PositionStat]) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text("AVERAGES BY POSITION")
+            Text("MEDIAS POR POSICIÓN")
                 .font(Theme.Typography.statLabel(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .tracking(1)
@@ -92,14 +92,14 @@ struct PositionInsightsView: View {
                         Text(p.position.capitalized)
                             .font(Theme.Typography.body(size: 16))
                         Spacer()
-                        Text("\(p.sessionCount) sessions")
+                        Text("\(p.sessionCount) \(p.sessionCount == 1 ? "sesión" : "sesiones")")
                             .font(Theme.Typography.caption(size: 12))
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
                     HStack(spacing: Theme.Spacing.large) {
-                        metric(value: p.avgDistanceM.map { String(format: "%.1f km", $0 / 1000) }, label: "Distance")
+                        metric(value: p.avgDistanceM.map { String(format: "%.1f km", $0 / 1000) }, label: "Distancia")
                         metric(value: p.avgSprints.map { String(format: "%.0f", $0) }, label: "Sprints")
-                        metric(value: p.avgIntensity.map { String(format: "%.0f", $0) }, label: "Intensity")
+                        metric(value: p.avgIntensity.map { String(format: "%.0f", $0) }, label: "Intensidad")
                     }
                 }
                 .padding(Theme.Spacing.medium)
@@ -123,7 +123,7 @@ struct PositionInsightsView: View {
     }
 
     private var disclaimer: some View {
-        Text("These are physical-load tendencies, not a verdict on your best position — and they reflect effort, not skill or tactics.")
+        Text("Son tendencias de carga física, no un veredicto sobre tu mejor posición — reflejan esfuerzo, no habilidad ni táctica.")
             .font(Theme.Typography.caption(size: 12))
             .foregroundStyle(Theme.Colors.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -136,9 +136,9 @@ struct PositionInsightsView: View {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .font(.system(size: 28))
                     .foregroundStyle(Theme.Colors.accent)
-                Text("Not enough data yet")
+                Text("Datos insuficientes aún")
                     .font(Theme.Typography.title(size: 20))
-                Text("We compare positions only with at least 3 sessions in each of 2 or more positions. Keep logging matches with your position to unlock this — and even then it stays a physical comparison, never a recommendation of where you should play.")
+                Text("Comparamos posiciones solo con al menos 3 sesiones en cada una de 2 o más posiciones. Sigue registrando partidos con tu posición para desbloquear esto — y aún así es solo una comparación física, nunca una recomendación de dónde deberías jugar.")
                     .font(Theme.Typography.body(size: 14))
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

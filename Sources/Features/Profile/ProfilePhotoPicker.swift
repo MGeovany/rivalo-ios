@@ -75,7 +75,7 @@ struct ProfileCardPhotoControls: View {
             } else if hasPhoto {
                 if isPlacementLocked {
                     Button(action: onAdjust) {
-                        Label("Adjust position", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
+                        Label("Ajustar posición", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
                             .font(Theme.Typography.button(size: 14))
                             .foregroundStyle(Theme.Colors.textSecondary)
                             .frame(maxWidth: .infinity)
@@ -84,7 +84,7 @@ struct ProfileCardPhotoControls: View {
                     .buttonStyle(.plain)
                 } else {
                     Button(action: onAdjustDone) {
-                        Label("Done adjusting", systemImage: "checkmark.circle.fill")
+                        Label("Terminar ajuste", systemImage: "checkmark.circle.fill")
                             .font(Theme.Typography.button(size: 14))
                             .foregroundStyle(Theme.Colors.accent)
                             .frame(maxWidth: .infinity)
@@ -110,7 +110,7 @@ struct ProfileCardPhotoControls: View {
     private var pickerLabel: String {
         if isProcessing { return "Recortando silueta…" }
         if showsFixButton { return "Posicionando foto…" }
-        return hasPhoto ? "Change photo" : "Add photo"
+        return hasPhoto ? "Cambiar foto" : "Añadir foto"
     }
 
     private var pickerIcon: String {

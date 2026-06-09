@@ -153,7 +153,7 @@ struct AuthenticationFeature {
                 state.isSubmitting = false
                 state.screen = .login
                 state.password = ""
-                state.infoMessage = "Check your email to confirm your account, then sign in."
+                state.infoMessage = "Revisa tu correo para confirmar tu cuenta y luego inicia sesión."
                 return .run { _ in
                     PostHogSDK.shared.capture("user_signed_up", properties: [
                         "needs_email_confirmation": true,
@@ -162,7 +162,7 @@ struct AuthenticationFeature {
 
             case .recoverResult(.success(.sent)):
                 state.isSubmitting = false
-                state.infoMessage = "If an account exists for this email, you will receive reset instructions."
+                state.infoMessage = "Si existe una cuenta con este correo, recibirás instrucciones para restablecerla."
                 return .run { _ in
                     PostHogSDK.shared.capture("password_recovery_requested")
                 }
@@ -206,7 +206,7 @@ struct AuthenticationFeature {
         switch error {
         case let .message(text): return text
         case let .unauthorized(text): return text
-        case .invalidResponse: return "Something went wrong. Please try again."
+        case .invalidResponse: return "Algo salió mal. Inténtalo de nuevo."
         }
     }
 }

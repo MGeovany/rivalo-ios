@@ -24,26 +24,26 @@ struct ProfileView: View {
                             physicalCard
 
                             ProfilePrimaryButton(
-                                title: "Save changes",
+                                title: "Guardar cambios",
                                 isEnabled: store.canSave,
                                 isLoading: store.isSaving
                             ) {
                                 store.send(.saveTapped)
                             }
 
-                            profileRow(title: "Manage courts", icon: "sportscourt.fill") {
+                            profileRow(title: "Administrar canchas", icon: "sportscourt.fill") {
                                 store.send(.courtsTapped)
                             }
-                            profileRow(title: "Badges", icon: "rosette") {
+                            profileRow(title: "Insignias", icon: "rosette") {
                                 store.send(.badgesTapped)
                             }
-                            profileRow(title: "Rivalries", icon: "person.2.fill") {
+                            profileRow(title: "Rivalidades", icon: "person.2.fill") {
                                 store.send(.rivalriesTapped)
                             }
-                            profileRow(title: "Goals", icon: "target") {
+                            profileRow(title: "Objetivos", icon: "target") {
                                 store.send(.goalsTapped)
                             }
-                            profileRow(title: "Dev: API Status", icon: "antenna.radiowaves.left.and.right") {
+                            profileRow(title: "Dev: Estado API", icon: "antenna.radiowaves.left.and.right") {
                                 store.send(.devTapped)
                             }
 
@@ -62,21 +62,21 @@ struct ProfileView: View {
                     .scrollDismissesKeyboard(.interactively)
                 }
             }
-            .rivalNavigationChrome(title: "You")
+            .rivalNavigationChrome(title: "Tú")
         }
         .tint(Theme.Colors.accent)
         .foregroundStyle(Theme.Colors.textPrimary)
         .alert(
-            "Delete account",
+            "Eliminar cuenta",
             isPresented: Binding(
                 get: { store.isDeleteAccountAlertShown },
                 set: { if !$0 { store.send(.deleteAccountCancelled) } }
             )
         ) {
-            Button("Delete", role: .destructive) { store.send(.deleteAccountConfirmed) }
-            Button("Cancel", role: .cancel) { store.send(.deleteAccountCancelled) }
+            Button("Eliminar", role: .destructive) { store.send(.deleteAccountConfirmed) }
+            Button("Cancelar", role: .cancel) { store.send(.deleteAccountCancelled) }
         } message: {
-            Text("This will permanently delete your account and all your data. This action cannot be undone.")
+            Text("Esto eliminará permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.")
         }
         .rivalToast(message: store.errorMessage, kind: .error) {
             store.send(.errorDismissed)
@@ -125,7 +125,7 @@ struct ProfileView: View {
     private var profileSetupHint: some View {
         VStack(spacing: Theme.Spacing.small) {
             ProfileAvatarView(initials: ProfileFormatting.initials(from: store.displayName))
-            Text("Save your profile to unlock your player card")
+            Text("Guarda tu perfil para desbloquear tu tarjeta de jugador")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -135,13 +135,13 @@ struct ProfileView: View {
     }
 
     private var aboutCard: some View {
-        ProfileSectionCard(title: "About you") {
+        ProfileSectionCard(title: "Sobre ti") {
             VStack(spacing: Theme.Spacing.large) {
                 ProfileFieldRow(
                     icon: "person.fill",
-                    label: "Display name",
+                    label: "Nombre visible",
                     text: $store.displayName,
-                    placeholder: "How teammates see you",
+                    placeholder: "Cómo te ven tus compañeros",
                     textContentType: .name
                 )
 
@@ -155,10 +155,10 @@ struct ProfileView: View {
     }
 
     private var physicalCard: some View {
-        ProfileSectionCard(title: "Physical") {
+        ProfileSectionCard(title: "Físico") {
             VStack(spacing: Theme.Spacing.large) {
                 ProfileMetricField(
-                    label: "Height",
+                    label: "Altura",
                     text: $store.heightText,
                     unit: store.heightUnit,
                     unitLabel: { $0.menuLabel },
@@ -167,7 +167,7 @@ struct ProfileView: View {
                 )
 
                 ProfileMetricField(
-                    label: "Weight",
+                    label: "Peso",
                     text: $store.weightText,
                     unit: store.weightUnit,
                     unitLabel: { $0.menuLabel },

@@ -80,25 +80,25 @@ enum PitchFormat: Equatable, CaseIterable {
 }
 
 enum PitchMapMode: String, CaseIterable, Identifiable {
-    case heatmap = "Heatmap"
-    case route = "Route"
+    case heatmap = "Mapa de calor"
+    case route = "Ruta"
     case sprints = "Sprints"
 
     var id: String { rawValue }
 }
 
 enum PitchMatchPeriod: String, CaseIterable, Identifiable {
-    case full = "Full match"
-    case firstHalf = "First half"
-    case secondHalf = "Second half"
+    case full = "Partido completo"
+    case firstHalf = "Primer tiempo"
+    case secondHalf = "Segundo tiempo"
 
     var id: String { rawValue }
 
     var shortLabel: String {
         switch self {
-        case .full: "Full"
-        case .firstHalf: "1st half"
-        case .secondHalf: "2nd half"
+        case .full: "Completo"
+        case .firstHalf: "1er tiempo"
+        case .secondHalf: "2do tiempo"
         }
     }
 }

@@ -36,7 +36,7 @@ struct ProfileBirthDatePicker: View {
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Date of birth")
+                Text("Fecha de nacimiento")
                     .font(Theme.Typography.caption(size: 12))
                     .foregroundStyle(Theme.Colors.textSecondary)
 
@@ -73,7 +73,7 @@ struct ProfileBirthDatePicker: View {
     }
 
     private var displayText: String {
-        guard let date else { return "Select day, month and year" }
+        guard let date else { return "Selecciona día, mes y año" }
         return ProfileBirthDate.displayString(for: date)
     }
 
@@ -84,8 +84,8 @@ struct ProfileBirthDatePicker: View {
 
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
-                        wheelColumn(title: "Day") {
-                            Picker("Day", selection: $day) {
+                        wheelColumn(title: "Día") {
+                            Picker("Día", selection: $day) {
                                 ForEach(1...daysInSelectedMonth, id: \.self) { value in
                                     Text("\(value)")
                                         .tag(value)
@@ -93,8 +93,8 @@ struct ProfileBirthDatePicker: View {
                             }
                         }
 
-                        wheelColumn(title: "Month") {
-                            Picker("Month", selection: $month) {
+                        wheelColumn(title: "Mes") {
+                            Picker("Mes", selection: $month) {
                                 ForEach(1...12, id: \.self) { value in
                                     Text(monthSymbols[value - 1])
                                         .tag(value)
@@ -102,8 +102,8 @@ struct ProfileBirthDatePicker: View {
                             }
                         }
 
-                        wheelColumn(title: "Year") {
-                            Picker("Year", selection: $year) {
+                        wheelColumn(title: "Año") {
+                            Picker("Año", selection: $year) {
                                 ForEach(yearRange, id: \.self) { value in
                                     Text(verbatim: "\(value)")
                                         .tag(value)
@@ -114,7 +114,7 @@ struct ProfileBirthDatePicker: View {
                     .frame(height: 200)
                     .padding(.top, Theme.Spacing.small)
 
-                    Text("Used for heart-rate zones and match rating")
+                    Text("Se usa para zonas de frecuencia cardíaca y valoración del partido")
                         .font(Theme.Typography.caption(size: 12))
                         .foregroundStyle(Theme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
@@ -122,18 +122,18 @@ struct ProfileBirthDatePicker: View {
                         .padding(.top, Theme.Spacing.medium)
                 }
             }
-            .navigationTitle("Date of birth")
+            .navigationTitle("Fecha de nacimiento")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Clear") {
+                    Button("Limpiar") {
                         date = nil
                         showSheet = false
                     }
                     .foregroundStyle(Theme.Colors.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button("Listo") {
                         date = ProfileBirthDate.date(day: day, month: month, year: year)
                         showSheet = false
                     }

@@ -10,12 +10,12 @@ struct SessionEntryView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: Theme.Spacing.medium) {
-                        field("Duration (min)", text: $store.durationMin, keyboard: .numberPad)
-                        field("Distance (km)", text: $store.distanceKm, keyboard: .decimalPad)
-                        field("Avg heart rate", text: $store.hrAvg, keyboard: .numberPad)
-                        field("Max heart rate", text: $store.hrMax, keyboard: .numberPad)
+                        field("Duración (min)", text: $store.durationMin, keyboard: .numberPad)
+                        field("Distancia (km)", text: $store.distanceKm, keyboard: .decimalPad)
+                        field("FC media", text: $store.hrAvg, keyboard: .numberPad)
+                        field("FC máxima", text: $store.hrMax, keyboard: .numberPad)
                         field("Sprints", text: $store.sprints, keyboard: .numberPad)
-                        field("Intensity (0-100)", text: $store.intensity, keyboard: .decimalPad)
+                        field("Intensidad (0-100)", text: $store.intensity, keyboard: .decimalPad)
 
                         if let message = store.errorMessage {
                             Text(message)
@@ -28,10 +28,10 @@ struct SessionEntryView: View {
                     .padding(Theme.Spacing.large)
                 }
             }
-            .rivalNavigationChrome(title: store.isEditing ? "Edit session" : "New session")
+            .rivalNavigationChrome(title: store.isEditing ? "Editar sesión" : "Nueva sesión")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { store.send(.cancelTapped) }
+                    Button("Cancelar") { store.send(.cancelTapped) }
                         .tint(Theme.Colors.textSecondary)
                 }
             }
@@ -59,7 +59,7 @@ struct SessionEntryView: View {
                     if store.isSubmitting {
                         ProgressView().tint(.black)
                     } else {
-                        Text(store.isEditing ? "Save changes" : "Save session")
+                        Text(store.isEditing ? "Guardar cambios" : "Guardar sesión")
                             .font(Theme.Typography.button())
                     }
                 }

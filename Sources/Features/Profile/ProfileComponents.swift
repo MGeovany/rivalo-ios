@@ -26,7 +26,7 @@ struct ProfileAvatarView: View {
                 .font(Theme.Typography.title(size: 28))
                 .foregroundStyle(Theme.Colors.textPrimary)
         }
-        .accessibilityLabel("Profile avatar")
+        .accessibilityLabel("Avatar de perfil")
     }
 }
 
@@ -46,7 +46,25 @@ enum FootballPosition {
         "Striker",
     ]
 
-    static let unsetLabel = "Select position"
+    static let localized: [String: String] = [
+        "Goalkeeper": "Portero",
+        "Centre-back": "Defensa central",
+        "Full-back": "Lateral",
+        "Defender": "Defensa",
+        "Defensive midfielder": "Medio defensivo",
+        "Central midfielder": "Medio centro",
+        "Midfielder": "Mediocampista",
+        "Attacking midfielder": "Mediapunta",
+        "Winger": "Extremo",
+        "Forward": "Delantero",
+        "Striker": "Ariete",
+    ]
+
+    static func displayName(_ position: String) -> String {
+        localized[position] ?? position
+    }
+
+    static let unsetLabel = "Seleccionar posición"
 }
 
 struct ProfileCountrySelect: View {
@@ -65,11 +83,11 @@ struct ProfileCountrySelect: View {
     var body: some View {
         HStack(alignment: .center, spacing: Theme.Spacing.medium) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Country / nationality")
+                Text("País / nacionalidad")
                     .font(Theme.Typography.caption(size: 12))
                     .foregroundStyle(Theme.Colors.textSecondary)
 
-                Picker("Country", selection: selectionBinding) {
+                Picker("País", selection: selectionBinding) {
                     ForEach(options, id: \.code) { option in
                         Text("\(FootballCountry.flagEmoji(for: option.code))  \(option.name)")
                             .tag(option.code)
@@ -117,11 +135,11 @@ struct ProfilePositionSelect: View {
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Preferred position")
+                Text("Posición preferida")
                     .font(Theme.Typography.caption(size: 12))
                     .foregroundStyle(Theme.Colors.textSecondary)
 
-                Picker("Preferred position", selection: $selection) {
+                Picker("Posición preferida", selection: $selection) {
                     ForEach(options, id: \.self) { position in
                         Text(label(for: position)).tag(position)
                     }
@@ -144,7 +162,7 @@ struct ProfilePositionSelect: View {
     }
 
     private func label(for position: String) -> String {
-        position.isEmpty ? FootballPosition.unsetLabel : position
+        position.isEmpty ? FootballPosition.unsetLabel : FootballPosition.displayName(position)
     }
 }
 
@@ -228,7 +246,7 @@ struct ProfileMetricField<Unit: Hashable & Identifiable>: View where Unit: CaseI
 
                 Spacer()
 
-                Picker("Unit", selection: unitBinding) {
+                Picker("Unidad", selection: unitBinding) {
                     ForEach(Array(Unit.allCases), id: \.self) { option in
                         Text(unitLabel(option)).tag(option)
                     }
@@ -300,7 +318,7 @@ struct ProfileSignOutButton: View {
         Button(action: action) {
             HStack(spacing: Theme.Spacing.small) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
-                Text("Sign out")
+                Text("Cerrar sesión")
                     .font(Theme.Typography.button(size: 16))
             }
             .foregroundStyle(Theme.Colors.negative)
@@ -322,7 +340,7 @@ struct ProfileDeleteAccountButton: View {
                     ProgressView().tint(Theme.Colors.negative)
                 } else {
                     Image(systemName: "trash")
-                    Text("Delete account")
+                    Text("Eliminar cuenta")
                         .font(Theme.Typography.button(size: 16))
                 }
             }

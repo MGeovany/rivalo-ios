@@ -13,10 +13,10 @@ struct BadgesView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Badges")
+            .rivalNavigationChrome(title: "Insignias")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { store.send(.dismissTapped) }
+                    Button("Cerrar") { store.send(.dismissTapped) }
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
@@ -33,10 +33,10 @@ struct BadgesView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.large) {
                     if !store.earned.isEmpty {
-                        section("EARNED", badges: store.earned)
+                        section("CONSEGUIDAS", badges: store.earned)
                     }
                     if !store.pending.isEmpty {
-                        section("IN PROGRESS", badges: store.pending)
+                        section("EN PROGRESO", badges: store.pending)
                     }
                     if let error = store.errorMessage {
                         AuthInlineMessage(text: error, kind: .error)

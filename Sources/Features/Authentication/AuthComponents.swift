@@ -121,7 +121,7 @@ struct AuthSecureField: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(isRevealed ? "Hide password" : "Show password")
+            .accessibilityLabel(isRevealed ? "Ocultar contraseña" : "Mostrar contraseña")
         }
         .padding(.vertical, 14)
         .overlay(alignment: .bottom) {

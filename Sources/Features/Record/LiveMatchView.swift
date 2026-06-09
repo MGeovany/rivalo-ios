@@ -11,8 +11,8 @@ struct LiveMatchView: View {
             timerDisplay
 
             HStack(spacing: Theme.Spacing.large) {
-                statCard(title: "HR", value: "\(store.heartRate)", unit: "bpm")
-                statCard(title: "Distance", value: formattedDistance, unit: "m")
+                statCard(title: "FC", value: "\(store.heartRate)", unit: "bpm")
+                statCard(title: "Distancia", value: formattedDistance, unit: "m")
             }
 
             segmentLabel
@@ -44,31 +44,31 @@ struct LiveMatchView: View {
         HStack(spacing: Theme.Spacing.medium) {
             if store.segment == "firstHalf" {
                 controlButton(
-                    label: "Pause",
+                    label: "Pausa",
                     systemImage: "pause.fill",
                     action: { store.send(.pauseTapped) }
                 )
                 controlButton(
-                    label: "Half-time",
+                    label: "Descanso",
                     systemImage: "stopwatch",
                     action: { store.send(.halftimeTapped) }
                 )
             } else if store.segment == "secondHalf" {
                 controlButton(
-                    label: "Resume",
+                    label: "Reanudar",
                     systemImage: "play.fill",
                     action: { store.send(.resumeTapped) }
                 )
             } else if store.segment == "halftimeBreak" {
                 controlButton(
-                    label: "2nd Half",
+                    label: "2do Tiempo",
                     systemImage: "forward.fill",
                     action: { store.send(.resumeTapped) }
                 )
             }
 
             controlButton(
-                label: "End",
+                label: "Finalizar",
                 systemImage: "stop.fill",
                 role: .destructive,
                 action: { store.send(.endTapped) }
@@ -131,9 +131,9 @@ struct LiveMatchView: View {
 
     private var segmentName: String {
         switch store.segment {
-        case "firstHalf": return "1st Half"
-        case "halftimeBreak": return "Half-time"
-        case "secondHalf": return "2nd Half"
+        case "firstHalf": return "1er Tiempo"
+        case "halftimeBreak": return "Descanso"
+        case "secondHalf": return "2do Tiempo"
         default: return store.segment
         }
     }

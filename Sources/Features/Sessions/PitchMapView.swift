@@ -65,7 +65,7 @@ struct PitchMapView: View {
 
             if canFlipSecondHalf {
                 Toggle(isOn: $flipSecondHalf) {
-                    Text("Teams switched sides at halftime")
+                    Text("Los equipos cambiaron de lado en el descanso")
                         .font(Theme.Typography.caption(size: 11))
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
@@ -99,17 +99,17 @@ struct PitchMapView: View {
 
     private var infoTitle: String {
         switch mapMode {
-        case .heatmap: "Heatmap shows player activity"
-        case .route: "Route shows your movement path"
-        case .sprints: "Sprints highlight high-speed bursts"
+        case .heatmap: "El mapa de calor muestra la actividad del jugador"
+        case .route: "La ruta muestra tu trayectoria"
+        case .sprints: "Los sprints destacan las ráfagas de alta velocidad"
         }
     }
 
     private var infoSubtitle: String {
         switch mapMode {
-        case .heatmap: "Red areas indicate the most time spent on the pitch"
-        case .route: "Orange line traces your path across the pitch for this period"
-        case .sprints: "Bright segments mark runs above \(Int(SessionActivityGeometry.sprintSpeedThresholdKmh)) km/h"
+        case .heatmap: "Las áreas rojas indican más tiempo en la cancha"
+        case .route: "La línea naranja traza tu recorrido en la cancha durante este período"
+        case .sprints: "Los segmentos brillantes marcan carreras por encima de \(Int(SessionActivityGeometry.sprintSpeedThresholdKmh)) km/h"
         }
     }
 

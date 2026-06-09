@@ -14,7 +14,7 @@ struct StreakCard: View {
                 Text("\(streaks.currentWeeks)")
                     .font(Theme.Typography.metric(size: 34))
                     .monospacedDigit()
-                Text(streaks.currentWeeks == 1 ? "week streak" : "week streak")
+                Text(streaks.currentWeeks == 1 ? "semana seguida" : "semanas seguidas")
                     .font(Theme.Typography.body(size: 15))
                     .foregroundStyle(Theme.Colors.textSecondary)
                 Spacer()
@@ -23,7 +23,7 @@ struct StreakCard: View {
                         Text("\(streaks.bestWeeks)")
                             .font(Theme.Typography.metric(size: 18))
                             .monospacedDigit()
-                        Text("best")
+                        Text("mejor")
                             .font(Theme.Typography.caption(size: 10))
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
@@ -34,7 +34,7 @@ struct StreakCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "rosette")
                         .font(.system(size: 13, weight: .bold))
-                    Text("\(milestone)-week award unlocked")
+                    Text("\(milestone) semanas — logro desbloqueado")
                         .font(Theme.Typography.caption(size: 12))
                 }
                 .foregroundStyle(.black)
@@ -84,9 +84,9 @@ struct StreakCard: View {
 
     private static func label(for kind: String) -> String {
         switch kind {
-        case "sprints": return "Sprint streak"
-        case "rating_improving": return "Rating rising"
-        case "fatigue_controlled": return "Fatigue control"
+        case "sprints": return "Racha de sprints"
+        case "rating_improving": return "Valoración al alza"
+        case "fatigue_controlled": return "Control de fatiga"
         default: return kind
         }
     }

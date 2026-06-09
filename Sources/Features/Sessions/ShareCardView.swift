@@ -59,7 +59,7 @@ struct ShareCardView: View {
         return HStack(spacing: 6) {
             Image(systemName: "trophy.fill")
                 .font(.system(size: 12, weight: .bold))
-            Text("NEW RECORD: \(names.uppercased())")
+            Text("NUEVO RÉCORD: \(names.uppercased())")
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .multilineTextAlignment(.center)
         }
@@ -72,37 +72,37 @@ struct ShareCardView: View {
 
     private static func recordLabel(_ metric: String) -> String {
         switch metric {
-        case "distance_m": return "Distance"
-        case "duration_s": return "Time"
-        case "speed_max_kmh": return "Top Speed"
+        case "distance_m": return "Distancia"
+        case "duration_s": return "Tiempo"
+        case "speed_max_kmh": return "Vel. máxima"
         case "sprints": return "Sprints"
-        case "intensity": return "Intensity"
-        case "match_rating": return "Rating"
-        case "hr_max": return "Max HR"
-        case "calories_kcal": return "Calories"
+        case "intensity": return "Intensidad"
+        case "match_rating": return "Valoración"
+        case "hr_max": return "FC máx"
+        case "calories_kcal": return "Calorías"
         default: return metric
         }
     }
 
     private var statsGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-            statCell(value: formattedDistance, label: "Distance")
-            statCell(value: formattedDuration, label: "Duration")
+            statCell(value: formattedDistance, label: "Distancia")
+            statCell(value: formattedDuration, label: "Duración")
             statCell(value: formattedSprints, label: "Sprints")
             if let intensity = session.intensity {
-                statCell(value: String(format: "%.0f", intensity), label: "Intensity")
+                statCell(value: String(format: "%.0f", intensity), label: "Intensidad")
             }
             if let rating = session.matchRating {
-                statCell(value: String(format: "%.0f", rating), label: "Rating")
+                statCell(value: String(format: "%.0f", rating), label: "Valoración")
             }
             if let speed = session.speedMaxKmh {
-                statCell(value: String(format: "%.1f", speed), label: "Top Speed")
+                statCell(value: String(format: "%.1f", speed), label: "Vel. máxima")
             }
             if let cal = session.caloriesKcal {
-                statCell(value: "\(Int(cal))", label: "Calories")
+                statCell(value: "\(Int(cal))", label: "Calorías")
             }
             if let hr = session.hrMax {
-                statCell(value: "\(hr)", label: "Max HR")
+                statCell(value: "\(hr)", label: "FC máx")
             }
         }
         .padding(20)
@@ -126,23 +126,9 @@ struct ShareCardView: View {
                 Text(String(format: "%.1f", drop.firstHalf.distanceM / 1000))
                     .font(.system(size: 16, weight: .bold, design: .monospaced))
                     .foregroundStyle(.white)
-                Text("1st Half km")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-            VStack(spacing: 2) {
-                Text(String(format: "%.1f", drop.secondHalf.distanceM / 1000))
-                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
-                Text("2nd Half km")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-            VStack(spacing: 2) {
-                Text(String(format: "%.0f%%", drop.dropPercentage * 100))
-                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    .foregroundStyle(drop.dropPercentage > 0.15 ? Color(red: 0.95, green: 0.3, blue: 0.3) : Color(red: 0, green: 0.85, blue: 0.45))
-                Text("Drop")
+                Text("1er Tiempo km")
+                Text("2do Tiempo km")
+                Text("Caída")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.5))
             }

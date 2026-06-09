@@ -7,16 +7,16 @@ struct WeeklyRecapCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("THIS WEEK")
+            Text("ESTA SEMANA")
                 .font(Theme.Typography.statLabel(size: 10))
                 .foregroundStyle(Theme.Colors.accentBright.opacity(0.9))
                 .tracking(1.4)
 
             HStack(spacing: Theme.Spacing.large) {
-                metric("\(recap.current.matchCount)", "Matches", delta: deltaInt(recap.current.matchCount, recap.previous.matchCount))
-                metric(kmText(recap.current.totalDistanceM), "Distance", delta: recap.distanceDeltaPct)
+                metric("\(recap.current.matchCount)", "Partidos", delta: deltaInt(recap.current.matchCount, recap.previous.matchCount))
+                metric(kmText(recap.current.totalDistanceM), "Distancia", delta: recap.distanceDeltaPct)
                 metric("\(recap.current.totalSprints)", "Sprints", delta: deltaInt(recap.current.totalSprints, recap.previous.totalSprints))
-                metric(recap.current.avgRating.map { String(format: "%.0f", $0) } ?? "—", "Rating", delta: recap.ratingDeltaPct)
+                metric(recap.current.avgRating.map { String(format: "%.0f", $0) } ?? "—", "Valoración", delta: recap.ratingDeltaPct)
             }
         }
         .padding(Theme.Spacing.large)

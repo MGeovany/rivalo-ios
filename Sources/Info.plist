@@ -24,11 +24,11 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Rivalo uses the camera to measure the pitch as you walk its length and width.</string>
+	<string>Rivalo usa la cámara para medir la cancha mientras caminas su largo y ancho.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Rivalo uses your location and compass to capture a pitch's position and orientation, so your match heatmaps show where you played on the field.</string>
+	<string>Rivalo usa tu ubicación y brújula para capturar la posición y orientación de la cancha, para que tus mapas de calor muestren dónde jugaste en el campo.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Rivalo uses your photo library to set your player card picture.</string>
+	<string>Rivalo usa tu biblioteca de fotos para establecer la imagen de tu tarjeta de jugador.</string>
 	<key>PostHogHost</key>
 	<string>https://us.i.posthog.com</string>
 	<key>PostHogProjectToken</key>

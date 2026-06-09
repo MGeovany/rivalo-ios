@@ -15,14 +15,14 @@ struct RecordEntry: Equatable, Codable, Sendable, Identifiable {
 
     var label: String {
         switch metric {
-        case "distance_m": return "Distance"
-        case "duration_s": return "Duration"
-        case "speed_max_kmh": return "Top Speed"
+        case "distance_m": return "Distancia"
+        case "duration_s": return "Duración"
+        case "speed_max_kmh": return "Velocidad máxima"
         case "sprints": return "Sprints"
-        case "intensity": return "Intensity"
-        case "match_rating": return "Match Rating"
-        case "hr_max": return "Max HR"
-        case "calories_kcal": return "Calories"
+        case "intensity": return "Intensidad"
+        case "match_rating": return "Valoración"
+        case "hr_max": return "FC máx"
+        case "calories_kcal": return "Calorías"
         default: return metric
         }
     }

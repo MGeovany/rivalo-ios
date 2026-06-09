@@ -4,8 +4,8 @@ import SwiftUI
 enum SessionDetailCharts {
     static func heartRateCard(_ samples: [SessionSample]) -> some View {
         chartCard(
-            title: "Heart rate",
-            subtitle: "Cardio load over the match",
+            title: "Frecuencia cardíaca",
+            subtitle: "Carga cardiovascular durante el partido",
             icon: "waveform.path.ecg"
         ) {
             Chart(samples) { sample in
@@ -33,8 +33,8 @@ enum SessionDetailCharts {
 
     static func speedCard(_ samples: [SessionSample]) -> some View {
         chartCard(
-            title: "Speed",
-            subtitle: "Pace and bursts (km/h)",
+            title: "Velocidad",
+            subtitle: "Ritmo y ráfagas (km/h)",
             icon: "speedometer"
         ) {
             Chart(samples) { sample in
@@ -50,8 +50,8 @@ enum SessionDetailCharts {
     static func distanceCard(_ samples: [SessionSample], totalDistanceM: Double) -> some View {
         let cumulative = cumulativeDistance(samples: samples, totalDistanceM: totalDistanceM)
         return chartCard(
-            title: "Distance",
-            subtitle: "Cumulative km during the match",
+            title: "Distancia",
+            subtitle: "km acumulados durante el partido",
             icon: "figure.run"
         ) {
             Chart(cumulative, id: \.minute) { point in
@@ -67,8 +67,8 @@ enum SessionDetailCharts {
 
     static func intensityCard(intensity: Double) -> some View {
         chartCard(
-            title: "Intensity",
-            subtitle: "Overall effort score",
+            title: "Intensidad",
+            subtitle: "Puntuación de esfuerzo general",
             icon: "flame.fill"
         ) {
             Chart {

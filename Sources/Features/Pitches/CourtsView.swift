@@ -11,10 +11,10 @@ struct CourtsView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Courts")
+            .rivalNavigationChrome(title: "Canchas")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { store.send(.dismissTapped) }
+                    Button("Cerrar") { store.send(.dismissTapped) }
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -83,9 +83,9 @@ struct CourtsView: View {
         var parts: [String] = []
         if let type = pitch.type { parts.append(type) }
         if let surface = pitch.surface { parts.append(surface) }
-        if pitch.indoor == true { parts.append("Indoor") }
+        if pitch.indoor == true { parts.append("Interior") }
         if let dim = pitch.dimensionsText { parts.append(dim) }
-        return parts.isEmpty ? "Tap to add details" : parts.joined(separator: " · ")
+        return parts.isEmpty ? "Toca para añadir detalles" : parts.joined(separator: " · ")
     }
 
     private var emptyState: some View {
@@ -93,14 +93,14 @@ struct CourtsView: View {
             Image(systemName: "sportscourt")
                 .font(.system(size: 32))
                 .foregroundStyle(Theme.Colors.accent)
-            Text("No courts yet")
+            Text("Sin canchas aún")
                 .font(Theme.Typography.title(size: 20))
-            Text("Add the places you play to compare sessions and track court records.")
+            Text("Añade los lugares donde juegas para comparar sesiones y llevar registro de tus canchas.")
                 .font(Theme.Typography.body(size: 14))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
             Button { store.send(.addTapped) } label: {
-                Label("Add a court", systemImage: "plus")
+                Label("Añadir cancha", systemImage: "plus")
                     .font(Theme.Typography.button())
                     .foregroundStyle(Color.black)
                     .padding(.horizontal, 20)

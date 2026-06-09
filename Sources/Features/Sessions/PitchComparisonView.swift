@@ -12,10 +12,10 @@ struct PitchComparisonView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Same court")
+            .rivalNavigationChrome(title: "Misma cancha")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { store.send(.dismissTapped) }
+                    Button("Cerrar") { store.send(.dismissTapped) }
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
@@ -54,7 +54,7 @@ struct PitchComparisonView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
             Label(store.pitchName, systemImage: "sportscourt.fill")
                 .font(Theme.Typography.title(size: 22))
-            Text("^[\(store.samePitchSessions.count) session](inflect: true) at this court")
+            Text("\(store.samePitchSessions.count) \(store.samePitchSessions.count == 1 ? "sesión" : "sesiones") en esta cancha")
                 .font(Theme.Typography.body(size: 14))
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
@@ -63,18 +63,18 @@ struct PitchComparisonView: View {
 
     private func summaryGrid(_ stats: PitchComparisonStats) -> some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Theme.Spacing.small) {
-            stat(kmText(stats.avgDistanceM), "Avg distance", "figure.run")
-            stat(kmText(stats.bestDistanceM), "Best distance", "trophy.fill")
-            stat(stats.avgRating.map { String(format: "%.0f", $0) } ?? "—", "Avg rating", "star.fill")
-            stat(stats.bestRating.map { String(format: "%.0f", $0) } ?? "—", "Best rating", "crown.fill")
-            stat(durationText(stats.avgDurationS), "Avg time", "clock.fill")
-            stat("\(stats.count)", "Played here", "calendar")
+            stat(kmText(stats.avgDistanceM), "Dist. media", "figure.run")
+            stat(kmText(stats.bestDistanceM), "Mejor distancia", "trophy.fill")
+            stat(stats.avgRating.map { String(format: "%.0f", $0) } ?? "—", "Val. media", "star.fill")
+            stat(stats.bestRating.map { String(format: "%.0f", $0) } ?? "—", "Mejor valoración", "crown.fill")
+            stat(durationText(stats.avgDurationS), "Tiempo medio", "clock.fill")
+            stat("\(stats.count)", "Jugados aquí", "calendar")
         }
     }
 
     private func sessionsList(_ stats: PitchComparisonStats) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text("EVERY SESSION HERE")
+            Text("TODAS LAS SESIONES")
                 .font(Theme.Typography.statLabel(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .tracking(1)
@@ -112,7 +112,7 @@ struct PitchComparisonView: View {
                         .font(Theme.Typography.metric(size: 20))
                         .monospacedDigit()
                         .foregroundStyle(Theme.Colors.accent)
-                    Text("rating")
+                    Text("valoración")
                         .font(Theme.Typography.caption(size: 10))
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
@@ -128,7 +128,7 @@ struct PitchComparisonView: View {
     }
 
     private var emptyState: some View {
-        Text("No other sessions at this court yet.")
+        Text("Sin otras sesiones en esta cancha aún.")
             .font(Theme.Typography.body(size: 15))
             .foregroundStyle(Theme.Colors.textSecondary)
             .frame(maxWidth: .infinity, alignment: .center)

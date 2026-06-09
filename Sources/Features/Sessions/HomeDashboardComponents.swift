@@ -13,11 +13,11 @@ struct DashboardSummaryStrip: View {
             PerformanceHeroMetric(
                 value: snapshot.totalDistanceKm,
                 unit: "km",
-                label: "Total distance covered",
+                label: "Distancia total recorrida",
                 icon: "figure.run",
                 footnote: snapshot.sessionCount > 0
-                    ? "\(snapshot.sessionCount) matches logged"
-                    : "No matches in this period"
+                    ? "\(snapshot.sessionCount) \(snapshot.sessionCount == 1 ? "partido registrado" : "partidos registrados")"
+                    : "Sin partidos en este período"
             )
 
             LazyVGrid(
@@ -28,7 +28,7 @@ struct DashboardSummaryStrip: View {
                 spacing: Theme.Spacing.medium
             ) {
                 PerformanceStatCard(
-                    label: "Top speed",
+                    label: "Velocidad máxima",
                     value: snapshot.topSpeedKmh,
                     format: .decimal(fractionDigits: 1),
                     unit: snapshot.topSpeedKmh == nil ? nil : "km/h",
@@ -37,7 +37,7 @@ struct DashboardSummaryStrip: View {
                     kind: .record
                 )
                 PerformanceStatCard(
-                    label: "Avg sprints",
+                    label: "Sprints medios",
                     value: snapshot.avgSprints.map(Double.init),
                     format: .integer,
                     unit: nil,
@@ -46,7 +46,7 @@ struct DashboardSummaryStrip: View {
                     kind: .average
                 )
                 PerformanceStatCard(
-                    label: "Sprint distance",
+                    label: "Distancia sprint",
                     value: snapshot.avgSprintDistanceKm,
                     format: .decimal(fractionDigits: 1),
                     unit: snapshot.avgSprintDistanceKm == nil ? nil : "km",
@@ -55,7 +55,7 @@ struct DashboardSummaryStrip: View {
                     kind: .average
                 )
                 PerformanceStatCard(
-                    label: "Avg per match",
+                    label: "Media por partido",
                     value: snapshot.avgKmPerMatch,
                     format: .decimal(fractionDigits: 1),
                     unit: snapshot.avgKmPerMatch == nil ? nil : "km",

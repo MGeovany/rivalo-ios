@@ -22,26 +22,26 @@ enum PlayerCardStatKind: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .intensity: "Intensity (INT)"
-        case .speed: "Top speed (SPD)"
+        case .intensity: "Intensidad (INT)"
+        case .speed: "Velocidad máxima (SPD)"
         case .sprints: "Sprints (SPR)"
-        case .distance: "Distance (KM)"
-        case .matches: "Matches (MAT)"
+        case .distance: "Distancia (KM)"
+        case .matches: "Partidos (MAT)"
         }
     }
 
     var explanation: String {
         switch self {
         case .intensity:
-            "Your overall physical load score, based on heart rate and effort across recorded matches."
+            "Tu puntuación de carga física general, basada en frecuencia cardíaca y esfuerzo en todos los partidos registrados."
         case .speed:
-            "Your fastest sprint in km/h from all recorded matches."
+            "Tu sprint más rápido en km/h de todos los partidos registrados."
         case .sprints:
-            "Total high-speed runs above the sprint threshold across all matches."
+            "Total de carreras de alta velocidad por encima del umbral de sprint en todos los partidos."
         case .distance:
-            "Total kilometers covered across all recorded matches."
+            "Total de kilómetros recorridos en todos los partidos registrados."
         case .matches:
-            "Number of matches logged — this drives your card tier and rank progress."
+            "Número de partidos registrados — esto determina tu nivel y progreso en la tarjeta."
         }
     }
 }
@@ -118,14 +118,14 @@ enum PlayerCardStatsBuilder {
 /// ISO country codes for the nationality flag on the card.
 enum FootballCountry {
     static let options: [(code: String, name: String)] = [
-        ("AR", "Argentina"), ("AU", "Australia"), ("BE", "Belgium"), ("BR", "Brazil"),
-        ("CA", "Canada"), ("CL", "Chile"), ("CO", "Colombia"), ("CR", "Costa Rica"),
-        ("DE", "Germany"), ("EC", "Ecuador"), ("ES", "Spain"), ("FR", "France"),
-        ("GB", "England"), ("GH", "Ghana"), ("HN", "Honduras"), ("IT", "Italy"),
-        ("JM", "Jamaica"), ("JP", "Japan"), ("KR", "South Korea"), ("MX", "Mexico"),
-        ("NG", "Nigeria"), ("NL", "Netherlands"), ("NO", "Norway"), ("PA", "Panama"),
-        ("PE", "Peru"), ("PL", "Poland"), ("PT", "Portugal"), ("PY", "Paraguay"),
-        ("SE", "Sweden"), ("US", "United States"), ("UY", "Uruguay"), ("VE", "Venezuela"),
+        ("AR", "Argentina"), ("AU", "Australia"), ("BE", "Bélgica"), ("BR", "Brasil"),
+        ("CA", "Canadá"), ("CL", "Chile"), ("CO", "Colombia"), ("CR", "Costa Rica"),
+        ("DE", "Alemania"), ("EC", "Ecuador"), ("ES", "España"), ("FR", "Francia"),
+        ("GB", "Inglaterra"), ("GH", "Ghana"), ("HN", "Honduras"), ("IT", "Italia"),
+        ("JM", "Jamaica"), ("JP", "Japón"), ("KR", "Corea del Sur"), ("MX", "México"),
+        ("NG", "Nigeria"), ("NL", "Países Bajos"), ("NO", "Noruega"), ("PA", "Panamá"),
+        ("PE", "Perú"), ("PL", "Polonia"), ("PT", "Portugal"), ("PY", "Paraguay"),
+        ("SE", "Suecia"), ("US", "Estados Unidos"), ("UY", "Uruguay"), ("VE", "Venezuela"),
     ]
 
     static func name(for code: String) -> String {

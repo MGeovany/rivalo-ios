@@ -21,11 +21,11 @@ struct RecordView: View {
                             }
 
                             VStack(spacing: Theme.Spacing.small) {
-                                Text("Start match")
+                                Text("Iniciar partido")
                                     .font(Theme.Typography.title(size: 26))
                                     .foregroundStyle(Theme.Colors.textPrimary)
 
-                                Text("Captures live stats on your Apple Watch")
+                                Text("Captura estadísticas en tu Apple Watch")
                                     .font(Theme.Typography.body(size: 15))
                                     .foregroundStyle(Theme.Colors.textSecondary)
                                     .multilineTextAlignment(.center)
@@ -44,9 +44,9 @@ struct RecordView: View {
                     .padding(.horizontal, Theme.Spacing.xl)
                 }
             }
-            .rivalNavigationChrome(title: store.liveMatch != nil ? "Live Match" : "Record")
+            .rivalNavigationChrome(title: store.liveMatch != nil ? "Partido en vivo" : "Registrar")
             .alert(
-                "Record match",
+                "Registrar partido",
                 isPresented: recordAlertPresented,
                 actions: {
                     Button("OK", role: .cancel) { store.send(.recordAlertDismissed) }
@@ -95,7 +95,7 @@ private struct RecordStartOrb: View {
                 .frame(width: 220, height: 220)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Record match")
+            .accessibilityLabel("Registrar partido")
         }
     }
 

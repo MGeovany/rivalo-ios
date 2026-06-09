@@ -11,7 +11,7 @@ struct ActivitiesView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Activities")
+            .rivalNavigationChrome(title: "Actividades")
             .onAppear { store.send(.onAppear) }
         }
         .tint(Theme.Colors.accent)
@@ -26,7 +26,7 @@ struct ActivitiesView: View {
             VStack(spacing: Theme.Spacing.medium) {
                 ProgressView()
                     .tint(Theme.Colors.accent)
-                Text("Loading activities…")
+                Text("Cargando actividades…")
                     .font(Theme.Typography.caption())
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
@@ -75,9 +75,9 @@ struct ActivitiesView: View {
                     .font(.system(size: 32, weight: .semibold))
                     .foregroundStyle(Theme.Colors.accent)
             }
-            Text("No activities yet")
+            Text("Sin actividades aún")
                 .font(Theme.Typography.title(size: 20))
-            Text("Your recorded matches appear here.")
+            Text("Tus partidos registrados aparecen aquí.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -90,10 +90,10 @@ struct ActivitiesView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundStyle(Theme.Colors.textSecondary.opacity(0.6))
-            Text("No matches found")
+            Text("Sin resultados")
                 .font(Theme.Typography.body(size: 16))
                 .foregroundStyle(Theme.Colors.textPrimary)
-            Text("Try another search or filter.")
+            Text("Prueba otra búsqueda o filtro.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
@@ -116,7 +116,7 @@ private struct ActivitiesSearchBar: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.Colors.textSecondary)
 
-                TextField("Search venue, type, result…", text: $text)
+                TextField("Buscar cancha, tipo, resultado…", text: $text)
                     .font(Theme.Typography.body(size: 15))
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .textInputAutocapitalization(.never)
@@ -166,7 +166,7 @@ private struct ActivitiesSearchBar: View {
                 }
             }
 
-            Text("\(resultCount) \(resultCount == 1 ? "match" : "matches")")
+            Text("\(resultCount) \(resultCount == 1 ? "partido" : "partidos")")
                 .font(Theme.Typography.caption(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
         }

@@ -19,9 +19,9 @@ enum HeightUnit: String, CaseIterable, Identifiable, Equatable {
 
     var fieldLabel: String {
         switch self {
-        case .centimeters: "Centimeters"
-        case .meters: "Meters"
-        case .feet: "Feet"
+        case .centimeters: "Centímetros"
+        case .meters: "Metros"
+        case .feet: "Pies"
         }
     }
 
@@ -80,8 +80,8 @@ enum WeightUnit: String, CaseIterable, Identifiable, Equatable {
 
     var fieldLabel: String {
         switch self {
-        case .kilograms: "Kilograms"
-        case .pounds: "Pounds"
+        case .kilograms: "Kilogramos"
+        case .pounds: "Libras"
         }
     }
 

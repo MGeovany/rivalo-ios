@@ -103,9 +103,9 @@ struct SessionsView: View {
 
     private var emptyHint: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text("No matches yet")
+            Text("Sin partidos aún")
                 .font(Theme.Typography.button(size: 16))
-            Text("Record on your Watch or tap + to log a session.")
+            Text("Graba desde tu Watch o pulsa + para registrar un partido.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
         }

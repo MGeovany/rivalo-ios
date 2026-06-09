@@ -18,8 +18,8 @@ enum PlayerCardRank: String, Equatable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .unranked: "Unranked"
-        case .holographic: "Holographic"
+        case .unranked: "Sin clasificar"
+        case .holographic: "Holográfico"
         default: rawValue.capitalized
         }
     }

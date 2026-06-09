@@ -5,9 +5,9 @@ import ComposableArchitecture
 struct MatchContextView: View {
     @Bindable var store: StoreOf<MatchContextFeature>
 
-    private let matchTypes = ["5-a-side", "7-a-side", "9-a-side", "11-a-side", "Other"]
-    private let surfaces = ["Natural grass", "Artificial turf", "Indoor", "Concrete", "Other"]
-    private let positions = ["Goalkeeper", "Defender", "Full-back", "Midfielder", "Winger", "Forward"]
+    private let matchTypes = ["Fútbol 5", "Fútbol 7", "Fútbol 9", "Fútbol 11", "Otro"]
+    private let surfaces = ["Césped natural", "Césped artificial", "Interior", "Concreto", "Otro"]
+    private let positions = ["Portero", "Defensa", "Lateral", "Centrocampista", "Extremo", "Delantero"]
     private let matchTags = ["friendly", "league", "training"]
     private let outcomes = ["win", "draw", "loss"]
     private let competitions = ["friendly", "league", "tournament", "training"]
@@ -15,99 +15,101 @@ struct MatchContextView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Match type") {
-                    Picker("Type", selection: $store.matchType.sending(\.setMatchType)) {
-                        Text("None").tag("")
+                Section("Tipo de partido") {
+                    Picker("Tipo", selection: $store.matchType.sending(\.setMatchType)) {
+                        Text("Ninguno").tag("")
                         ForEach(matchTypes, id: \.self) { type in
                             Text(type).tag(type)
                         }
                     }
                 }
 
-                Section("Surface") {
-                    Picker("Surface", selection: $store.surface.sending(\.setSurface)) {
-                        Text("None").tag("")
+                Section("Superficie") {
+                    Picker("Superficie", selection: $store.surface.sending(\.setSurface)) {
+                        Text("Ninguno").tag("")
                         ForEach(surfaces, id: \.self) { s in
                             Text(s).tag(s)
                         }
                     }
                 }
 
-                Section("Position") {
-                    Picker("Position", selection: $store.position.sending(\.setPosition)) {
-                        Text("None").tag("")
+                Section("Posición") {
+                    Picker("Posición", selection: $store.position.sending(\.setPosition)) {
+                        Text("Ninguno").tag("")
                         ForEach(positions, id: \.self) { pos in
                             Text(pos).tag(pos)
                         }
                     }
                 }
 
-                Section("How did it feel?") {
-                    Picker("Feeling", selection: $store.feeling.sending(\.setFeeling)) {
+                Section("¿Cómo te sentiste?") {
+                    Picker("Sensación", selection: $store.feeling.sending(\.setFeeling)) {
                         ForEach(1...5, id: \.self) { n in
                             Text(feelingLabel(n)).tag(n)
                         }
                     }
                 }
 
-                Section("Result") {
-                    Picker("Outcome", selection: $store.outcome.sending(\.setOutcome)) {
-                        Text("None").tag("")
+                Section("Resultado") {
+                    Picker("Resultado", selection: $store.outcome.sending(\.setOutcome)) {
+                        Text("Ninguno").tag("")
                         ForEach(outcomes, id: \.self) { o in
-                            Text(outcomeLabel(o)).tag(o)
+                            Text(o).tag(o)
                         }
+                    }
                     }
 
                     if !store.outcome.isEmpty {
                         Stepper(
-                            "Your goals: \(store.teamGoals)",
+                            "Tus goles: \(store.teamGoals)",
                             value: $store.teamGoals.sending(\.setTeamGoals),
                             in: 0...MatchScore.maxGoals
                         )
                         Stepper(
-                            "Opponent goals: \(store.opponentGoals)",
+                            "Goles rival: \(store.opponentGoals)",
                             value: $store.opponentGoals.sending(\.setOpponentGoals),
                             in: 0...MatchScore.maxGoals
                         )
                     }
 
-                    TextField("Opponent", text: $store.opponent.sending(\.setOpponent))
+                    TextField("Rival", text: $store.opponent.sending(\.setOpponent))
                 }
 
                 if !store.outcome.isEmpty {
-                    Section("Your stats") {
-                        Stepper("Goals: \(store.goals)", value: $store.goals.sending(\.setGoals), in: 0...20)
-                        Stepper("Assists: \(store.assists)", value: $store.assists.sending(\.setAssists), in: 0...20)
+                    Section("Tus estadísticas") {
+                        Stepper("Goles: \(store.goals)", value: $store.goals.sending(\.setGoals), in: 0...20)
+                        Stepper("Asistencias: \(store.assists)", value: $store.assists.sending(\.setAssists), in: 0...20)
                     }
                 }
 
-                Section("Competition") {
-                    Picker("Competition", selection: $store.competition.sending(\.setCompetition)) {
-                        Text("None").tag("")
+                Section("Competición") {
+                    Picker("Competición", selection: $store.competition.sending(\.setCompetition)) {
+                        Text("Ninguno").tag("")
                         ForEach(competitions, id: \.self) { c in
-                            Text(competitionLabel(c)).tag(c)
+                            Text(c).tag(c)
                         }
                     }
+                    }
                 }
 
-                Section("Notes") {
-                    TextField("Anything to remember", text: $store.notes.sending(\.setNotes), axis: .vertical)
+                Section("Notas") {
+                    TextField("Algo que recordar", text: $store.notes.sending(\.setNotes), axis: .vertical)
                         .lineLimit(1...4)
                 }
 
-                Section("Pitch") {
+                Section("Cancha") {
                     if store.pitchesLoading {
                         HStack {
                             ProgressView()
-                            Text("Loading pitches...")
+                            Text("Cargando canchas...")
                                 .foregroundStyle(.secondary)
                         }
                     } else if store.pitches.isEmpty {
-                        Text("No saved pitches. Measure one from the Record tab.")
+                        Text("Sin canchas guardadas. Mide una desde la pestaña Registrar.")
                             .foregroundStyle(.secondary)
                     } else {
-                        Picker("Pitch", selection: $store.pitchId.sending(\.setPitchId)) {
-                            Text("None").tag(nil as String?)
+                        Picker("Cancha", selection: $store.pitchId.sending(\.setPitchId)) {
+                            Text("Ninguno").tag(nil as String?)
                             ForEach(store.pitches) { pitch in
                                 HStack {
                                     Text(pitch.name)
@@ -126,14 +128,14 @@ struct MatchContextView: View {
                     }
                 }
             }
-            .navigationTitle("Match Context")
+            .navigationTitle("Contexto del partido")
             .task { store.send(.loadPitches) }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Skip") { store.send(.dismissTapped) }
+                    Button("Omitir") { store.send(.dismissTapped) }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { store.send(.saveTapped) }
+                    Button("Guardar") { store.send(.saveTapped) }
                         .disabled(!store.canSave)
                 }
             }
@@ -142,18 +144,18 @@ struct MatchContextView: View {
 
     private func outcomeLabel(_ o: String) -> String {
         switch o {
-        case "win": return "Win"
-        case "draw": return "Draw"
-        case "loss": return "Loss"
+        case "win": return "Victoria"
+        case "draw": return "Empate"
+        case "loss": return "Derrota"
         default: return o
         }
     }
 
     private func competitionLabel(_ c: String) -> String {
         switch c {
-        case "friendly": return "Friendly"
-        case "league": return "League"
-        case "tournament": return "Tournament"
+        case "friendly": return "Amistoso"
+        case "league": return "Liga"
+        case "tournament": return "Torneo"
         case "training": return "Entrenamiento"
         default: return c.capitalized
         }
@@ -161,11 +163,11 @@ struct MatchContextView: View {
 
     private func feelingLabel(_ n: Int) -> String {
         switch n {
-        case 1: return "1 — Terrible"
-        case 2: return "2 — Bad"
-        case 3: return "3 — Okay"
-        case 4: return "4 — Good"
-        case 5: return "5 — Great"
+        case 1: return "1 — Pésimo"
+        case 2: return "2 — Malo"
+        case 3: return "3 — Regular"
+        case 4: return "4 — Bueno"
+        case 5: return "5 — Excelente"
         default: return "\(n)"
         }
     }

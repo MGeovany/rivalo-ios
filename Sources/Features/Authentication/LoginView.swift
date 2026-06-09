@@ -6,23 +6,23 @@ struct LoginView: View {
 
     var body: some View {
         AuthScreenLayout(
-            title: "Sign in",
-            subtitle: "Welcome back."
+            title: "Iniciar sesión",
+            subtitle: "Bienvenido de nuevo."
         ) {
             VStack(spacing: Theme.Spacing.large) {
                 VStack(spacing: Theme.Spacing.medium) {
                     AuthTextField(
-                        placeholder: "Email",
+                        placeholder: "Correo electrónico",
                         text: $store.email,
                         keyboard: .emailAddress,
                         textContentType: .emailAddress
                     )
-                    AuthSecureField(placeholder: "Password", text: $store.password)
+                    AuthSecureField(placeholder: "Contraseña", text: $store.password)
                 }
 
                 HStack {
                     Spacer()
-                    AuthLinkButton(title: "Forgot password?") {
+                    AuthLinkButton(title: "¿Olvidaste tu contraseña?") {
                         store.send(.showForgotPasswordTapped)
                     }
                 }
@@ -30,7 +30,7 @@ struct LoginView: View {
                 messages
 
                 AuthPrimaryButton(
-                    title: "Sign in",
+                    title: "Iniciar sesión",
                     isEnabled: store.canSubmitLogin,
                     isLoading: store.isSubmitting
                 ) {
@@ -38,7 +38,7 @@ struct LoginView: View {
                 }
             }
         } footer: {
-            AuthFooterLink(prefix: "New here?", actionTitle: "Create account") {
+            AuthFooterLink(prefix: "¿Nuevo aquí?", actionTitle: "Crear cuenta") {
                 store.send(.showRegisterTapped)
             }
         }

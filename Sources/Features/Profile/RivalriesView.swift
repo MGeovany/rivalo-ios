@@ -10,7 +10,7 @@ struct RivalriesView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Rivalries")
+            .rivalNavigationChrome(title: "Rivalidades")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -19,7 +19,7 @@ struct RivalriesView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 14, weight: .semibold))
-                            Text("Back")
+                            Text("Atrás")
                                 .font(Theme.Typography.body(size: 15))
                         }
                     }
@@ -47,7 +47,7 @@ struct RivalriesView: View {
         VStack(spacing: Theme.Spacing.medium) {
             ProgressView()
                 .tint(Theme.Colors.accent)
-            Text("Loading rivalries…")
+            Text("Cargando rivalidades…")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
@@ -72,9 +72,9 @@ struct RivalriesView: View {
                     .font(.system(size: 32, weight: .semibold))
                     .foregroundStyle(Theme.Colors.accent)
             }
-            Text("No rivalries yet")
+            Text("Sin rivalidades aún")
                 .font(Theme.Typography.title(size: 22))
-            Text("Play at least 2 matches against the same opponent to see your rivalry history here.")
+            Text("Juega al menos 2 partidos contra el mismo rival para ver tu historial de rivalidad aquí.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -129,9 +129,9 @@ private struct RivalriesHeroBanner: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(count) \(count == 1 ? "rivalry" : "rivalries")")
+                Text("\(count) \(count == 1 ? "rivalidad" : "rivalidades")")
                     .font(Theme.Typography.title(size: 18))
-                Text("Head-to-head history by opponent")
+                Text("Historial cara a cara por rival")
                     .font(Theme.Typography.caption(size: 12))
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
@@ -181,7 +181,7 @@ private struct RivalryCard: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
 
-                    Text("\(rivalry.matchCount) matches played")
+                    Text("\(rivalry.matchCount) \(rivalry.matchCount == 1 ? "partido jugado" : "partidos jugados")")
                         .font(Theme.Typography.caption(size: 12))
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
@@ -194,7 +194,7 @@ private struct RivalryCard: View {
             if rivalry.winRate != nil {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("WIN RATE")
+                        Text("VICTORIAS")
                             .font(Theme.Typography.statLabel(size: 9))
                             .foregroundStyle(Theme.Colors.textSecondary)
                             .tracking(0.9)
@@ -234,7 +234,7 @@ private struct RivalryCard: View {
                     RivalryStatTile(
                         icon: "star.fill",
                         value: String(format: "%.0f", rating),
-                        label: "Avg rating",
+                        label: "Val. media",
                         accent: Theme.Colors.accentBright
                     )
                 }
@@ -242,7 +242,7 @@ private struct RivalryCard: View {
                     RivalryStatTile(
                         icon: "figure.run",
                         value: String(format: "%.1f km", dist / 1000),
-                        label: "Avg distance",
+                        label: "Dist. media",
                         accent: Theme.Colors.accent
                     )
                 }
@@ -250,14 +250,14 @@ private struct RivalryCard: View {
                     RivalryStatTile(
                         icon: "hare.fill",
                         value: "\(Int(sprints))",
-                        label: "Avg sprints",
+                        label: "Sprints medios",
                         accent: Color(red: 0.45, green: 0.85, blue: 1)
                     )
                 }
                 RivalryStatTile(
                     icon: "sportscourt.fill",
                     value: "\(rivalry.matchCount)",
-                    label: "Matches",
+                    label: "Partidos",
                     accent: Color(red: 1, green: 0.85, blue: 0.35)
                 )
             }
@@ -266,7 +266,7 @@ private struct RivalryCard: View {
                 Image(systemName: "calendar")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Theme.Colors.textSecondary)
-                Text("Last match · \(rivalry.lastPlayedAt.formatted(date: .abbreviated, time: .omitted))")
+                Text("Último partido · \(rivalry.lastPlayedAt.formatted(date: .abbreviated, time: .omitted))")
                     .font(Theme.Typography.caption(size: 11))
                     .foregroundStyle(Theme.Colors.textSecondary)
             }

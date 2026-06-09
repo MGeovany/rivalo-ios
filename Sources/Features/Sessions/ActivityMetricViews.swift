@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Performance screen title block (orange accent bar + large title + subtitle).
 struct PerformanceSectionHeader: View {
-    var subtitle = "Your match trends at a glance"
+    var subtitle = "Tus tendencias de partido de un vistazo"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -18,7 +18,7 @@ struct PerformanceSectionHeader: View {
                     .frame(width: 4, height: 36)
                     .shadow(color: Theme.Colors.accent.opacity(0.55), radius: 6, y: 0)
 
-                Text("Performance")
+                Text("Rendimiento")
                     .font(Theme.Typography.display(size: 40))
                     .foregroundStyle(
                         LinearGradient(
@@ -37,7 +37,7 @@ struct PerformanceSectionHeader: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Performance. \(subtitle)")
+        .accessibilityLabel("Rendimiento. \(subtitle)")
     }
 }
 

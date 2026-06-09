@@ -27,7 +27,7 @@ struct RecordLastContextCard: View {
             if let session {
                 statsRow(for: session)
             } else {
-                Text("Your Watch reuses this setup when you record.")
+                Text("Tu Watch reutiliza esta configuración al grabar.")
                     .font(Theme.Typography.caption(size: 12))
                     .foregroundStyle(Theme.Colors.textSecondary.opacity(0.9))
             }
@@ -44,7 +44,7 @@ struct RecordLastContextCard: View {
 
     private var headerRow: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("Last match")
+            Text("Último partido")
                 .font(Theme.Typography.statLabel(size: 10))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .tracking(1)
@@ -91,20 +91,20 @@ struct RecordLastContextCard: View {
             statCell(
                 value: distanceValue(session),
                 unit: "km",
-                label: "Distance"
+                label: "Distancia"
             )
             statDivider
             statCell(
                 value: "\(session.durationS / 60)",
                 unit: "min",
-                label: "Time"
+                label: "Tiempo"
             )
             if let intensity = session.intensity {
                 statDivider
                 statCell(
                     value: String(format: "%.0f", intensity),
                     unit: nil,
-                    label: "Intensity"
+                    label: "Intensidad"
                 )
             }
         }

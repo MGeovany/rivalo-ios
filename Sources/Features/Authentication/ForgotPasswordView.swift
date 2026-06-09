@@ -6,12 +6,12 @@ struct ForgotPasswordView: View {
 
     var body: some View {
         AuthScreenLayout(
-            title: "Reset password",
-            subtitle: "We'll email you a link to set a new password."
+            title: "Restablecer contraseña",
+            subtitle: "Te enviaremos un enlace por correo para establecer una nueva contraseña."
         ) {
             VStack(spacing: Theme.Spacing.large) {
                 AuthTextField(
-                    placeholder: "Email",
+                    placeholder: "Correo electrónico",
                     text: $store.email,
                     keyboard: .emailAddress,
                     textContentType: .emailAddress
@@ -20,7 +20,7 @@ struct ForgotPasswordView: View {
                 messages
 
                 AuthPrimaryButton(
-                    title: "Send reset link",
+                    title: "Enviar enlace",
                     isEnabled: store.canSubmitRecover,
                     isLoading: store.isSubmitting
                 ) {
@@ -28,7 +28,7 @@ struct ForgotPasswordView: View {
                 }
             }
         } footer: {
-            AuthLinkButton(title: "Back to sign in") {
+            AuthLinkButton(title: "Volver a iniciar sesión") {
                 store.send(.showLoginTapped)
             }
             .frame(maxWidth: .infinity)

@@ -17,30 +17,30 @@ struct CourtEditView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Court") {
-                    TextField("Name", text: $store.name)
-                    Picker("Type", selection: $store.type) {
-                        Text("None").tag("")
+                Section("Cancha") {
+                    TextField("Nombre", text: $store.name)
+                    Picker("Tipo", selection: $store.type) {
+                        Text("Ninguno").tag("")
                         ForEach(types, id: \.self) { Text($0).tag($0) }
                     }
-                    Picker("Surface", selection: $store.surface) {
-                        Text("None").tag("")
+                    Picker("Superficie", selection: $store.surface) {
+                        Text("Ninguno").tag("")
                         ForEach(surfaces, id: \.self) { Text($0).tag($0) }
                     }
-                    Toggle("Indoor", isOn: $store.indoor)
+                    Toggle("Interior", isOn: $store.indoor)
                 }
 
-                Section("Dimensions (m)") {
-                    TextField("Length", text: $store.lengthText).keyboardType(.numberPad)
-                    TextField("Width", text: $store.widthText).keyboardType(.numberPad)
+                Section("Dimensiones (m)") {
+                    TextField("Largo", text: $store.lengthText).keyboardType(.numberPad)
+                    TextField("Ancho", text: $store.widthText).keyboardType(.numberPad)
                 }
 
                 orientationSection
 
                 walkMeasureSection
 
-                Section("Notes") {
-                    TextField("Anything useful about this court", text: $store.notes, axis: .vertical)
+                Section("Notas") {
+                    TextField("Cualquier cosa útil sobre esta cancha", text: $store.notes, axis: .vertical)
                         .lineLimit(1...4)
                 }
 
@@ -52,7 +52,7 @@ struct CourtEditView: View {
                     photosSection
                 } else {
                     Section {
-                        Text("Save the court first to add photos.")
+                        Text("Guarda la cancha primero para añadir fotos.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -61,7 +61,7 @@ struct CourtEditView: View {
                 if store.isEditing {
                     Section {
                         Button(role: .destructive) { store.send(.deleteTapped) } label: {
-                            Text("Delete court")
+                            Text("Eliminar cancha")
                         }
                     }
                 }
@@ -70,13 +70,13 @@ struct CourtEditView: View {
                     Section { Text(error).foregroundColor(.red) }
                 }
             }
-            .navigationTitle(store.isEditing ? "Edit court" : "New court")
+            .navigationTitle(store.isEditing ? "Editar cancha" : "Nueva cancha")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { store.send(.dismissTapped) }
+                    Button("Cancelar") { store.send(.dismissTapped) }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { store.send(.saveTapped) }
+                    Button("Guardar") { store.send(.saveTapped) }
                         .disabled(!store.canSave)
                 }
             }
@@ -98,11 +98,11 @@ struct CourtEditView: View {
     /// fixes the compass heading, so heatmaps can show absolute pitch position.
     @ViewBuilder
     private var orientationSection: some View {
-        Section("Orientation") {
+        Section("Orientación") {
             if let heading = store.headingDeg {
-                LabeledContent("Heading", value: String(format: "%.0f°", heading))
+                LabeledContent("Dirección", value: String(format: "%.0f°", heading))
             } else {
-                Text("If you typed the dimensions above, point the phone toward the rival goal and fix the direction. Or use “Measure by walking” below to set everything at once. Optional — enables absolute-position heatmaps.")
+                Text("Si has escrito las dimensiones arriba, apunta el teléfono hacia la portería rival y fija la dirección. O usa \"Medir caminando\" más abajo para configurarlo todo de una vez. Opcional — permite mapas de calor con posición absoluta.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -115,7 +115,7 @@ struct CourtEditView: View {
                     store.longitude = lon
                 }
             } label: {
-                Label(store.headingDeg == nil ? "Fix orientation" : "Re-fix orientation",
+                Label(store.headingDeg == nil ? "Fijar orientación" : "Refijar orientación",
                       systemImage: "location.north.line")
             }
             .disabled(compass.headingDeg == nil)
@@ -123,7 +123,27 @@ struct CourtEditView: View {
                 Button(role: .destructive) {
                     store.headingDeg = nil
                 } label: {
-                    Text("Clear orientation")
+                    Text("Limpiar orientación")
+                }
+            }
+            Button {
+                store.headingDeg = compass.headingDeg
+                // Capture the current location as the pitch center too — the
+                // geo-projection needs both center and heading.
+                if let lat = compass.latitude, let lon = compass.longitude {
+                    store.latitude = lat
+                    store.longitude = lon
+                }
+            } label: {
+                Label(store.headingDeg == nil ? "Fijar orientación" : "Refijar orientación",
+                      systemImage: "location.north.line")
+            }
+            .disabled(compass.headingDeg == nil)
+            if store.headingDeg != nil {
+                Button(role: .destructive) {
+                    store.headingDeg = nil
+                } label: {
+                    Text("Limpiar orientación")
                 }
             }
         }
@@ -134,8 +154,8 @@ struct CourtEditView: View {
     /// more accurate than the compass alone.
     @ViewBuilder
     private var walkMeasureSection: some View {
-        Section("Measure by walking") {
-            Text("Sets length, orientation and location automatically. Stand at the center of your goal line and mark A, walk to the center of the rival goal line and mark B.")
+        Section("Medir caminando") {
+            Text("Configura el largo, la orientación y la ubicación automáticamente. Ponte en el centro de tu línea de gol y marca A, camina hasta el centro de la línea de gol rival y marca B.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             Button {
@@ -144,7 +164,7 @@ struct CourtEditView: View {
                     applyWalkIfComplete()
                 }
             } label: {
-                Label(walkA == nil ? "Mark point A (your goal)" : "A marked ✓ — re-mark",
+                Label(walkA == nil ? "Marca punto A (tu portería)" : "A marcado ✓ — remarcar",
                       systemImage: "1.circle")
             }
             .disabled(compass.latitude == nil)
@@ -154,13 +174,13 @@ struct CourtEditView: View {
                     applyWalkIfComplete()
                 }
             } label: {
-                Label(walkB == nil ? "Mark point B (rival goal)" : "B marked ✓ — re-mark",
+                Label(walkB == nil ? "Marca punto B (portería rival)" : "B marcado ✓ — remarcar",
                       systemImage: "2.circle")
             }
             .disabled(compass.latitude == nil || walkA == nil)
 
             if walkA != nil, walkB != nil, let heading = store.headingDeg {
-                LabeledContent("Captured", value: String(format: "%@ m · %.0f°", store.lengthText, heading))
+                LabeledContent("Capturado", value: String(format: "%@ m · %.0f°", store.lengthText, heading))
                     .foregroundStyle(Theme.Colors.accent)
             }
         }
@@ -181,30 +201,30 @@ struct CourtEditView: View {
     @ViewBuilder
     private var statsSection: some View {
         if let stats = store.stats {
-            Section("Stats") {
+            Section("Estadísticas") {
                 if stats.matchCount > 0 {
-                    LabeledContent("Matches played", value: "\(stats.matchCount)")
+                    LabeledContent("Partidos jugados", value: "\(stats.matchCount)")
                     if let rating = stats.avgRating {
-                        LabeledContent("Avg rating", value: String(format: "%.0f", rating))
+                        LabeledContent("Valoración media", value: String(format: "%.0f", rating))
                     }
                     if let dist = stats.avgDistanceM {
-                        LabeledContent("Avg distance", value: String(format: "%.2f km", dist / 1000))
+                        LabeledContent("Distancia media", value: String(format: "%.2f km", dist / 1000))
                     }
                     if let sprints = stats.avgSprints {
-                        LabeledContent("Avg sprints", value: String(format: "%.0f", sprints))
+                        LabeledContent("Sprints medios", value: String(format: "%.0f", sprints))
                     }
                     if let last = stats.lastPlayedAt {
-                        LabeledContent("Last played", value: last.formatted(date: .abbreviated, time: .omitted))
+                        LabeledContent("Último partido", value: last.formatted(date: .abbreviated, time: .omitted))
                     }
                 } else {
-                    Text("No sessions logged at this court yet.")
+                    Text("Aún no hay sesiones registradas en esta cancha.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
 
             if !stats.records.isEmpty {
-                Section("Court Records") {
+                Section("Récords de la cancha") {
                     ForEach(stats.records) { record in
                         HStack {
                             Image(systemName: record.icon)
@@ -229,7 +249,7 @@ struct CourtEditView: View {
     }
 
     private var photosSection: some View {
-        Section("Photos") {
+        Section("Fotos") {
             if !store.photos.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -257,7 +277,7 @@ struct CourtEditView: View {
                 }
             }
             PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                Label("Add photo", systemImage: "photo.on.rectangle.angled")
+                Label("Añadir foto", systemImage: "photo.on.rectangle.angled")
             }
         }
     }

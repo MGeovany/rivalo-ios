@@ -10,14 +10,14 @@ struct GoalsView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Goals")
+            .rivalNavigationChrome(title: "Objetivos")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { store.send(.dismissTapped) }
+                    Button("Cerrar") { store.send(.dismissTapped) }
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("+ New") { store.send(.newGoalTapped) }
+                    Button("+ Nuevo") { store.send(.newGoalTapped) }
                         .foregroundStyle(Theme.Colors.accent)
                 }
             }
@@ -49,14 +49,14 @@ struct GoalsView: View {
                     }
 
                     if !store.active.isEmpty {
-                        sectionTitle("ACTIVE")
+                        sectionTitle("ACTIVOS")
                         ForEach(store.active) { goal in
                             goalCard(goal)
                         }
                     }
 
                     if !store.achieved.isEmpty {
-                        sectionTitle("ACHIEVED")
+                        sectionTitle("CONSEGUIDOS")
                         ForEach(store.achieved) { goal in
                             goalCard(goal)
                         }
@@ -74,9 +74,9 @@ struct GoalsView: View {
             Image(systemName: "target")
                 .font(.system(size: 40))
                 .foregroundStyle(Theme.Colors.textSecondary)
-            Text("No goals yet")
+            Text("Sin objetivos aún")
                 .font(Theme.Typography.body(size: 18))
-            Text("Set weekly or monthly targets on distance, matches, sprints or rating.")
+            Text("Establece metas semanales o mensuales de distancia, partidos, sprints o valoración.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -109,7 +109,7 @@ struct GoalsView: View {
                         .foregroundStyle(.green)
                         .font(.system(size: 22))
                 } else {
-                    Button("Edit") { store.send(.editGoalTapped(goal)) }
+                    Button("Editar") { store.send(.editGoalTapped(goal)) }
                         .font(Theme.Typography.caption(size: 13))
                         .foregroundStyle(Theme.Colors.accent)
                 }
@@ -119,16 +119,16 @@ struct GoalsView: View {
                 ProgressView(value: goal.progressFraction)
                     .tint(Theme.Colors.accent)
                 HStack {
-                    Button("Archive", role: .destructive) { store.send(.archiveGoal(goal.id)) }
+                    Button("Archivar", role: .destructive) { store.send(.archiveGoal(goal.id)) }
                         .font(Theme.Typography.caption(size: 11))
                     Spacer()
-                    Button("Delete", role: .destructive) { store.send(.deleteGoal(goal.id)) }
+                    Button("Eliminar", role: .destructive) { store.send(.deleteGoal(goal.id)) }
                         .font(Theme.Typography.caption(size: 11))
                 }
             }
 
             if let achievedAt = goal.achievedAt {
-                Text("Achieved \(achievedAt.formatted(date: .abbreviated, time: .omitted))")
+                Text("Conseguido \(achievedAt.formatted(date: .abbreviated, time: .omitted))")
                     .font(Theme.Typography.caption(size: 11))
                     .foregroundStyle(.green)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -144,40 +144,40 @@ struct GoalsView: View {
     private var newGoalForm: some View {
         NavigationStack {
             Form {
-                Section("Metric") {
-                    Picker("Metric", selection: $store.newMetric.sending(\.newMetricChanged)) {
+                Section("Métrica") {
+                    Picker("Métrica", selection: $store.newMetric.sending(\.newMetricChanged)) {
                         ForEach(goalMetricOptions, id: \.id) { opt in
                             Text(opt.label).tag(opt.id)
                         }
                     }
                 }
 
-                Section("Period") {
-                    Picker("Period", selection: $store.newPeriod.sending(\.newPeriodChanged)) {
+                Section("Período") {
+                    Picker("Período", selection: $store.newPeriod.sending(\.newPeriodChanged)) {
                         ForEach(goalPeriodOptions, id: \.id) { opt in
                             Text(opt.label).tag(opt.id)
                         }
                     }
                 }
 
-                Section("Target") {
-                    TextField("Target value", text: $store.newTargetText.sending(\.newTargetTextChanged))
+                Section("Objetivo") {
+                    TextField("Valor objetivo", text: $store.newTargetText.sending(\.newTargetTextChanged))
                         .keyboardType(.decimalPad)
                     if store.newMetric == "distance" {
-                        Text("Distance in meters (e.g. 15000 = 15 km)")
+                        Text("Distancia en metros (ej. 15000 = 15 km)")
                             .font(Theme.Typography.caption(size: 11))
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
                 }
             }
-            .navigationTitle("New Goal")
+            .navigationTitle("Nuevo objetivo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { store.send(.newGoalDismissed) }
+                    Button("Cancelar") { store.send(.newGoalDismissed) }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") { store.send(.saveNewGoalTapped) }
+                    Button("Guardar") { store.send(.saveNewGoalTapped) }
                         .fontWeight(.bold)
                 }
             }
@@ -191,8 +191,8 @@ struct GoalsView: View {
         @Bindable var store = store
         return NavigationStack {
             Form {
-                Section("Target") {
-                    TextField("Target value", text: $store.targetText)
+                Section("Objetivo") {
+                    TextField("Valor objetivo", text: $store.targetText)
                         .keyboardType(.decimalPad)
                 }
                 if let error = store.errorMessage {
@@ -201,7 +201,7 @@ struct GoalsView: View {
                     }
                 }
             }
-            .navigationTitle("Edit Goal")
+            .navigationTitle("Editar objetivo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

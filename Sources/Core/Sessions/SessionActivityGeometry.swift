@@ -181,15 +181,15 @@ enum SessionActivityGeometry {
 
     static func displayLocation(session: SportSession, meta: SessionMeta) -> String {
         if let name = meta.venueName, !name.isEmpty { return name }
-        return session.source == "watch" ? "Watch session" : "Manual session"
+        return session.source == "watch" ? "Sesión de Watch" : "Sesión manual"
     }
 
     static func shareText(session: SportSession, meta: SessionMeta) -> String {
         let place = displayLocation(session: session, meta: meta)
         let date = session.startedAt.formatted(date: .abbreviated, time: .shortened)
-        var lines = ["Rivalo match", date, place, session.distanceKmText, session.durationText]
-        if let hr = session.hrAvg { lines.append("Avg HR \(hr) bpm") }
-        if let intensity = session.intensity { lines.append(String(format: "Intensity %.0f", intensity)) }
+        var lines = ["Partido Rivalo", date, place, session.distanceKmText, session.durationText]
+        if let hr = session.hrAvg { lines.append("FC media \(hr) bpm") }
+        if let intensity = session.intensity { lines.append(String(format: "Intensidad %.0f", intensity)) }
         lines.append("Sprints \(session.sprints)")
         return lines.joined(separator: "\n")
     }

@@ -23,7 +23,7 @@ struct SessionWeekStrip: View {
                     .font(Theme.Typography.button(size: 15))
                     .foregroundStyle(Theme.Colors.textPrimary)
                 Spacer()
-                Text("\(sessionsThisWeek) matches")
+                Text("\(sessionsThisWeek) \(sessionsThisWeek == 1 ? "partido" : "partidos")")
                     .font(Theme.Typography.caption(size: 12))
                     .foregroundStyle(Theme.Colors.accent)
             }

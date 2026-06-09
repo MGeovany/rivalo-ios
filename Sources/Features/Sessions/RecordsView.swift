@@ -19,7 +19,7 @@ struct RecordsView: View {
                     recordsContent
                 }
             }
-            .rivalNavigationChrome(title: "Personal Records")
+            .rivalNavigationChrome(title: "Récords personales")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -28,7 +28,7 @@ struct RecordsView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 14, weight: .semibold))
-                            Text("Back")
+                            Text("Atrás")
                                 .font(Theme.Typography.body(size: 15))
                         }
                     }
@@ -47,7 +47,7 @@ struct RecordsView: View {
         VStack(spacing: Theme.Spacing.medium) {
             ProgressView()
                 .tint(Theme.Colors.accent)
-            Text("Loading records…")
+            Text("Cargando récords…")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
@@ -59,7 +59,7 @@ struct RecordsView: View {
                 .font(Theme.Typography.body())
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
-            Button("Retry") { store.send(.onAppear) }
+            Button("Reintentar") { store.send(.onAppear) }
                 .font(Theme.Typography.button())
                 .foregroundStyle(Color.black)
                 .padding(.horizontal, 24)
@@ -86,9 +86,9 @@ struct RecordsView: View {
                     .font(.system(size: 36, weight: .semibold))
                     .foregroundStyle(Theme.Colors.accent)
             }
-            Text("No records yet")
+            Text("Sin récords aún")
                 .font(Theme.Typography.title(size: 22))
-            Text("Complete a match to start tracking personal bests.")
+            Text("Completa un partido para empezar a registrar tus mejores marcas.")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -153,12 +153,12 @@ struct PersonalRecordsHomeCard: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("PERSONAL RECORDS")
+                            Text("RÉCORDS PERSONALES")
                                 .font(Theme.Typography.statLabel(size: 10))
                                 .foregroundStyle(Theme.Colors.accentBright.opacity(0.95))
                                 .tracking(1.2)
 
-                            Text("Your best marks")
+                            Text("Tus mejores marcas")
                                 .font(Theme.Typography.body(size: 15))
                                 .foregroundStyle(Theme.Colors.textPrimary)
                         }
@@ -182,7 +182,7 @@ struct PersonalRecordsHomeCard: View {
                     }
 
                     if highlights.isEmpty {
-                        Text("Tap to view all categories")
+                        Text("Toca para ver todas las categorías")
                             .font(Theme.Typography.caption(size: 12))
                             .foregroundStyle(Theme.Colors.textSecondary)
                     } else {
@@ -194,7 +194,7 @@ struct PersonalRecordsHomeCard: View {
                     }
 
                     HStack(spacing: 4) {
-                        Text("View all")
+                        Text("Ver todo")
                             .font(Theme.Typography.caption(size: 12))
                             .foregroundStyle(Theme.Colors.accent)
                         Image(systemName: "chevron.right")
@@ -263,10 +263,10 @@ private struct RecordsHeroBanner: View {
                     )
                 )
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(count) personal bests")
+                Text("\(count) \(count == 1 ? "mejor marca" : "mejores marcas")")
                     .font(Theme.Typography.title(size: 18))
                     .foregroundStyle(Theme.Colors.textPrimary)
-                Text("Across all tracked categories")
+                Text("En todas las categorías")
                     .font(Theme.Typography.caption(size: 12))
                     .foregroundStyle(Theme.Colors.textSecondary)
             }

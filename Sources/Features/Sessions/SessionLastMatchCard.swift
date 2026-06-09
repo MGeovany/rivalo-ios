@@ -56,7 +56,7 @@ struct SessionLastMatchCard: View {
     private var headerSection: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.medium) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Latest match")
+                Text("Último partido")
                     .font(Theme.Typography.statLabel(size: 10))
                     .foregroundStyle(Theme.Colors.accentBright)
                     .tracking(1.2)
@@ -118,14 +118,14 @@ struct SessionLastMatchCard: View {
                 accent: Theme.Colors.accent,
                 value: distanceText,
                 unit: "km",
-                label: "Distance"
+                label: "Distancia"
             )
             LastMatchMetricTile(
                 icon: "clock.fill",
                 accent: Theme.Colors.accentBright,
                 value: "\(session.durationS / 60)",
                 unit: "min",
-                label: "Time"
+                label: "Tiempo"
             )
             if let hr = session.hrAvg {
                 LastMatchMetricTile(
@@ -133,7 +133,7 @@ struct SessionLastMatchCard: View {
                     accent: Color(red: 1, green: 0.45, blue: 0.55),
                     value: "\(hr)",
                     unit: "bpm",
-                    label: "Avg HR"
+                    label: "FC media"
                 )
             }
             if let intensity = session.intensity {
@@ -142,7 +142,7 @@ struct SessionLastMatchCard: View {
                     accent: Color(red: 1, green: 0.75, blue: 0.25),
                     value: String(format: "%.0f", intensity),
                     unit: nil,
-                    label: "Intensity"
+                    label: "Intensidad"
                 )
             }
         }
@@ -153,7 +153,7 @@ struct SessionLastMatchCard: View {
     private var detailsFooter: some View {
         Button(action: onTap) {
             HStack(spacing: 8) {
-                Text("View match details")
+                Text("Ver detalles del partido")
                     .font(Theme.Typography.caption(size: 13))
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")

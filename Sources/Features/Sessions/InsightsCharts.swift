@@ -10,13 +10,13 @@ enum InsightsCharts {
         sessionCount: Int
     ) -> some View {
         InsightsSection(
-            title: "Match rating trend",
+            title: "Tendencia de valoración",
             footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts
-                ? "Based on \(sessionCount) matches — early sample"
+                ? "Basado en \(sessionCount) partidos — muestra temprana"
                 : nil
         ) {
             if points.count < InsightsAnalytics.minMatchesForTrends {
-                emptyState("Need at least \(InsightsAnalytics.minMatchesForTrends) rated matches")
+                emptyState("Necesitas al menos \(InsightsAnalytics.minMatchesForTrends) partidos valorados")
             } else {
                 VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
                     if let callout {
@@ -55,7 +55,7 @@ enum InsightsCharts {
         summary: InsightsAnalytics.FatigueSummary?,
         isLoading: Bool
     ) -> some View {
-        InsightsSection(title: "Fatigue drop") {
+        InsightsSection(title: "Caída de rendimiento") {
             if isLoading {
                 ProgressView().tint(Theme.Colors.accent).frame(maxWidth: .infinity, minHeight: 120)
             } else if let summary {
@@ -65,7 +65,7 @@ enum InsightsCharts {
                             .font(Theme.Typography.metric(size: 36))
                             .foregroundStyle(summary.dropPercent > 12 ? Theme.Colors.negative : Theme.Colors.textPrimary)
                             .monospacedDigit()
-                        Text("avg drop 1st → 2nd half")
+                        Text("caída media 1er → 2do tiempo")
                             .font(Theme.Typography.caption(size: 12))
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
@@ -92,12 +92,12 @@ enum InsightsCharts {
                     }
                     .frame(height: 140)
 
-                    Text("From \(summary.sessionCount) structured \(summary.sessionCount == 1 ? "match" : "matches") · high-intensity min per half")
+                    Text("De \(summary.sessionCount) \(summary.sessionCount == 1 ? "partido" : "partidos") estructurados · min de alta intensidad por tiempo")
                         .font(Theme.Typography.caption(size: 11))
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
             } else {
-                emptyState("Structured matches with halves show fatigue here")
+                emptyState("Los partidos estructurados con tiempos muestran la fatiga aquí")
             }
         }
     }
@@ -107,11 +107,11 @@ enum InsightsCharts {
         sessionCount: Int
     ) -> some View {
         InsightsSection(
-            title: "Sprints trend",
-            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Early sample" : nil
+            title: "Tendencia de sprints",
+            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Muestra temprana" : nil
         ) {
             if points.count < InsightsAnalytics.minMatchesForTrends {
-                emptyState("Log a few matches with sprint data")
+                emptyState("Registra algunos partidos con datos de sprints")
             } else {
                 Chart(points) { point in
                     BarMark(
@@ -137,11 +137,11 @@ enum InsightsCharts {
         sessionCount: Int
     ) -> some View {
         InsightsSection(
-            title: "Top speed trend",
-            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Early sample" : nil
+            title: "Tendencia de velocidad máxima",
+            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Muestra temprana" : nil
         ) {
             if points.count < InsightsAnalytics.minMatchesForTrends {
-                emptyState("Speed data appears on Watch matches")
+                emptyState("Los datos de velocidad aparecen en partidos de Watch")
             } else {
                 Chart(points) { point in
                     LineMark(
@@ -180,10 +180,10 @@ enum InsightsCharts {
     ) -> some View {
         InsightsSection(
             title: title,
-            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Scores may shift with more data" : nil
+            footnote: sessionCount < InsightsAnalytics.minMatchesForStrongCallouts ? "Las puntuaciones pueden variar con más datos" : nil
         ) {
             if rows.isEmpty {
-                emptyState("Add match context to compare")
+                emptyState("Añade contexto al partido para comparar")
             } else {
                 let maxScore = rows.map(\.avgScore).max() ?? 100
                 VStack(spacing: Theme.Spacing.medium) {
@@ -199,7 +199,7 @@ enum InsightsCharts {
         summary: InsightsAnalytics.ConsistencySummary?,
         sessionCount: Int
     ) -> some View {
-        InsightsSection(title: "Consistency") {
+        InsightsSection(title: "Consistencia") {
             if let summary {
                 HStack(alignment: .center, spacing: Theme.Spacing.large) {
                     ZStack {
@@ -229,9 +229,9 @@ enum InsightsCharts {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else if sessionCount < InsightsAnalytics.minMatchesForTrends {
-                emptyState("Rate at least \(InsightsAnalytics.minMatchesForTrends) matches to see consistency")
+                emptyState("Valora al menos \(InsightsAnalytics.minMatchesForTrends) partidos para ver consistencia")
             } else {
-                emptyState("Match ratings unlock this insight")
+                emptyState("Las valoraciones de partidos desbloquean esta información")
             }
         }
     }

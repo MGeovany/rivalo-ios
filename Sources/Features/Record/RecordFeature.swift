@@ -74,7 +74,7 @@ struct RecordFeature {
                     }
                 case .queued:
                     state.recordAlertMessage =
-                        "Open Rivalo on your Apple Watch — your match is ready to start."
+                        "Abre Rivalo en tu Apple Watch — tu partido está listo para empezar."
                     return .run { _ in
                         PostHogSDK.shared.capture("match_start_requested", properties: [
                             "result": "queued",

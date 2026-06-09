@@ -6,26 +6,26 @@ struct RegisterView: View {
 
     var body: some View {
         AuthScreenLayout(
-            title: "Create account",
-            subtitle: "Track every match."
+            title: "Crear cuenta",
+            subtitle: "Registra cada partido."
         ) {
             VStack(spacing: Theme.Spacing.large) {
                 VStack(spacing: Theme.Spacing.medium) {
                     AuthTextField(
-                        placeholder: "Email",
+                        placeholder: "Correo electrónico",
                         text: $store.email,
                         keyboard: .emailAddress,
                         textContentType: .emailAddress
                     )
-                    AuthSecureField(placeholder: "Password", text: $store.password)
+                    AuthSecureField(placeholder: "Contraseña", text: $store.password)
                 }
 
-                AuthHint(text: "At least 6 characters")
+                AuthHint(text: "Al menos 6 caracteres")
 
                 messages
 
                 AuthPrimaryButton(
-                    title: "Create account",
+                    title: "Crear cuenta",
                     isEnabled: store.canSubmitRegister,
                     isLoading: store.isSubmitting
                 ) {
@@ -33,7 +33,7 @@ struct RegisterView: View {
                 }
             }
         } footer: {
-            AuthFooterLink(prefix: "Already have an account?", actionTitle: "Sign in") {
+            AuthFooterLink(prefix: "¿Ya tienes cuenta?", actionTitle: "Iniciar sesión") {
                 store.send(.showLoginTapped)
             }
         }

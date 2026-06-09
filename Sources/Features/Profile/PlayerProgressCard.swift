@@ -228,7 +228,7 @@ struct PlayerProgressCardCanvas: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Shows what this stat means")
+            .accessibilityHint("Muestra lo que significa esta estadística")
         } else {
             block
         }

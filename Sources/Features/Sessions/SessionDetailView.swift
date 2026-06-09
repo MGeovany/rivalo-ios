@@ -14,25 +14,25 @@ struct SessionDetailView: View {
                 Theme.Colors.background.ignoresSafeArea()
                 content
             }
-            .rivalNavigationChrome(title: "Activity")
+            .rivalNavigationChrome(title: "Actividad")
             .toolbar { toolbarContent }
         }
         .foregroundStyle(Theme.Colors.textPrimary)
         .onAppear { store.send(.onAppear) }
-        .alert("Save court / venue", isPresented: venuePromptBinding) {
-            TextField("Venue name", text: venueDraftBinding)
-            Button("Save") { store.send(.confirmVenueTapped) }
-            Button("Cancel", role: .cancel) { store.send(.cancelVenueTapped) }
+        .alert("Guardar cancha / lugar", isPresented: venuePromptBinding) {
+            TextField("Nombre del lugar", text: venueDraftBinding)
+            Button("Guardar") { store.send(.confirmVenueTapped) }
+            Button("Cancelar", role: .cancel) { store.send(.cancelVenueTapped) }
         } message: {
-            Text("Name where you played. Shown on your activity and map.")
+            Text("Nombre de dónde jugaste. Se muestra en tu actividad y mapa.")
         }
         .confirmationDialog(
-            "Delete this activity?",
+            "¿Eliminar esta actividad?",
             isPresented: deleteConfirmBinding,
             titleVisibility: .visible
         ) {
-            Button("Delete activity", role: .destructive) { store.send(.confirmDeleteTapped) }
-            Button("Cancel", role: .cancel) { store.send(.cancelDeleteTapped) }
+            Button("Eliminar actividad", role: .destructive) { store.send(.confirmDeleteTapped) }
+            Button("Cancelar", role: .cancel) { store.send(.cancelDeleteTapped) }
         }
         .sheet(isPresented: shareSheetBinding) {
             if let image = shareImage {
@@ -85,44 +85,44 @@ struct SessionDetailView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button("Close") { store.send(.dismissTapped) }
+            Button("Cerrar") { store.send(.dismissTapped) }
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Label("Add photos", systemImage: "photo.on.rectangle.angled")
+                    Label("Añadir fotos", systemImage: "photo.on.rectangle.angled")
                 }
                 if let session = store.session {
                     Button {
                         store.send(.addResultTapped)
                     } label: {
-                        Label(session.outcome == nil ? "Add match result" : "Edit match result",
+                        Label(session.outcome == nil ? "Añadir resultado" : "Editar resultado",
                               systemImage: "flag.checkered")
                     }
                     Button {
                         store.send(.editTapped)
                     } label: {
-                        Label("Edit session", systemImage: "pencil")
+                        Label("Editar sesión", systemImage: "pencil")
                     }
                     Button {
                         store.send(.saveVenueTapped)
                     } label: {
-                        Label("Save court", systemImage: "sportscourt")
+                        Label("Guardar cancha", systemImage: "sportscourt")
                     }
                     Button {
                         shareImage = renderCard(session: session, meta: store.meta)
                     } label: {
-                        Label("Share card", systemImage: "square.and.arrow.up")
+                        Label("Compartir tarjeta", systemImage: "square.and.arrow.up")
                     }
                     Divider()
                     Button(role: .destructive) {
                         store.send(.deleteTapped)
                     } label: {
-                        Label("Delete activity", systemImage: "trash")
+                        Label("Eliminar actividad", systemImage: "trash")
                     }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button("Cancelar", role: .cancel) {}
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 20, weight: .medium))
@@ -164,7 +164,7 @@ struct SessionDetailView: View {
                 }
             }
         } else {
-            Text(store.errorMessage ?? "Not found")
+            Text(store.errorMessage ?? "No encontrado")
                 .font(Theme.Typography.body())
                 .foregroundStyle(Theme.Colors.negative)
                 .padding()
@@ -198,12 +198,12 @@ struct SessionDetailView: View {
             }
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Theme.Spacing.small) {
-                detailStat(session.distanceKmText, "Distance", "figure.run")
-                detailStat(session.durationText, "Time", "clock.fill")
-                detailStat(session.hrAvg.map { "\($0)" } ?? "—", "Avg HR", "heart.fill", unit: "bpm")
-                detailStat(session.hrMax.map { "\($0)" } ?? "—", "Max HR", "bolt.heart.fill", unit: "bpm")
+                detailStat(session.distanceKmText, "Distancia", "figure.run")
+                detailStat(session.durationText, "Tiempo", "clock.fill")
+                detailStat(session.hrAvg.map { "\($0)" } ?? "—", "FC media", "heart.fill", unit: "bpm")
+                detailStat(session.hrMax.map { "\($0)" } ?? "—", "FC máx", "bolt.heart.fill", unit: "bpm")
                 detailStat("\(session.sprints)", "Sprints", "hare.fill")
-                detailStat(session.intensity.map { String(format: "%.0f", $0) } ?? "—", "Intensity", "flame.fill")
+                detailStat(session.intensity.map { String(format: "%.0f", $0) } ?? "—", "Intensidad", "flame.fill")
             }
 
             if let insights = session.matchInsights, !insights.isEmpty {
@@ -317,7 +317,7 @@ struct SessionDetailView: View {
         return HStack(spacing: Theme.Spacing.small) {
             Image(systemName: "trophy.fill")
                 .font(.system(size: 14, weight: .bold))
-            Text("New personal record: \(names)")
+            Text("Nuevo récord personal: \(names)")
                 .font(Theme.Typography.body(size: 14))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -334,7 +334,7 @@ struct SessionDetailView: View {
         let rows = Self.comparisonRows(session: session, averages: averages)
         if !rows.isEmpty {
             VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-                Text("VS YOUR AVERAGE")
+                Text("VS TU MEDIA")
                     .font(Theme.Typography.statLabel(size: 11))
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .tracking(1)
@@ -362,14 +362,14 @@ struct SessionDetailView: View {
 
     private static func recordLabel(_ metric: String) -> String {
         switch metric {
-        case "distance_m": return "Distance"
-        case "duration_s": return "Time"
-        case "speed_max_kmh": return "Top speed"
+        case "distance_m": return "Distancia"
+        case "duration_s": return "Tiempo"
+        case "speed_max_kmh": return "Velocidad máxima"
         case "sprints": return "Sprints"
-        case "intensity": return "Intensity"
-        case "match_rating": return "Rating"
-        case "hr_max": return "Max HR"
-        case "calories_kcal": return "Calories"
+        case "intensity": return "Intensidad"
+        case "match_rating": return "Valoración"
+        case "hr_max": return "FC máx"
+        case "calories_kcal": return "Calorías"
         default: return metric
         }
     }
@@ -386,19 +386,19 @@ struct SessionDetailView: View {
             return (value - avg) / avg * 100
         }
         if let d = pct(session.distanceM, averages.distancePerMatch) {
-            rows.append(ComparisonRow(label: "Distance", delta: d))
+            rows.append(ComparisonRow(label: "Distancia", delta: d))
         }
         if let d = pct(Double(session.durationS), averages.durationPerMatch) {
-            rows.append(ComparisonRow(label: "Time", delta: d))
+            rows.append(ComparisonRow(label: "Tiempo", delta: d))
         }
         if let d = pct(Double(session.sprints), averages.sprintsPerMatch) {
             rows.append(ComparisonRow(label: "Sprints", delta: d))
         }
         if let intensity = session.intensity, let d = pct(intensity, averages.intensity) {
-            rows.append(ComparisonRow(label: "Intensity", delta: d))
+            rows.append(ComparisonRow(label: "Intensidad", delta: d))
         }
         if let rating = session.matchRating, let d = pct(rating, averages.matchRating) {
-            rows.append(ComparisonRow(label: "Rating", delta: d))
+            rows.append(ComparisonRow(label: "Valoración", delta: d))
         }
         return rows
     }
@@ -407,7 +407,7 @@ struct SessionDetailView: View {
         Button {
             store.send(.comparePitchTapped)
         } label: {
-            Label("Compare at this court", systemImage: "chart.bar.xaxis")
+            Label("Comparar en esta cancha", systemImage: "chart.bar.xaxis")
                 .font(Theme.Typography.body(size: 15))
                 .frame(maxWidth: .infinity)
                 .padding(Theme.Spacing.medium)
@@ -433,11 +433,11 @@ struct SessionDetailView: View {
                     .foregroundStyle(Theme.Colors.accent)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Match Rating")
+                Text("Valoración")
                     .font(Theme.Typography.statLabel(size: 11))
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .tracking(1)
-                Text("Physical performance, not skill")
+                Text("Rendimiento físico, no habilidad")
                     .font(Theme.Typography.caption(size: 11))
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
@@ -450,30 +450,30 @@ struct SessionDetailView: View {
 
     private func fatigueDropSection(_ fd: FatigueDrop) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("Fatigue Drop")
+            Text("Caída de rendimiento")
                 .font(Theme.Typography.statLabel(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .tracking(1)
 
-            Text("1st half vs 2nd half")
+            Text("1er tiempo vs 2do tiempo")
                 .font(Theme.Typography.caption(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
 
             HStack(spacing: 0) {
-                halfColumn("1st", metrics: fd.firstHalf, color: Theme.Colors.accent)
+                halfColumn("1er", metrics: fd.firstHalf, color: Theme.Colors.accent)
                 Divider()
                     .frame(width: 1)
                     .background(Theme.Colors.textSecondary.opacity(0.3))
-                halfColumn("2nd", metrics: fd.secondHalf, color: Theme.Colors.positive)
+                halfColumn("2do", metrics: fd.secondHalf, color: Theme.Colors.positive)
             }
             .background(Theme.Colors.surface)
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
 
             if let change = fd.hrAvgPctChange {
-                changeRow(label: "Avg HR", change: change, unit: "%")
+                changeRow(label: "FC media", change: change, unit: "%")
             }
             if let change = fd.highIntensityPctChange {
-                changeRow(label: "High intensity", change: change, unit: "%")
+                changeRow(label: "Intensidad alta", change: change, unit: "%")
             }
         }
     }
@@ -489,28 +489,28 @@ struct SessionDetailView: View {
             Text(metrics.hrAvg.map { String(format: "%.0f", $0) } ?? "—")
                 .font(Theme.Typography.metric(size: 22))
                 .monospacedDigit()
-            Text("Avg HR")
+            Text("FC media")
                 .font(Theme.Typography.caption(size: 10))
                 .foregroundStyle(Theme.Colors.textSecondary)
 
             Text("\(metrics.highIntensityS / 60):\(String(format: "%02d", metrics.highIntensityS % 60))")
                 .font(Theme.Typography.metric(size: 20))
                 .monospacedDigit()
-            Text("High int.")
+            Text("Int. alta")
                 .font(Theme.Typography.caption(size: 10))
                 .foregroundStyle(Theme.Colors.textSecondary)
 
             Text(metrics.speedMaxKmh.map { String(format: "%.1f", $0) } ?? "—")
                 .font(Theme.Typography.metric(size: 20))
                 .monospacedDigit()
-            Text("Max speed")
+            Text("Vel. máxima")
                 .font(Theme.Typography.caption(size: 10))
                 .foregroundStyle(Theme.Colors.textSecondary)
 
             Text("\(metrics.sampleCount)")
                 .font(Theme.Typography.metric(size: 20))
                 .monospacedDigit()
-            Text("Samples")
+            Text("Muestras")
                 .font(Theme.Typography.caption(size: 10))
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
@@ -537,7 +537,7 @@ struct SessionDetailView: View {
 
     private var photosSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text("Photos")
+            Text("Fotos")
                 .font(Theme.Typography.statLabel(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .tracking(1)
@@ -606,7 +606,7 @@ struct SessionDetailView: View {
     @ViewBuilder
     private func matchInsightsSection(_ insights: [MatchInsight]) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text("MATCH INSIGHTS")
+            Text("ESTADÍSTICAS DEL PARTIDO")
                 .font(Theme.Typography.statLabel(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .tracking(1)

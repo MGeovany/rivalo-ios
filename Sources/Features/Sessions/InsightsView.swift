@@ -23,7 +23,7 @@ struct InsightsView: View {
                     emptyState
                 }
             }
-            .rivalNavigationChrome(title: "Insights")
+            .rivalNavigationChrome(title: "Estadísticas")
             .task { store.send(.onAppear) }
         }
         .tint(Theme.Colors.accent)
@@ -39,11 +39,11 @@ struct InsightsView: View {
                 .foregroundStyle(Theme.Colors.accent.opacity(0.5))
 
             VStack(spacing: Theme.Spacing.small) {
-                Text("No insights yet")
+                Text("Sin estadísticas aún")
                     .font(Theme.Typography.title(size: 20))
                     .foregroundStyle(Theme.Colors.textPrimary)
 
-                Text("Record your first match to start seeing your performance trends, distance, and activity patterns.")
+                Text("Registra tu primer partido para empezar a ver tus tendencias de rendimiento, distancia y patrones de actividad.")
                     .font(Theme.Typography.body(size: 15))
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -57,7 +57,7 @@ struct InsightsView: View {
         VStack(spacing: Theme.Spacing.medium) {
             ProgressView()
                 .tint(Theme.Colors.accent)
-            Text("Loading insights…")
+            Text("Cargando estadísticas…")
                 .font(Theme.Typography.caption())
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
@@ -69,7 +69,7 @@ struct InsightsView: View {
                 .font(Theme.Typography.body())
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
-            Button("Retry") { store.send(.onAppear) }
+            Button("Reintentar") { store.send(.onAppear) }
                 .font(Theme.Typography.button())
                 .foregroundStyle(Color.black)
                 .padding(.horizontal, 24)
@@ -130,13 +130,13 @@ struct InsightsView: View {
                 )
 
                 InsightsCharts.performanceSection(
-                    title: "Performance by position",
+                    title: "Rendimiento por posición",
                     rows: byPosition,
                     sessionCount: count
                 )
 
                 InsightsCharts.performanceSection(
-                    title: "Performance by match type",
+                    title: "Rendimiento por tipo de partido",
                     rows: byMatchType,
                     sessionCount: count
                 )
@@ -153,7 +153,7 @@ struct InsightsView: View {
                 Button {
                     store.send(.positionInsightsTapped)
                 } label: {
-                    Label("Position insights", systemImage: "figure.soccer")
+                    Label("Estadísticas por posición", systemImage: "figure.soccer")
                         .font(Theme.Typography.body(size: 15))
                         .frame(maxWidth: .infinity)
                         .padding(Theme.Spacing.medium)
@@ -181,7 +181,7 @@ private struct InsightsEarlySampleBanner: View {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.Colors.accent)
-            Text("\(sessionCount)/\(needed) matches — trends are indicative, not definitive.")
+            Text("\(sessionCount)/\(needed) partidos — las tendencias son indicativas, no definitivas.")
                 .font(Theme.Typography.caption(size: 12))
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
@@ -197,7 +197,7 @@ private struct InsightsRulesCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("FROM YOUR DATA")
+            Text("DE TUS DATOS")
                 .font(Theme.Typography.statLabel(size: 10))
                 .foregroundStyle(Theme.Colors.accentBright.opacity(0.9))
                 .tracking(1.2)
@@ -245,7 +245,7 @@ private struct InsightsHeroCard: View {
             VStack(alignment: .leading, spacing: Theme.Spacing.large) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("ALL-TIME")
+                        Text("TODO EL TIEMPO")
                             .font(Theme.Typography.statLabel(size: 10))
                             .foregroundStyle(Theme.Colors.accentBright.opacity(0.9))
                             .tracking(1.4)
@@ -255,7 +255,7 @@ private struct InsightsHeroCard: View {
                                 .font(Theme.Typography.metric(size: 44))
                                 .foregroundStyle(.white)
                                 .monospacedDigit()
-                            Text("matches")
+                            Text("partidos")
                                 .font(Theme.Typography.caption(size: 14))
                                 .foregroundStyle(Theme.Colors.textSecondary)
                         }
@@ -322,7 +322,7 @@ private struct InsightsHeroCard: View {
     private func formatDuration(_ seconds: Int) -> String {
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60
-        if hours > 0 { return "\(hours)h \(minutes)m on pitch" }
-        return "\(minutes)m on pitch"
+        if hours > 0 { return "\(hours)h \(minutes)m en cancha" }
+        return "\(minutes)m en cancha"
     }
 }
