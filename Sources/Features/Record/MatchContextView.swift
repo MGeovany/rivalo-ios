@@ -57,7 +57,6 @@ struct MatchContextView: View {
                             Text(o).tag(o)
                         }
                     }
-                    }
 
                     if !store.outcome.isEmpty {
                         Stepper(
@@ -88,7 +87,6 @@ struct MatchContextView: View {
                         ForEach(competitions, id: \.self) { c in
                             Text(c).tag(c)
                         }
-                    }
                     }
                 }
 
