@@ -14,6 +14,11 @@ struct CourtEditFeature {
         var surface = ""
         var lengthText = ""
         var widthText = ""
+        /// Pitch orientation (own goal -> rival goal), degrees from north. Optional.
+        var headingDeg: Double?
+        /// Pitch center, captured alongside orientation; needed for geo-projection.
+        var latitude: Double?
+        var longitude: Double?
         var indoor = false
         var notes = ""
         var photos: [PitchPhoto] = []
@@ -37,6 +42,9 @@ struct CourtEditFeature {
             self.surface = pitch.surface ?? ""
             self.lengthText = pitch.lengthM.map { String(format: "%.0f", $0) } ?? ""
             self.widthText = pitch.widthM.map { String(format: "%.0f", $0) } ?? ""
+            self.headingDeg = pitch.headingDeg
+            self.latitude = pitch.latitude
+            self.longitude = pitch.longitude
             self.indoor = pitch.indoor ?? false
             self.notes = pitch.notes ?? ""
             self.photos = PitchPhotoStore.load(pitchId: pitch.id)
@@ -103,10 +111,14 @@ struct CourtEditFeature {
                 let notes = state.notes.isEmpty ? nil : state.notes
                 let indoor = state.indoor
 
+                let headingDeg = state.headingDeg
+                let latitude = state.latitude
+                let longitude = state.longitude
+
                 if let id {
                     let update = PitchUpdate(
-                        name: name, type: type, surface: surface,
-                        lengthM: length, widthM: width, indoor: indoor, notes: notes
+                        name: name, latitude: latitude, longitude: longitude, type: type, surface: surface,
+                        lengthM: length, widthM: width, headingDeg: headingDeg, indoor: indoor, notes: notes
                     )
                     return .run { send in
                         await send(.saveResponse(Result { try await apiClient.updatePitch(token, id, update) }
@@ -114,8 +126,8 @@ struct CourtEditFeature {
                     }
                 } else {
                     let new = NewPitch(
-                        name: name, type: type, surface: surface,
-                        lengthM: length, widthM: width, indoor: indoor, notes: notes
+                        name: name, latitude: latitude, longitude: longitude, type: type, surface: surface,
+                        lengthM: length, widthM: width, headingDeg: headingDeg, indoor: indoor, notes: notes
                     )
                     return .run { send in
                         await send(.saveResponse(Result { try await apiClient.createPitch(token, new) }

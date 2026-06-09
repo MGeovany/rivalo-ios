@@ -6,6 +6,7 @@ import SwiftUI
 struct CourtEditView: View {
     @Bindable var store: StoreOf<CourtEditFeature>
     @State private var selectedPhoto: PhotosPickerItem?
+    @StateObject private var compass = CompassService()
 
     private let types = ["5-a-side", "7-a-side", "9-a-side", "11-a-side", "Other"]
     private let surfaces = ["Natural grass", "Artificial turf", "Indoor", "Concrete", "Other"]
@@ -30,6 +31,8 @@ struct CourtEditView: View {
                     TextField("Length", text: $store.lengthText).keyboardType(.numberPad)
                     TextField("Width", text: $store.widthText).keyboardType(.numberPad)
                 }
+
+                orientationSection
 
                 Section("Notes") {
                     TextField("Anything useful about this court", text: $store.notes, axis: .vertical)
@@ -81,6 +84,43 @@ struct CourtEditView: View {
                 }
             }
             .task { store.send(.onAppear) }
+            .onAppear { compass.start() }
+            .onDisappear { compass.stop() }
+        }
+    }
+
+    /// Orientation capture: the user points the phone toward the rival goal and
+    /// fixes the compass heading, so heatmaps can show absolute pitch position.
+    @ViewBuilder
+    private var orientationSection: some View {
+        Section("Orientation") {
+            if let heading = store.headingDeg {
+                LabeledContent("Heading", value: String(format: "%.0f°", heading))
+            } else {
+                Text("Point the phone toward the rival goal, then fix the orientation. Optional — enables absolute-position heatmaps.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                store.headingDeg = compass.headingDeg
+                // Capture the current location as the pitch center too — the
+                // geo-projection needs both center and heading.
+                if let lat = compass.latitude, let lon = compass.longitude {
+                    store.latitude = lat
+                    store.longitude = lon
+                }
+            } label: {
+                Label(store.headingDeg == nil ? "Fix orientation" : "Re-fix orientation",
+                      systemImage: "location.north.line")
+            }
+            .disabled(compass.headingDeg == nil)
+            if store.headingDeg != nil {
+                Button(role: .destructive) {
+                    store.headingDeg = nil
+                } label: {
+                    Text("Clear orientation")
+                }
+            }
         }
     }
 

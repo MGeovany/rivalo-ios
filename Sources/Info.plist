@@ -25,6 +25,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Rivalo uses the camera to measure the pitch as you walk its length and width.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Rivalo uses your location and compass to capture a pitch's position and orientation, so your match heatmaps show where you played on the field.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Rivalo uses your photo library to set your player card picture.</string>
 	<key>PostHogHost</key>
