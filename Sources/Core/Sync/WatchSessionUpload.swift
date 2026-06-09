@@ -7,7 +7,7 @@ enum WatchSessionUpload {
         payload: NewSportSession,
         apiClient: APIClient
     ) async throws -> SportSession {
-        var created = try await apiClient.createSession(accessToken, payload)
+        var created = try await apiClient.createSession(accessToken, enrichGeoReference(payload))
 
         let context = SessionContextUpdate(
             matchType: payload.matchType,
@@ -48,5 +48,27 @@ enum WatchSessionUpload {
         LastSetupStore.save(lastConfig)
 
         return created
+    }
+
+    /// Fills the session's geo-reference snapshot from the locally-cached pitch
+    /// when the watch didn't send one. Denormalizing here means the heatmap can
+    /// project to absolute position even if the pitch is later edited or removed.
+    private static func enrichGeoReference(_ payload: NewSportSession) -> NewSportSession {
+        guard payload.pitchHeadingDeg == nil,
+              let pitchId = payload.pitchId,
+              let pitch = PitchCacheStore.load().first(where: { $0.id == pitchId }),
+              let heading = pitch.headingDeg,
+              let lat = pitch.latitude, let lon = pitch.longitude,
+              let length = pitch.lengthM, length > 0,
+              let width = pitch.widthM, width > 0
+        else { return payload }
+
+        var enriched = payload
+        enriched.pitchCenterLat = lat
+        enriched.pitchCenterLon = lon
+        enriched.pitchHeadingDeg = heading
+        enriched.pitchLengthM = length
+        enriched.pitchWidthM = width
+        return enriched
     }
 }

@@ -57,6 +57,11 @@ enum SessionActivityGeometry {
         let filteredPath = path(for: session, period: period)
 
         if filteredPath.count >= 2 {
+            // Absolute-position projection when the pitch is geo-referenced;
+            // otherwise normalize to the movement bounding box.
+            if let ref = PitchGeoProjection.reference(from: session) {
+                return geoTrack(from: filteredPath, samples: filteredSamples, ref: ref)
+            }
             return track(from: filteredPath, samples: filteredSamples)
         }
 
@@ -181,6 +186,28 @@ enum SessionActivityGeometry {
     }
 
     // MARK: - Private
+
+    /// Projects the GPS path onto the geo-referenced pitch — absolute position
+    /// (own half vs rival, left/right wing), not just movement spread.
+    private static func geoTrack(
+        from path: [SessionPathPoint],
+        samples: [SessionSample],
+        ref: PitchGeoProjection.GeoReference
+    ) -> [PitchPoint] {
+        path.map { point in
+            let (u, v) = PitchGeoProjection.project(
+                latitude: point.latitude, longitude: point.longitude, ref: ref
+            )
+            let speed = speedNear(tOffsetS: point.tOffsetS, in: samples)
+            let weight = min(1, (speed ?? 10) / 26)
+            return PitchPoint(
+                x: u,
+                y: v,
+                weight: weight,
+                isSprint: (speed ?? 0) >= sprintSpeedThresholdKmh
+            )
+        }
+    }
 
     /// Maps seeded/API GPS path into 0…1 pitch coords (attack direction → right).
     private static func track(from path: [SessionPathPoint], samples: [SessionSample]) -> [PitchPoint] {

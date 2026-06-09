@@ -10,6 +10,8 @@ struct Pitch: Equatable, Codable, Sendable, Identifiable {
     let surface: String?
     let lengthM: Double?
     let widthM: Double?
+    /// Bearing of the long axis (own goal -> rival goal) in degrees from north.
+    let headingDeg: Double?
     let measurementMethod: String?
     let indoor: Bool?
     let notes: String?
@@ -34,6 +36,7 @@ struct NewPitch: Equatable, Encodable, Sendable {
     var surface: String?
     var lengthM: Double?
     var widthM: Double?
+    var headingDeg: Double?
     var measurementMethod: String?
     var indoor: Bool?
     var notes: String?
@@ -58,6 +61,7 @@ struct PitchUpdate: Equatable, Encodable, Sendable {
     var surface: String?
     var lengthM: Double?
     var widthM: Double?
+    var headingDeg: Double?
     var measurementMethod: String?
     var indoor: Bool?
     var notes: String?

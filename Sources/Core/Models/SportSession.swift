@@ -71,6 +71,12 @@ struct SportSession: Equatable, Codable, Identifiable {
     let assists: Int?
     let notes: String?
     let matchRating: Double?
+    /// Geo-reference snapshot (oriented rectangle) for absolute-position heatmaps.
+    let pitchCenterLat: Double?
+    let pitchCenterLon: Double?
+    let pitchHeadingDeg: Double?
+    let pitchLengthM: Double?
+    let pitchWidthM: Double?
     let createdAt: Date
     /// Time series; present on detail reads, absent on the list.
     let samples: [SessionSample]?
@@ -167,6 +173,12 @@ struct NewSportSession: Equatable, Codable, Sendable {
     var halftimeOffsetS: Int?
     var samples: [SessionSample]?
     var path: [SessionPathPoint]?
+    // Geo-reference snapshot (oriented rectangle) for absolute-position heatmaps.
+    var pitchCenterLat: Double?
+    var pitchCenterLon: Double?
+    var pitchHeadingDeg: Double?
+    var pitchLengthM: Double?
+    var pitchWidthM: Double?
 }
 
 extension NewSportSession {
@@ -199,6 +211,11 @@ extension NewSportSession {
         self.pitchLatitude = info["pitch_latitude"] as? Double
         self.pitchLongitude = info["pitch_longitude"] as? Double
         self.halftimeOffsetS = info["halftime_offset_s"] as? Int
+        self.pitchCenterLat = info["pitch_center_lat"] as? Double
+        self.pitchCenterLon = info["pitch_center_lon"] as? Double
+        self.pitchHeadingDeg = info["pitch_heading_deg"] as? Double
+        self.pitchLengthM = info["pitch_length_m"] as? Double
+        self.pitchWidthM = info["pitch_width_m"] as? Double
 
         if let rawSamples = info["samples"] as? [[String: Any]] {
             self.samples = rawSamples.compactMap { sample in

@@ -51,6 +51,7 @@ enum PitchesSync {
         let surface = info["surface"] as? String
         let lat = info["latitude"] as? Double
         let lon = info["longitude"] as? Double
+        let headingDeg = info["heading_deg"] as? Double
 
         let created = try? await create(
             accessToken: token,
@@ -63,6 +64,7 @@ enum PitchesSync {
                 surface: surface,
                 lengthM: lengthM,
                 widthM: widthM,
+                headingDeg: headingDeg,
                 measurementMethod: method
             )
         )
