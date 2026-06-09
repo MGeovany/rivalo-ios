@@ -47,10 +47,13 @@ enum SessionActivityGeometry {
     }
 
     /// Movement path on the pitch for a period and format.
+    /// - flipSecondHalf: when true (default), 2nd-half positions are mirrored
+    ///   180° on the geo-referenced heatmap because the teams switched ends.
     static func pitchTrack(
         from session: SportSession,
         period: PitchMatchPeriod = .full,
-        format: PitchFormat? = nil
+        format: PitchFormat? = nil,
+        flipSecondHalf: Bool = true
     ) -> [PitchPoint] {
         let format = format ?? pitchFormat(for: session)
         let filteredSamples = samples(for: session, period: period)
@@ -60,7 +63,12 @@ enum SessionActivityGeometry {
             // Absolute-position projection when the pitch is geo-referenced;
             // otherwise normalize to the movement bounding box.
             if let ref = PitchGeoProjection.reference(from: session) {
-                return geoTrack(from: filteredPath, samples: filteredSamples, ref: ref)
+                return geoTrack(
+                    from: filteredPath,
+                    samples: filteredSamples,
+                    ref: ref,
+                    halftimeOffsetS: flipSecondHalf ? session.halftimeOffsetS : nil
+                )
             }
             return track(from: filteredPath, samples: filteredSamples)
         }
@@ -100,9 +108,10 @@ enum SessionActivityGeometry {
     static func sprintSegments(
         from session: SportSession,
         period: PitchMatchPeriod = .full,
-        format: PitchFormat? = nil
+        format: PitchFormat? = nil,
+        flipSecondHalf: Bool = true
     ) -> [(PitchPoint, PitchPoint)] {
-        let track = pitchTrack(from: session, period: period, format: format)
+        let track = pitchTrack(from: session, period: period, format: format, flipSecondHalf: flipSecondHalf)
         guard track.count >= 2 else { return [] }
 
         var segments: [(PitchPoint, PitchPoint)] = []
@@ -192,12 +201,19 @@ enum SessionActivityGeometry {
     private static func geoTrack(
         from path: [SessionPathPoint],
         samples: [SessionSample],
-        ref: PitchGeoProjection.GeoReference
+        ref: PitchGeoProjection.GeoReference,
+        halftimeOffsetS: Int?
     ) -> [PitchPoint] {
         path.map { point in
-            let (u, v) = PitchGeoProjection.project(
+            var (u, v) = PitchGeoProjection.project(
                 latitude: point.latitude, longitude: point.longitude, ref: ref
             )
+            // Teams switch ends at halftime: mirror 2nd-half positions 180° so
+            // "my attacking half" stays consistent across both halves.
+            if let ht = halftimeOffsetS, point.tOffsetS >= ht {
+                u = 1 - u
+                v = 1 - v
+            }
             let speed = speedNear(tOffsetS: point.tOffsetS, in: samples)
             let weight = min(1, (speed ?? 10) / 26)
             return PitchPoint(

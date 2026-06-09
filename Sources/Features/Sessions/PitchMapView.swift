@@ -11,17 +11,27 @@ struct PitchMapView: View {
     @State private var mapMode: PitchMapMode = .heatmap
     @State private var matchPeriod: PitchMatchPeriod = .full
     @State private var heatImage: UIImage?
+    @State private var flipSecondHalf = true
 
     private var format: PitchFormat {
         SessionActivityGeometry.pitchFormat(for: session)
     }
 
+    /// The flip toggle only matters for a geo-referenced, half-flow match.
+    private var canFlipSecondHalf: Bool {
+        session.halftimeOffsetS != nil && PitchGeoProjection.reference(from: session) != nil
+    }
+
     private var track: [SessionActivityGeometry.PitchPoint] {
-        SessionActivityGeometry.pitchTrack(from: session, period: matchPeriod, format: format)
+        SessionActivityGeometry.pitchTrack(
+            from: session, period: matchPeriod, format: format, flipSecondHalf: flipSecondHalf
+        )
     }
 
     private var sprintSegments: [(SessionActivityGeometry.PitchPoint, SessionActivityGeometry.PitchPoint)] {
-        SessionActivityGeometry.sprintSegments(from: session, period: matchPeriod, format: format)
+        SessionActivityGeometry.sprintSegments(
+            from: session, period: matchPeriod, format: format, flipSecondHalf: flipSecondHalf
+        )
     }
 
     var body: some View {
@@ -37,6 +47,14 @@ struct PitchMapView: View {
         .task(id: "\(renderKey)-\(mapMode.rawValue)") {
             await renderHeatmap()
         }
+        .onAppear {
+            flipSecondHalf = SessionMetaStore.load(sessionId: session.id).flipsSecondHalf
+        }
+        .onChange(of: flipSecondHalf) { _, newValue in
+            var meta = SessionMetaStore.load(sessionId: session.id)
+            meta.secondHalfSwitchedSides = newValue
+            SessionMetaStore.save(sessionId: session.id, meta: meta)
+        }
     }
 
     private var mapContent: some View {
@@ -44,6 +62,16 @@ struct PitchMapView: View {
             PitchSegmentedControl(selection: $mapMode, items: PitchMapMode.allCases)
 
             PitchPeriodPicker(selection: $matchPeriod)
+
+            if canFlipSecondHalf {
+                Toggle(isOn: $flipSecondHalf) {
+                    Text("Teams switched sides at halftime")
+                        .font(Theme.Typography.caption(size: 11))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                .toggleStyle(.switch)
+                .tint(Theme.Colors.accent)
+            }
 
             PitchAttackDirectionView()
 
@@ -66,7 +94,7 @@ struct PitchMapView: View {
     }
 
     private var renderKey: String {
-        "\(session.id)-\(matchPeriod.rawValue)-\(track.count)"
+        "\(session.id)-\(matchPeriod.rawValue)-\(flipSecondHalf)-\(track.count)"
     }
 
     private var infoTitle: String {

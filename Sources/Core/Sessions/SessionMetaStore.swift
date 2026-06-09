@@ -5,6 +5,11 @@ struct SessionMeta: Equatable, Codable {
     var venueName: String?
     var latitude: Double?
     var longitude: Double?
+    /// Whether the teams switched ends at halftime (mirrors 2nd-half positions on
+    /// the geo-referenced heatmap). nil = default true (official football).
+    var secondHalfSwitchedSides: Bool?
+
+    var flipsSecondHalf: Bool { secondHalfSwitchedSides ?? true }
 }
 
 enum SessionMetaStore {
