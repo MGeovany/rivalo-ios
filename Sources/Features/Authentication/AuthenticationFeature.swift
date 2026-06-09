@@ -205,6 +205,7 @@ struct AuthenticationFeature {
     private func errorText(_ error: AuthError) -> String {
         switch error {
         case let .message(text): return text
+        case let .unauthorized(text): return text
         case .invalidResponse: return "Something went wrong. Please try again."
         }
     }

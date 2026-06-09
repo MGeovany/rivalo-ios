@@ -57,15 +57,14 @@ struct AppFeature {
                 return .none
 
             case .refreshTimerTick:
-                return .run { [refreshToken = state.refreshToken] send in
-                    let token = tokenStore.load()?.refreshToken ?? refreshToken
-                    guard let token else { return }
-                    // Route through the same coordinator as on-401 refreshes so
-                    // the rotating refresh token is never used twice concurrently
-                    // (Supabase revokes the whole session on refresh-token reuse).
+                return .run { send in
+                    guard tokenStore.load()?.refreshToken != nil else { return }
+                    // Route through the same coordinator as on-401 refreshes. The
+                    // coordinator reads the freshest token from the keychain itself,
+                    // so the rotating refresh token is never used twice (Supabase
+                    // revokes the whole session on refresh-token reuse).
                     let result = await Result {
                         try await TokenRefreshCoordinator.shared.refresh(
-                            refreshToken: token,
                             authClient: authClient,
                             tokenStore: tokenStore
                         )
@@ -82,12 +81,28 @@ struct AppFeature {
                 try? tokenStore.save(session)
                 return startRefreshTimer(session)
 
-            case .tokenRefreshed(.failure):
-                // Don't kill the proactive loop on a transient failure — retry
-                // after a short backoff. On-401 refresh remains the fallback.
-                return .run { send in
-                    try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
-                    await send(.refreshTimerTick)
+            case let .tokenRefreshed(.failure(error)):
+                switch error {
+                case .message, .invalidResponse:
+                    // Transient (network blip / 5xx / rate limit). Keep the user
+                    // signed in and retry later — a mobile app must not bounce the
+                    // user to login over a temporary failure. The session is still
+                    // valid; the next refresh (or on-401 retry) will renew it.
+                    return .run { send in
+                        try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
+                        await send(.refreshTimerTick)
+                    }
+                case .unauthorized:
+                    // The refresh token itself was rejected (400/401/403) — the
+                    // session is genuinely dead and cannot be renewed, so this is
+                    // the one case where re-login is unavoidable.
+                    state.main = nil
+                    state.refreshToken = nil
+                    return .run { _ in
+                        PostHogSDK.shared.capture("session_expired_signed_out")
+                        PostHogSDK.shared.reset()
+                        tokenStore.clear()
+                    }
                 }
 
             case let .auth(.delegate(.authenticated(session))):

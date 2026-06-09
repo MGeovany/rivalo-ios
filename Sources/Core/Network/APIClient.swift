@@ -311,14 +311,28 @@ extension APIClient: DependencyKey {
 actor TokenRefreshCoordinator {
     static let shared = TokenRefreshCoordinator()
     private var inFlight: Task<Session, Error>?
+    /// When the server last rejected the refresh token. Used as a circuit breaker
+    /// so a revoked/expired token doesn't make every API 401 hammer the auth
+    /// endpoint (which gets the whole app rate-limited).
+    private var lastHardFailureAt: Date?
+    private let cooldown: TimeInterval = 30
 
     func refresh(
-        refreshToken: String,
         authClient: AuthClient,
         tokenStore: TokenStore
     ) async throws -> Session {
         if let inFlight {
             return try await inFlight.value
+        }
+        if let last = lastHardFailureAt, Date().timeIntervalSince(last) < cooldown {
+            // Recent hard rejection — fail fast without touching the network.
+            throw AuthError.unauthorized("Session expired. Please sign in again.")
+        }
+        // Read the refresh token from the keychain INSIDE the actor, never from a
+        // caller-supplied value. Supabase rotates the token on every use; a stale
+        // token passed by a racy caller would be a second use → session revoked.
+        guard let refreshToken = tokenStore.load()?.refreshToken else {
+            throw AuthError.unauthorized("Session expired. Please sign in again.")
         }
         let task = Task { () throws -> Session in
             let session = try await authClient.refresh(refreshToken)
@@ -327,7 +341,19 @@ actor TokenRefreshCoordinator {
         }
         inFlight = task
         defer { inFlight = nil }
-        return try await task.value
+        do {
+            let session = try await task.value
+            lastHardFailureAt = nil
+            return session
+        } catch let error as AuthError {
+            // Only a hard token rejection (.unauthorized) trips the breaker.
+            // Transient errors (.message 5xx/rate-limit, .invalidResponse network)
+            // must not — the session is still valid and should keep retrying.
+            if case .unauthorized = error {
+                lastHardFailureAt = Date()
+            }
+            throw error
+        }
     }
 }
 
@@ -349,7 +375,6 @@ private func retryOnUnauthorized<T>(
             return try await operation(stored.accessToken)
         }
         let session = try await TokenRefreshCoordinator.shared.refresh(
-            refreshToken: stored.refreshToken,
             authClient: authClient,
             tokenStore: tokenStore
         )

@@ -10,9 +10,24 @@ enum SignUpResult: Equatable {
 }
 
 /// Errors surfaced by the auth client. `message` carries a human-readable reason.
-enum AuthError: Error, Equatable {
+enum AuthError: Error, Equatable, LocalizedError {
+    /// A transient server error (5xx / rate limit) — the request may succeed later.
     case message(String)
+    /// The credentials or token were rejected (400/401/403). A refresh hitting
+    /// this means the session is genuinely dead and re-login is required.
+    case unauthorized(String)
+    /// Network/unreachable — transient.
     case invalidResponse
+
+    /// Surfaces the real reason (from Supabase) to the UI and to crash/error logs
+    /// instead of the generic "operation couldn't be completed (error 0)".
+    var errorDescription: String? {
+        switch self {
+        case let .message(text): text
+        case let .unauthorized(text): text
+        case .invalidResponse: "Could not reach the authentication server. Check your connection and try again."
+        }
+    }
 }
 
 /// Talks to Supabase Auth (GoTrue) over REST for email/password authentication.
@@ -126,7 +141,13 @@ private func goTruePost(
     guard let http = response as? HTTPURLResponse else { throw AuthError.invalidResponse }
     guard (200..<300).contains(http.statusCode) else {
         let parsed = try? decoder().decode(goTrueError.self, from: data)
-        throw AuthError.message(parsed?.text ?? "Authentication failed (\(http.statusCode))")
+        let text = parsed?.text ?? "Authentication failed (\(http.statusCode))"
+        // 400/401/403 = credentials/token rejected (won't recover on retry).
+        // Everything else (429/5xx) is transient.
+        if [400, 401, 403].contains(http.statusCode) {
+            throw AuthError.unauthorized(text)
+        }
+        throw AuthError.message(text)
     }
     return data
 }
