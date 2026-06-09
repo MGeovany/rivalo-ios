@@ -7,6 +7,9 @@ struct CourtEditView: View {
     @Bindable var store: StoreOf<CourtEditFeature>
     @State private var selectedPhoto: PhotosPickerItem?
     @StateObject private var compass = CompassService()
+    // "Walk two points" capture: A = own goal-line center, B = rival goal-line center.
+    @State private var walkA: (lat: Double, lon: Double)?
+    @State private var walkB: (lat: Double, lon: Double)?
 
     private let types = ["5-a-side", "7-a-side", "9-a-side", "11-a-side", "Other"]
     private let surfaces = ["Natural grass", "Artificial turf", "Indoor", "Concrete", "Other"]
@@ -33,6 +36,8 @@ struct CourtEditView: View {
                 }
 
                 orientationSection
+
+                walkMeasureSection
 
                 Section("Notes") {
                     TextField("Anything useful about this court", text: $store.notes, axis: .vertical)
@@ -97,7 +102,7 @@ struct CourtEditView: View {
             if let heading = store.headingDeg {
                 LabeledContent("Heading", value: String(format: "%.0f°", heading))
             } else {
-                Text("Point the phone toward the rival goal, then fix the orientation. Optional — enables absolute-position heatmaps.")
+                Text("If you typed the dimensions above, point the phone toward the rival goal and fix the direction. Or use “Measure by walking” below to set everything at once. Optional — enables absolute-position heatmaps.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -122,6 +127,55 @@ struct CourtEditView: View {
                 }
             }
         }
+    }
+
+    /// "Walk two points": mark your goal-line center (A), walk to the rival
+    /// goal-line center (B). Derives length, orientation and center in one go —
+    /// more accurate than the compass alone.
+    @ViewBuilder
+    private var walkMeasureSection: some View {
+        Section("Measure by walking") {
+            Text("Sets length, orientation and location automatically. Stand at the center of your goal line and mark A, walk to the center of the rival goal line and mark B.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Button {
+                if let lat = compass.latitude, let lon = compass.longitude {
+                    walkA = (lat, lon)
+                    applyWalkIfComplete()
+                }
+            } label: {
+                Label(walkA == nil ? "Mark point A (your goal)" : "A marked ✓ — re-mark",
+                      systemImage: "1.circle")
+            }
+            .disabled(compass.latitude == nil)
+            Button {
+                if let lat = compass.latitude, let lon = compass.longitude {
+                    walkB = (lat, lon)
+                    applyWalkIfComplete()
+                }
+            } label: {
+                Label(walkB == nil ? "Mark point B (rival goal)" : "B marked ✓ — re-mark",
+                      systemImage: "2.circle")
+            }
+            .disabled(compass.latitude == nil || walkA == nil)
+
+            if walkA != nil, walkB != nil, let heading = store.headingDeg {
+                LabeledContent("Captured", value: String(format: "%@ m · %.0f°", store.lengthText, heading))
+                    .foregroundStyle(Theme.Colors.accent)
+            }
+        }
+    }
+
+    /// When both ends are marked, derive length + heading + center.
+    private func applyWalkIfComplete() {
+        guard let a = walkA, let b = walkB else { return }
+        let length = GeoMath.distanceM(lat1: a.lat, lon1: a.lon, lat2: b.lat, lon2: b.lon)
+        guard length > 0 else { return }
+        store.lengthText = String(format: "%.0f", length)
+        store.headingDeg = GeoMath.bearingDeg(lat1: a.lat, lon1: a.lon, lat2: b.lat, lon2: b.lon)
+        let mid = GeoMath.midpoint(lat1: a.lat, lon1: a.lon, lat2: b.lat, lon2: b.lon)
+        store.latitude = mid.lat
+        store.longitude = mid.lon
     }
 
     @ViewBuilder
