@@ -256,6 +256,7 @@ struct PlayerProgressCard: View {
     let content: PlayerCardContent
 
     @State private var assetLoader = PlayerCardAssetLoader()
+    @State private var sheenPhase: CGFloat = -0.5
 
     init(content: PlayerCardContent) {
         self.content = content
@@ -273,6 +274,7 @@ struct PlayerProgressCard: View {
                 images: assetLoader.images,
                 showsStatExplanations: true
             )
+            .overlay { sheen(size: geo.size) }
         }
         .aspectRatio(PlayerCardLayout.aspectRatio, contentMode: .fit)
         .frame(maxWidth: 340)
@@ -285,6 +287,30 @@ struct PlayerProgressCard: View {
         }
         .task(id: content.tier) {
             await assetLoader.load(tier: content.tier)
+            sheenPhase = -0.5
+            withAnimation(.easeInOut(duration: 1.2).delay(0.3)) {
+                sheenPhase = 1.5
+            }
+        }
+    }
+
+    /// One-shot light sweep across the card after the tier assets load.
+    @ViewBuilder
+    private func sheen(size: CGSize) -> some View {
+        if !assetLoader.images.isEmpty {
+            LinearGradient(
+                colors: [.clear, Color.white.opacity(0.14), .clear],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: size.width * 0.5, height: size.height * 1.4)
+            .rotationEffect(.degrees(18))
+            .offset(x: size.width * (sheenPhase * 1.6 - 0.8))
+            .mask {
+                RoundedRectangle(cornerRadius: size.width * 0.06)
+                    .frame(width: size.width, height: size.height)
+            }
+            .allowsHitTesting(false)
         }
     }
 

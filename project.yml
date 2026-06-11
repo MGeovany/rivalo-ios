@@ -55,8 +55,9 @@ targets:
         # Allow plain-HTTP requests to the local backend during development.
         PostHogProjectToken: phc_C6YFLY4Rn6vSqQegH4G4c3nR9seBPZyxqwTpx94RQGZz
         PostHogHost: https://us.i.posthog.com
-        NSCameraUsageDescription: Rivalo uses the camera to measure the pitch as you walk its length and width.
-        NSPhotoLibraryUsageDescription: Rivalo uses your photo library to set your player card picture.
+        NSCameraUsageDescription: Rivalo usa la cámara para medir la cancha mientras caminas su largo y ancho.
+        NSPhotoLibraryUsageDescription: Rivalo usa tu biblioteca de fotos para establecer la imagen de tu tarjeta de jugador.
+        NSLocationWhenInUseUsageDescription: Rivalo usa tu ubicación y brújula para capturar la posición y orientación de la cancha, para que tus mapas de calor muestren dónde jugaste en el campo.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         UIAppFonts:
@@ -115,9 +116,9 @@ targets:
           UIColorName: LaunchBackground
           UIImageName: Isotipo
           UIImageRespectsSafeAreaInsets: true
-        NSLocationWhenInUseUsageDescription: Rivalo uses your location to measure the pitch while you walk its length and width.
-        NSHealthShareUsageDescription: Rivalo reads your heart rate, distance and energy during a match to build your performance summary.
-        NSHealthUpdateUsageDescription: Rivalo saves each match as a workout in the Health app.
+        NSLocationWhenInUseUsageDescription: Rivalo usa tu ubicación para medir la cancha mientras caminas su largo y ancho.
+        NSHealthShareUsageDescription: Rivalo lee tu frecuencia cardíaca, distancia y energía durante un partido para crear tu resumen de rendimiento.
+        NSHealthUpdateUsageDescription: Rivalo guarda cada partido como un entrenamiento en la app Salud.
         PostHogProjectToken: phc_C6YFLY4Rn6vSqQegH4G4c3nR9seBPZyxqwTpx94RQGZz
         PostHogHost: https://us.i.posthog.com
         WKBackgroundModes:

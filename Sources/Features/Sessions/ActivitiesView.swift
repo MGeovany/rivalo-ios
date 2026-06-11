@@ -43,16 +43,21 @@ struct ActivitiesView: View {
 
                     if store.filteredActivities.isEmpty {
                         filteredEmptyState
+                            .transition(.opacity)
                     } else {
                         LazyVStack(spacing: Theme.Spacing.medium) {
                             ForEach(store.filteredActivities) { session in
-                                Button { store.send(.sessionTapped(session)) } label: {
+                                Button {
+                                    Feedback.tap()
+                                    store.send(.sessionTapped(session))
+                                } label: {
                                     ActivityListRow(
                                         session: session,
                                         meta: SessionMetaStore.load(sessionId: session.id)
                                     )
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.pressable)
+                                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
                             }
                         }
                     }
@@ -60,6 +65,7 @@ struct ActivitiesView: View {
                 .padding(.horizontal, Theme.Spacing.large)
                 .padding(.top, Theme.Spacing.medium)
                 .padding(.bottom, Theme.Spacing.xl)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: store.filteredActivities)
             }
             .refreshable { store.send(.onAppear) }
         }
@@ -160,7 +166,10 @@ private struct ActivitiesSearchBar: View {
                             title: option.rawValue,
                             isSelected: filter == option
                         ) {
-                            filter = option
+                            Feedback.selection()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                filter = option
+                            }
                         }
                     }
                 }
@@ -207,7 +216,7 @@ private struct ActivitiesFilterChip: View {
                     }
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 

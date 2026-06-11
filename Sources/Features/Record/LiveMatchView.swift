@@ -22,12 +22,15 @@ struct LiveMatchView: View {
             Spacer()
         }
         .padding(.horizontal, Theme.Spacing.xl)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: store.segment)
     }
 
     private var timerDisplay: some View {
         Text(formattedElapsed)
             .font(.system(size: 56, weight: .bold, design: .monospaced))
             .foregroundStyle(Theme.Colors.textPrimary)
+            .contentTransition(.numericText(countsDown: false))
+            .animation(.snappy(duration: 0.25), value: store.elapsedS)
     }
 
     private var segmentLabel: some View {
@@ -38,6 +41,8 @@ struct LiveMatchView: View {
             .padding(.vertical, 6)
             .background(Theme.Colors.surface)
             .cornerRadius(12)
+            .id(store.segment)
+            .transition(.opacity.combined(with: .scale(scale: 0.92)))
     }
 
     private var controlButtons: some View {
@@ -46,24 +51,36 @@ struct LiveMatchView: View {
                 controlButton(
                     label: "Pausa",
                     systemImage: "pause.fill",
-                    action: { store.send(.pauseTapped) }
+                    action: {
+                        Feedback.tap()
+                        store.send(.pauseTapped)
+                    }
                 )
                 controlButton(
                     label: "Descanso",
                     systemImage: "stopwatch",
-                    action: { store.send(.halftimeTapped) }
+                    action: {
+                        Feedback.press()
+                        store.send(.halftimeTapped)
+                    }
                 )
             } else if store.segment == "secondHalf" {
                 controlButton(
                     label: "Reanudar",
                     systemImage: "play.fill",
-                    action: { store.send(.resumeTapped) }
+                    action: {
+                        Feedback.tap()
+                        store.send(.resumeTapped)
+                    }
                 )
             } else if store.segment == "halftimeBreak" {
                 controlButton(
                     label: "2do Tiempo",
                     systemImage: "forward.fill",
-                    action: { store.send(.resumeTapped) }
+                    action: {
+                        Feedback.press()
+                        store.send(.resumeTapped)
+                    }
                 )
             }
 
@@ -71,9 +88,13 @@ struct LiveMatchView: View {
                 label: "Finalizar",
                 systemImage: "stop.fill",
                 role: .destructive,
-                action: { store.send(.endTapped) }
+                action: {
+                    Feedback.matchEnd()
+                    store.send(.endTapped)
+                }
             )
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: store.segment)
     }
 
     private func controlButton(

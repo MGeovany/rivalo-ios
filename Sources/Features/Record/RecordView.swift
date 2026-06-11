@@ -17,6 +17,7 @@ struct RecordView: View {
 
                         VStack(spacing: Theme.Spacing.large) {
                             RecordStartOrb {
+                                Feedback.matchStart()
                                 store.send(.recordTapped)
                             }
 
@@ -94,7 +95,7 @@ private struct RecordStartOrb: View {
                 }
                 .frame(width: 220, height: 220)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableButtonStyle(scale: 0.93))
             .accessibilityLabel("Registrar partido")
         }
     }

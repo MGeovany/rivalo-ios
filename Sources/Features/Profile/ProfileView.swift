@@ -4,6 +4,8 @@ import SwiftUI
 struct ProfileView: View {
     @Bindable var store: StoreOf<ProfileFeature>
 
+    @State private var cardAppeared = false
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -15,7 +17,18 @@ struct ProfileView: View {
                     ScrollView {
                         VStack(spacing: Theme.Spacing.xl) {
                             if let card = store.playerCard {
-                                PlayerProgressCard(model: card)
+                                VStack(spacing: Theme.Spacing.medium) {
+                                    PlayerProgressCard(model: card)
+                                    PlayerCardRankBar(model: card)
+                                }
+                                .opacity(cardAppeared ? 1 : 0)
+                                .scaleEffect(cardAppeared ? 1 : 0.96)
+                                .offset(y: cardAppeared ? 0 : 10)
+                                .onAppear {
+                                    withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                                        cardAppeared = true
+                                    }
+                                }
                             } else {
                                 profileSetupHint
                             }
@@ -82,6 +95,11 @@ struct ProfileView: View {
             store.send(.errorDismissed)
         }
         .onAppear { store.send(.onAppear) }
+        .onChange(of: store.isSaving) { wasSaving, isSaving in
+            if wasSaving, !isSaving, store.errorMessage == nil {
+                Feedback.confirm()
+            }
+        }
         .refreshable { store.send(.onAppear) }
         .sheet(item: $store.scope(state: \.courts, action: \.courts)) { courtsStore in
             CourtsView(store: courtsStore)
@@ -101,7 +119,10 @@ struct ProfileView: View {
     }
 
     private func profileRow(title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            Feedback.tap()
+            action()
+        } label: {
             HStack(spacing: Theme.Spacing.medium) {
                 Image(systemName: icon)
                     .foregroundStyle(Theme.Colors.accent)
@@ -117,7 +138,7 @@ struct ProfileView: View {
             .background(Theme.Colors.surface)
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     // MARK: - Sections
